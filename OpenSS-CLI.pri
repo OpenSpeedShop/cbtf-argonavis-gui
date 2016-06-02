@@ -30,13 +30,6 @@ OPENSS_PRI_INCLUDED = 1
     warning()
 
   } else {
-    !exists($$quote($${LIBOPENSS_INC}/include/libopenss-cli/Direct.hxx)) {
-      warning()
-      warning("The plugin depends on headers from the Open|SpeedShop tool framework.  However, the path passed " \
-              "to qmake through 'LIBOPENSS_INC=$$LIBOPENSS_INC', doesn't contain the expected top-level header files.")
-      error("Header files at $$quote($${LIBOPENSS_INC}/include/) were not found.")
-    }
-
     INCLUDEPATH += $$quote($${LIBOPENSS_INC}/include)
     DEPENDPATH  += $$quote($${LIBOPENSS_INC}/include)
 
