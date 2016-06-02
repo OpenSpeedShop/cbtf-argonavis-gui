@@ -1,0 +1,167 @@
+/*!
+   \file MainWindow.cpp
+   \author Gregory Schultz <gregory.schultz@embarqmail.com>
+
+   \section LICENSE
+   This file is part of the Open|SpeedShop Graphical User Interface
+   Copyright (C) 2010-2016 Argo Navis Technologies, LLC
+
+   This library is free software; you can redistribute it and/or modify it
+   under the terms of the GNU Lesser General Public License as published by the
+   Free Software Foundation; either version 2.1 of the License, or (at your
+   option) any later version.
+
+   This library is distributed in the hope that it will be useful, but WITHOUT
+   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+   FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+   for more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this library; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
+#include "MainWindow.h"
+#include "ui_mainwindow.h"
+
+#include "managers/PerformanceDataManager.h"
+
+
+namespace ArgoNavis { namespace GUI {
+
+
+/**
+ * \brief MainWindow::MainWindow
+ * @param parent - specify parent of the MainWindow instance
+ *
+ * Constructs a widget which is a child of parent.  If parent is 0, the new widget becomes a window.  If parent is another widget,
+ * this widget becomes a child window inside parent. The new widget is deleted when its parent is deleted.
+ */
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow( parent )
+    , ui( new Ui::MainWindow )
+{
+    ui->setupUi( this );
+
+    setStyleSheet(
+                "QSplitter::handle:vertical   { height: 4px; image: url(:/images/vsplitter-handle); background-color: rgba(200, 200, 200, 80); }"
+                "QSplitter::handle:horizontal { width:  4px; image: url(:/images/hsplitter-handle); background-color: rgba(200, 200, 200, 80); }"
+                );
+
+    connect( ui->actionLoad_OSS_Experiment, &QAction::triggered, this, &MainWindow::loadOpenSsExperiment );
+    connect( ui->actionExit, &QAction::triggered, this, &MainWindow::shutdownApplication );
+
+    // connect performance data manager signals to experiment panel slots
+    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
+    if ( dataMgr ) {
+        connect( dataMgr, &PerformanceDataManager::loadComplete, this, &MainWindow::handleLoadComplete );
+        connect( dataMgr, &PerformanceDataManager::addExperiment, ui->widget_ExperimentPanel, &ExperimentPanel::handleAddExperiment );
+    }
+}
+
+/**
+ * \brief MainWindow::~MainWindow
+ *
+ * Destroys the MainWindow instance.
+ */
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+/**
+ * @brief MainWindow::loadOpenSsExperiment
+ *
+ * Action handler for loading Open|SpeedShop experiments.  Present open file dialog to user so
+ * the user can browse the local file system to select the desired Open|SpeedShop experiment
+ * (files with .openss extension).  The specified filename is passed to the performance data manager
+ * in order to parse the experiment database into local data structures for viewing by the
+ * performance data view.  Add the experiment loaded to the unload Open|SpeedShop experiment menu.
+ */
+void MainWindow::loadOpenSsExperiment()
+{
+    QString filePath = QApplication::applicationDirPath();
+    filePath = QFileDialog::getOpenFileName( this, tr("Open File"), filePath, "*.openss" );
+    if ( filePath.isEmpty() ) {
+        return;
+    }
+
+    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
+    if ( dataMgr ) {
+        QApplication::setOverrideCursor( Qt::WaitCursor );
+
+        dataMgr->asyncLoadCudaView( filePath );
+        dataMgr->xmlDump( filePath );
+    }
+
+    QFileInfo fileInfo( filePath );
+    QString expName( fileInfo.fileName() );
+    expName.replace( QString(".openss"), QString("") );
+
+    // Add menu item to allow unloading the loaded experiment.
+    // NOTE: Unload menu takes ownership of the returned QAction.
+    ui->menuUnload_OSS_Experiment->addAction( expName, this, &MainWindow::unloadOpenSsExperiment );
+    ui->menuUnload_OSS_Experiment->setEnabled( true );
+    ui->actionLoad_OSS_Experiment->setDisabled( true );
+}
+
+/**
+ * @brief MainWindow::unloadOpenSsExperiment
+ *
+ * Action handler for unloading Open|SpeedShop experiments.  Present confirmation dialog to user so
+ * the user can acknowledge unload action.  If the confirmation is acknowledged, then the performance data manager is
+ * invoked to remove related data from local data structures and viewing in the
+ * performance data view.  Remove the experiment from the unload Open|SpeedShop experiment menu.
+ */
+void MainWindow::unloadOpenSsExperiment()
+{
+    QAction* action = qobject_cast< QAction* >( sender() );
+
+    if ( ! action )
+        return;
+
+    if ( QMessageBox::Yes == QMessageBox::question( this, tr("Unload Experiment"), tr("Are you sure that you want to unload this experiment?"), QMessageBox::Yes | QMessageBox::No ) ) {
+
+        QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
+
+        QString expName( action->text() );
+
+        ui->widget_MetricPlotView->unloadExperimentDataFromView( expName );
+
+        ui->widget_MetricTableView->deleteAllModelsViews();
+
+        ui->widget_ExperimentPanel->handleRemoveExperiment( expName );
+
+        ui->menuUnload_OSS_Experiment->removeAction( action );
+        ui->menuUnload_OSS_Experiment->setDisabled( true );
+        ui->actionLoad_OSS_Experiment->setEnabled( true );
+
+        QApplication::restoreOverrideCursor();
+    }
+}
+
+/**
+ * @brief MainWindow::handleLoadComplete
+ *
+ * Handles special processing after completion of task to load experiment database.
+ *
+ * Reset override cursor.
+ */
+void MainWindow::handleLoadComplete()
+{
+    QApplication::restoreOverrideCursor();
+}
+
+/**
+ * @brief MainWindow::shutdownApplication
+ *
+ * Action handler for terminating the application.
+ */
+void MainWindow::shutdownApplication()
+{
+    qApp->quit();
+}
+
+
+} // GUI
+} // ArgoNavis

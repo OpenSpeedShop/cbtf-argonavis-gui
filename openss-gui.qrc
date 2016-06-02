@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/images">
+        <file alias="branch-closed">resources/images/branch-closed.png</file>
+        <file alias="branch-end">resources/images/branch-end.png</file>
+        <file alias="branch-more">resources/images/branch-more.png</file>
+        <file alias="branch-open">resources/images/branch-open.png</file>
+        <file alias="vline">resources/images/vline.png</file>
+        <file alias="hsplitter-handle">resources/images/hsplitter.png</file>
+        <file alias="vsplitter-handle">resources/images/vsplitter.png</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>796</width>
+    <height>510</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Open|SpeedShop Experimentation Control and Analysis GUI</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QSplitter" name="splitter">
+      <property name="minimumSize">
+       <size>
+        <width>300</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="ArgoNavis::GUI::ExperimentPanel" name="widget_ExperimentPanel" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+      <widget class="QSplitter" name="splitter_RightVertical">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <widget class="ArgoNavis::GUI::PerformanceDataPlotView" name="widget_MetricPlotView" native="true"/>
+       <widget class="ArgoNavis::GUI::PerformanceDataMetricView" name="widget_MetricTableView" native="true"/>
+       <widget class="QWidget" name="widget_SourceCodeViewer" native="true"/>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>796</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <widget class="QMenu" name="menuUnload_OSS_Experiment">
+     <property name="title">
+      <string>Unload O|SS Experiment</string>
+     </property>
+    </widget>
+    <addaction name="actionLoad_OSS_Experiment"/>
+    <addaction name="menuUnload_OSS_Experiment"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <addaction name="menuFile"/>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionLoad_OSS_Experiment">
+   <property name="text">
+    <string>Load O|SS Experiment</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>ArgoNavis::GUI::PerformanceDataPlotView</class>
+   <extends>QWidget</extends>
+   <header>widgets/PerformanceDataPlotView.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ArgoNavis::GUI::ExperimentPanel</class>
+   <extends>QWidget</extends>
+   <header>widgets/ExperimentPanel.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ArgoNavis::GUI::PerformanceDataMetricView</class>
+   <extends>QWidget</extends>
+   <header>widgets/PerformanceDataMetricView.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
