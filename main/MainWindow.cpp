@@ -100,7 +100,11 @@ void MainWindow::loadOpenSsExperiment()
 
     // Add menu item to allow unloading the loaded experiment.
     // NOTE: Unload menu takes ownership of the returned QAction.
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     ui->menuUnload_OSS_Experiment->addAction( expName, this, &MainWindow::unloadOpenSsExperiment );
+#else
+    ui->menuUnload_OSS_Experiment->addAction( expName, this, SLOT(unloadOpenSsExperiment()) );
+#endif
     ui->menuUnload_OSS_Experiment->setEnabled( true );
     ui->actionLoad_OSS_Experiment->setDisabled( true );
 }
