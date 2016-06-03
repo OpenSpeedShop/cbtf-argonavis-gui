@@ -35,6 +35,8 @@ include(OpenSS-CLI.pri)
 
 #DEFINES += USE_DISCRETE_SAMPLES
 DEFINES += USE_PERIODIC_SAMPLE_AVG
+DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
+#DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG
 #DEFINES += HAS_DESTROY_SINGLETONS
 #DEFINES += HAS_ITEM_CLICK_DEBUG
 #DEFINES += HAS_PROCESS_METRIC_VIEW_DEBUG
@@ -60,8 +62,7 @@ SOURCES += \
     graphitems/OSSPeriodicSampleItem.cpp \
     managers/PerformanceDataManager.cpp \
     widgets/PerformanceDataPlotView.cpp \
-    widgets/PerformanceDataMetricView.cpp \
-    managers/LoadExperimentTaskWatcher.cpp
+    widgets/PerformanceDataMetricView.cpp
 
 HEADERS += \
     QCustomPlot/qcustomplot.h \
@@ -75,8 +76,7 @@ HEADERS += \
     graphitems/OSSPeriodicSampleItem.h \
     managers/PerformanceDataManager.h \
     widgets/PerformanceDataPlotView.h \
-    widgets/PerformanceDataMetricView.h \
-    managers/LoadExperimentTaskWatcher.h
+    widgets/PerformanceDataMetricView.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

@@ -24,7 +24,6 @@
 #include "PerformanceDataManager.h"
 
 #include "managers/PerformanceDataManager.h"
-#include "managers/LoadExperimentTaskWatcher.h"
 
 #include <ArgoNavis/Base/StackTrace.hpp>
 #include <ArgoNavis/Base/Time.hpp>
@@ -52,6 +51,8 @@
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
+
+#include <QtConcurrent>
 
 using namespace OpenSpeedShop;
 using namespace OpenSpeedShop::Framework;
@@ -270,14 +271,17 @@ bool PerformanceDataManager::convert_performance_data(const CUDA::PerformanceDat
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
  * NOTE: must be metrics providing time information.
  */
-void PerformanceDataManager::processMetricView(const Experiment& experiment, const QString &metric, const QStringList &metricDesc)
+void PerformanceDataManager::processMetricView(const Experiment* experiment, const QString &metric, const QStringList &metricDesc)
 {
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::processMetricView STARTED" << metric;
+#endif
     // Evaluate the first collector's time metric for all functions
     SmartPtr<std::map<Function, std::map<Thread, double> > > individual;
-    Queries::GetMetricValues(*experiment.getCollectors().begin(), metric.toStdString(),
+    Queries::GetMetricValues(*experiment->getCollectors().begin(), metric.toStdString(),
                              TimeInterval(Time::TheBeginning(), Time::TheEnd()),
-                             experiment.getThreads(),
-                             experiment.getThreads().getFunctions(),
+                             experiment->getThreads(),
+                             experiment->getThreads().getFunctions(),
                              individual);
     SmartPtr<std::map<Function, double> > data =
             Queries::Reduction::Apply(individual, Queries::Reduction::Summation);
@@ -327,40 +331,77 @@ void PerformanceDataManager::processMetricView(const Experiment& experiment, con
 
         std::cout << std::endl;
 #endif
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+        qDebug() << "PerformanceDataManager::processMetricView FINISHED" << metric;
+#endif
     }
 }
 
 /**
- * @brief PerformanceDataManager::asyncLoadCudaView
+ * @brief PerformanceDataManager::asyncLoadCudaViews
  * @param filePath - filename of the experiment database to be opened and processed into the performance data manager and view for display
  *
- * The method invokes a thread using the QtConcurrent::run method to process
+ * Executes PerformanceDataManager::loadCudaViews asynchronously.
  */
-void PerformanceDataManager::asyncLoadCudaView(const QString &filePath)
+void PerformanceDataManager::asyncLoadCudaViews(const QString& filePath)
 {
-    LoadExperimentTaskWatcher* taskWatcher = new LoadExperimentTaskWatcher( this );
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::asyncLoadCudaViews: filePath=" << filePath;
+#endif
+    QtConcurrent::run( this, &PerformanceDataManager::loadCudaViews, filePath );
+}
 
-    if ( ! taskWatcher )
-        return;
+/**
+ * @brief PerformanceDataManager::loadCudaViews
+ * @param filePath - filename of the experiment database to be opened and processed into the performance data manager and view for display
+ *
+ * The method invokes various thread using the QtConcurrent::run method to process plot and metric view data.  Each thread is synchronized
+ * and loadComplete() signal emitted upon completion of all threads.
+ */
+void PerformanceDataManager::loadCudaViews(const QString &filePath)
+{
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::loadCudaViews: STARTED";
+#endif
+    Experiment experiment( filePath.toStdString() );
 
-    connect( taskWatcher, &LoadExperimentTaskWatcher::finished, this, &PerformanceDataManager::loadComplete );
-    connect( taskWatcher, &LoadExperimentTaskWatcher::finished, taskWatcher, &LoadExperimentTaskWatcher::deleteLater );
+    QFutureSynchronizer<void> synchronizer;
 
-    taskWatcher->run( filePath );
+    QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, &experiment );
+    synchronizer.addFuture( future );
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+    // Generate the default CUDA metric view
+    const QString execTimeMetric = QStringLiteral( "exec_time" );
+    const QString xferTimeMetric = QStringLiteral( "xfer_time" );
+    QStringList metricDesc = QStringList() << "Exclusive Time (msec)" << "Function (defining location)";
+    QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, &experiment, xferTimeMetric, metricDesc );
+    synchronizer.addFuture( future1 );
+    QFuture<void> future2 = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, &experiment, execTimeMetric, metricDesc );
+    synchronizer.addFuture( future2 );
+#endif
+
+    synchronizer.waitForFinished();
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::loadCudaViews: ENDED";
+#endif
+
+    emit loadComplete();
 }
 
 /**
  * @brief PerformanceDataManager::loadCudaView
- * @param filePath  Filename path to experiment database file with CUDA data collection (.openss file)
+ * @param experiment - experiment database object instance
  *
  * Parse the requested CUDA performance data to metric model data.
  */
-void PerformanceDataManager::loadCudaView(const QString& filePath)
+void PerformanceDataManager::loadCudaView(const Experiment *experiment)
 {
-    Experiment experiment( filePath.toStdString() );
-
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::loadCudaView STARTED!!";
+#endif
     boost::optional<Collector> collector;
-    CollectorGroup collectors = experiment.getCollectors();
+    CollectorGroup collectors = experiment->getCollectors();
     for ( CollectorGroup::const_iterator i = collectors.begin(); i != collectors.end(); ++i ) {
         if ( i->getMetadata().getUniqueId() == "cuda" ) {
             collector = *i;
@@ -369,7 +410,7 @@ void PerformanceDataManager::loadCudaView(const QString& filePath)
     }
 
     if ( ! collector ) {
-        qDebug() << "ERROR: database " << filePath << " doesn't contain CUDA performance data";
+        qDebug() << "ERROR: database " << QString::fromStdString( experiment->getName() ) << " doesn't contain CUDA performance data";
         return;
     }
 
@@ -377,7 +418,7 @@ void PerformanceDataManager::loadCudaView(const QString& filePath)
     CUDA::PerformanceData data;
     QMap< Base::ThreadName, Thread> threads;
 
-    ThreadGroup all_threads = experiment.getThreads();
+    ThreadGroup all_threads = experiment->getThreads();
     for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
         std::pair<bool, int> rank = i->getMPIRank();
 
@@ -406,7 +447,7 @@ void PerformanceDataManager::loadCudaView(const QString& filePath)
         sampleCounterNames << "Default";
     }
 
-    QFileInfo fileInfo( filePath );
+    QFileInfo fileInfo( QString::fromStdString( experiment->getName() ) );
     QString expName( fileInfo.fileName() );
     expName.replace( QString(".openss"), QString("") );
 
@@ -437,12 +478,17 @@ void PerformanceDataManager::loadCudaView(const QString& filePath)
     m_sampleValues.clear();
     m_rawValues.clear();
 
+#if !defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
     // Generate the default CUDA metric view
     const QString execTimeMetric = QStringLiteral( "exec_time" );
     const QString xferTimeMetric = QStringLiteral( "xfer_time" );
     QStringList metricDesc = QStringList() << "Exclusive Time (msec)" << "Function (defining location)";
     processMetricView( experiment, xferTimeMetric, metricDesc );
     processMetricView( experiment, execTimeMetric, metricDesc );
+#endif
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::loadCudaView ENDED!!";
+#endif
 }
 
 /**

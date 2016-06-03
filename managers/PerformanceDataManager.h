@@ -26,7 +26,6 @@
 
 #include <QObject>
 
-#include <QtConcurrent>
 #include <QMap>
 #include <QVector>
 
@@ -71,13 +70,13 @@ public:
 
     static void destroy();
 
-    void loadCudaView(const QString& filePath);
-
     void xmlDump(const QString& filePath);
+
+    void loadCudaViews(const QString& filePath);
 
 public slots:
 
-    void asyncLoadCudaView(const QString& filePath);
+    void asyncLoadCudaViews(const QString& filePath);
 
 signals:
 
@@ -117,7 +116,9 @@ private:
     explicit PerformanceDataManager(QObject* parent = 0);
     virtual ~PerformanceDataManager();
 
-    void processMetricView(const OpenSpeedShop::Framework::Experiment& experiment,
+    void loadCudaView(const OpenSpeedShop::Framework::Experiment* experiment);
+
+    void processMetricView(const OpenSpeedShop::Framework::Experiment* experiment,
                            const QString &metric,
                            const QStringList &metricDesc);
 

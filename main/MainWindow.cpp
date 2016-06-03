@@ -91,7 +91,7 @@ void MainWindow::loadOpenSsExperiment()
 
     QApplication::setOverrideCursor( Qt::WaitCursor );
 
-    QByteArray normalizedSignature = QMetaObject::normalizedSignature( "asyncLoadCudaView(QString)" );
+    QByteArray normalizedSignature = QMetaObject::normalizedSignature( "asyncLoadCudaViews(QString)" );
     int methodIndex = dataMgr ->metaObject()->indexOfMethod( normalizedSignature );
     QMetaMethod method = dataMgr->metaObject()->method( methodIndex );
     method.invoke( dataMgr, Qt::QueuedConnection, Q_ARG( QString, filePath ) );
