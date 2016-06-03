@@ -340,6 +340,9 @@ void PerformanceDataManager::asyncLoadCudaView(const QString &filePath)
 {
     LoadExperimentTaskWatcher* taskWatcher = new LoadExperimentTaskWatcher( this );
 
+    if ( ! taskWatcher )
+        return;
+
     connect( taskWatcher, &LoadExperimentTaskWatcher::finished, this, &PerformanceDataManager::loadComplete );
     connect( taskWatcher, &LoadExperimentTaskWatcher::finished, taskWatcher, &LoadExperimentTaskWatcher::deleteLater );
 

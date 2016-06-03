@@ -56,6 +56,7 @@ private slots:
     void loadOpenSsExperiment();
     void unloadOpenSsExperiment();
     void handleLoadComplete();
+    void addUnloadOpenSsExperimentMenuItem(const QString& filePath);
 
 private:
 

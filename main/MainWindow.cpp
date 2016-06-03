@@ -80,20 +80,34 @@ MainWindow::~MainWindow()
  */
 void MainWindow::loadOpenSsExperiment()
 {
+    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
+    if ( ! dataMgr )
+        return;
+
     QString filePath = QApplication::applicationDirPath();
     filePath = QFileDialog::getOpenFileName( this, tr("Open File"), filePath, "*.openss" );
-    if ( filePath.isEmpty() ) {
+    if ( filePath.isEmpty() )
         return;
-    }
 
-    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
-    if ( dataMgr ) {
-        QApplication::setOverrideCursor( Qt::WaitCursor );
+    QApplication::setOverrideCursor( Qt::WaitCursor );
 
-        dataMgr->asyncLoadCudaView( filePath );
-        dataMgr->xmlDump( filePath );
-    }
+    QByteArray normalizedSignature = QMetaObject::normalizedSignature( "asyncLoadCudaView(QString)" );
+    int methodIndex = dataMgr ->metaObject()->indexOfMethod( normalizedSignature );
+    QMetaMethod method = dataMgr->metaObject()->method( methodIndex );
+    method.invoke( dataMgr, Qt::QueuedConnection, Q_ARG( QString, filePath ) );
+    //dataMgr->xmlDump( filePath );
 
+    addUnloadOpenSsExperimentMenuItem( filePath );
+}
+
+/**
+ * @brief MainWindow::addUnloadMenuItem
+ * @param filePath - filepath of experiment to be added to unload menu
+ *
+ * Added experiment loaded to the unload menu.
+ */
+void MainWindow::addUnloadOpenSsExperimentMenuItem(const QString& filePath)
+{
     QFileInfo fileInfo( filePath );
     QString expName( fileInfo.fileName() );
     expName.replace( QString(".openss"), QString("") );

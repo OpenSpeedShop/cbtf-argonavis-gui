@@ -71,10 +71,13 @@ public:
 
     static void destroy();
 
-    void asyncLoadCudaView(const QString& filePath);
     void loadCudaView(const QString& filePath);
 
     void xmlDump(const QString& filePath);
+
+public slots:
+
+    void asyncLoadCudaView(const QString& filePath);
 
 signals:
 
