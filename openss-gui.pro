@@ -14,6 +14,18 @@ CONFIG += c++11
 TARGET = openss-gui
 TEMPLATE = app
 
+CONFIG(debug, debug|release) {
+    DESTDIR = build/debug
+}
+CONFIG(release, debug|release) {
+    DESTDIR = build/release
+}
+
+OBJECTS_DIR = $$DESTDIR/.obj
+MOC_DIR = $$DESTDIR/.moc
+RCC_DIR = $$DESTDIR/.qrc
+UI_DIR = $$DESTDIR/.ui
+
 KRELL_ROOT = /opt/DEVEL/krellroot_v2.2.2
 CBTF_ROOT = /opt/DEVEL/cbtf_v2.2.2
 OSS_CBTF_ROOT = /opt/DEVEL/osscbtf_v2.2.2
