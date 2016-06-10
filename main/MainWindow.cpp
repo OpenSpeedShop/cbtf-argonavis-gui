@@ -26,6 +26,10 @@
 
 #include "managers/PerformanceDataManager.h"
 
+#include <QFileDialog>
+#include <QMetaMethod>
+#include <QMessageBox>
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -48,14 +52,25 @@ MainWindow::MainWindow(QWidget *parent)
                 "QSplitter::handle:horizontal { width:  4px; image: url(:/images/hsplitter-handle); background-color: rgba(200, 200, 200, 80); }"
                 );
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( ui->actionLoad_OSS_Experiment, &QAction::triggered, this, &MainWindow::loadOpenSsExperiment );
     connect( ui->actionExit, &QAction::triggered, this, &MainWindow::shutdownApplication );
+#else
+    connect( ui->actionLoad_OSS_Experiment, SIGNAL(triggered(bool)), this, SLOT(loadOpenSsExperiment()) );
+    connect( ui->actionExit, SIGNAL(triggered(bool)), this, SLOT(shutdownApplication()) );
+#endif
 
     // connect performance data manager signals to experiment panel slots
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::loadComplete, this, &MainWindow::handleLoadComplete );
         connect( dataMgr, &PerformanceDataManager::addExperiment, ui->widget_ExperimentPanel, &ExperimentPanel::handleAddExperiment );
+#else
+        connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
+        connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<QString>)),
+                 ui->widget_ExperimentPanel, SLOT(handleAddExperiment(QString,QString,QVector<QString>,QVector<QString>)) );
+#endif
     }
 }
 
@@ -95,7 +110,9 @@ void MainWindow::loadOpenSsExperiment()
     int methodIndex = dataMgr ->metaObject()->indexOfMethod( normalizedSignature );
     QMetaMethod method = dataMgr->metaObject()->method( methodIndex );
     method.invoke( dataMgr, Qt::QueuedConnection, Q_ARG( QString, filePath ) );
-    //dataMgr->xmlDump( filePath );
+#if defined(HAS_OSSCUDA2XML)
+    dataMgr->xmlDump( filePath );
+#endif
 
     addUnloadOpenSsExperimentMenuItem( filePath );
 }

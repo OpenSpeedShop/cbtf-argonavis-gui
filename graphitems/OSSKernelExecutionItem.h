@@ -50,14 +50,17 @@ protected:
 
     CUDA::KernelExecution m_details;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 private:
 
     friend QTextStream& operator<<(QTextStream& os, const OSSKernelExecutionItem& item);
-
+#endif
 };
 
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 QTextStream& operator<<(QTextStream& os, const OSSKernelExecutionItem& item);
+#endif
 
 
 } // GUI

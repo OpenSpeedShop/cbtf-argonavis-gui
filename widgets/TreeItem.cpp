@@ -132,7 +132,7 @@ QVariant TreeItem::data(int column) const
 
 /*!
  * \brief TreeItem::parentItem
- * \return - the parent tree item.  Return nullptr is this is the root.
+ * \return - the parent tree item.  Return Q_NULLPTR is this is the root.
  */
 TreeItem *TreeItem::parentItem()
 {

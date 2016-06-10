@@ -70,11 +70,16 @@ SOURCES += \
     graphitems/OSSDataTransferItem.cpp \
     graphitems/OSSKernelExecutionItem.cpp \
     graphitems/OSSEventItem.cpp \
-    util/osscuda2xml.cxx \
     graphitems/OSSPeriodicSampleItem.cpp \
     managers/PerformanceDataManager.cpp \
     widgets/PerformanceDataPlotView.cpp \
     widgets/PerformanceDataMetricView.cpp
+
+greaterThan(QT_MAJOR_VERSION, 4): {
+DEFINES += HAS_OSSCUDA2XML
+SOURCES += \
+    util/osscuda2xml.cxx \
+}
 
 HEADERS += \
     QCustomPlot/qcustomplot.h \

@@ -31,6 +31,9 @@
 #include <QStandardItemModel>
 #include <QSortFilterProxyModel>
 
+#ifndef Q_Q_NULLPTR
+#define Q_Q_NULLPTR NULL
+#endif
 
 namespace ArgoNavis { namespace GUI {
 
@@ -63,12 +66,21 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     // connect performance data manager signals to performance data metric view slots
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::addMetricView, this, &PerformanceDataMetricView::handleInitModel );
         connect( dataMgr, &PerformanceDataManager::addMetricViewData, this, &PerformanceDataMetricView::handleAddData );
+#else
+        connect( dataMgr, SIGNAL(addMetricView(QString,QStringList)), this, SLOT(handleInitModel(QString,QStringList)) );
+        connect( dataMgr, SIGNAL(addMetricViewData(QString,QVariantList)), this, SLOT(handleAddData(QString,QVariantList)) );
+#endif
     }
 
     // connect signal/slot for metric view selection handling
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( ui->comboBox_MetricViews, &QComboBox::currentTextChanged, this, &PerformanceDataMetricView::handleMetricViewChanged );
+#else
+    connect( ui->comboBox_MetricViews, SIGNAL(currentIndexChanged(QString)), this, SLOT(handleMetricViewChanged(QString)) );
+#endif
 
     // initially show blank view
     showBlankView();
@@ -178,7 +190,7 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
     QStandardItemModel* model = new QStandardItemModel( 0, metrics.size(), this );
     QSortFilterProxyModel* proxyModel = new QSortFilterProxyModel;
 
-    if ( Q_NULLPTR == model || Q_NULLPTR == proxyModel )
+    if ( Q_Q_NULLPTR == model || Q_Q_NULLPTR == proxyModel )
         return;
 
     for ( int i=0; i<metrics.size(); ++i ) {
@@ -189,13 +201,13 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
     proxyModel->setSourceModel( model );
     proxyModel->sort( 0, Qt::DescendingOrder );
 
-    QTreeView* view = m_views.value( metricView, Q_NULLPTR );
+    QTreeView* view = m_views.value( metricView, Q_Q_NULLPTR );
 
-    if ( Q_NULLPTR == view ) {
+    if ( Q_Q_NULLPTR == view ) {
         view = new QTreeView;
     }
 
-    if ( Q_NULLPTR == view )
+    if ( Q_Q_NULLPTR == view )
         return;
 
     view->setModel( proxyModel );
@@ -212,7 +224,11 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
 
     // Add metric view to combobox and make current view
     ui->comboBox_MetricViews->addItem( metricView );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     ui->comboBox_MetricViews->setCurrentText( metricView );
+#else
+    ui->comboBox_MetricViews->setCurrentIndex( ui->comboBox_MetricViews->count()-1 );
+#endif
 }
 
 /**
@@ -226,7 +242,7 @@ void PerformanceDataMetricView::handleAddData(const QString &metricView, const Q
 {
     QStandardItemModel* model = m_models.value( metricView );
 
-    if ( Q_NULLPTR == model )
+    if ( Q_Q_NULLPTR == model )
         return;
 
     model->insertRow( 0 );
@@ -244,9 +260,9 @@ void PerformanceDataMetricView::handleAddData(const QString &metricView, const Q
  */
 void PerformanceDataMetricView::handleMetricViewChanged(const QString &metricView)
 {
-    QTreeView* view = m_views.value( metricView, Q_NULLPTR );
+    QTreeView* view = m_views.value( metricView, Q_Q_NULLPTR );
 
-    if ( Q_NULLPTR != view ) {
+    if ( Q_Q_NULLPTR != view ) {
         m_viewStack->setCurrentWidget( view );
     }
 }

@@ -28,6 +28,10 @@
 
 #include <QMap>
 #include <QVector>
+#include <QString>
+#include <QStringList>
+#include <QVariant>
+#include <QAtomicPointer>
 
 #include "ToolAPI.hxx"
 
@@ -70,9 +74,11 @@ public:
 
     static void destroy();
 
-    void xmlDump(const QString& filePath);
-
     void loadCudaViews(const QString& filePath);
+
+#if defined(HAS_OSSCUDA2XML)
+    void xmlDump(const QString& filePath);
+#endif
 
 public slots:
 

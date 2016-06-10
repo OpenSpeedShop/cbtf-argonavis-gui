@@ -26,8 +26,10 @@
 #include <ArgoNavis/CUDA/stringify.hpp>
 
 #include <QVariant>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QJsonDocument>
 #include <QJsonObject>
+#endif
 
 namespace ArgoNavis { namespace GUI {
 
@@ -88,6 +90,7 @@ void OSSDataTransferItem::setData(const Base::Time &time_origin, const CUDA::Dat
     bottomRight->setCoords( timeEnd, 0.55 );
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 /**
  * @brief operator <<
  * @param os - the input QTextStream object
@@ -121,6 +124,7 @@ QTextStream& operator<<(QTextStream& os, const OSSDataTransferItem& item)
 
     return os;
 }
+#endif
 
 
 } // GUI

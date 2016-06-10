@@ -2,9 +2,13 @@
 #define PERFORMANCE_DATA_VIEW_H
 
 #include <QWidget>
-#include <QInputDialog>
+#include <QMutex>
 
 #include "qcustomplot.h"
+
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+#define Q_DECL_OVERRIDE
+#endif
 
 namespace Ui {
 class PerformanceDataPlotView;

@@ -26,8 +26,10 @@
 #include <ArgoNavis/CUDA/stringify.hpp>
 
 #include <QVariant>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
 #include <QJsonDocument>
 #include <QJsonObject>
+#endif
 
 
 namespace ArgoNavis { namespace GUI {
@@ -89,6 +91,7 @@ void OSSKernelExecutionItem::setData(const Base::Time &time_origin, const CUDA::
     bottomRight->setCoords( timeEnd, 0.55 );
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 /**
  * @brief demangle
  * @param mangled - the mangled function name
@@ -165,6 +168,7 @@ QTextStream& operator<<(QTextStream& os, const OSSKernelExecutionItem& item)
 
     return os;
 }
+#endif
 
 
 } // GUI

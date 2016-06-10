@@ -9,6 +9,11 @@
 
 #include <QtGlobal>
 #include <QPen>
+#include <QInputDialog>
+
+#ifndef Q_NULLPTR
+#define Q_NULLPTR NULL
+#endif
 
 
 namespace ArgoNavis { namespace GUI {
@@ -47,16 +52,27 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
     connect( ui->graphView, SIGNAL(plottableClick(QCPAbstractPlottable*,QMouseEvent*)), this, SLOT(handleGraphClicked(QCPAbstractPlottable*)) );
 
     // connect slot when an item is clicked
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( ui->graphView, &QCustomPlot::itemClick, this, &PerformanceDataPlotView::handleItemClick );
+#else
+    connect( ui->graphView, SIGNAL(itemClick(QCPAbstractItem*,QMouseEvent*)), this, SLOT(handleItemClick(QCPAbstractItem*,QMouseEvent*)) );
+#endif
 
     // connect performance data manager signals to performance data view slots
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::addMetric, this, &PerformanceDataPlotView::addMetric, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::setMetricDuration, this, &PerformanceDataPlotView::setMetricDuration, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addDataTransfer, this, &PerformanceDataPlotView::handleAddDataTransfer, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addKernelExecution, this, &PerformanceDataPlotView::handleAddKernelExecution, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addPeriodicSample, this, &PerformanceDataPlotView::handleAddPeriodicSample, Qt::QueuedConnection );
+#else
+        connect( dataMgr, SIGNAL(addMetric(QString,QString)), this, SLOT(addMetric(QString,QString)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double)), this, SLOT(setMetricDuration(QString,QString,double)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addPeriodicSample(QString,int,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,int,double,double,double)), Qt::QueuedConnection );
+#endif
     }
 }
 
@@ -391,11 +407,16 @@ void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAx
         // set associated metric group property
         xAxis->setProperty( "associatedMetricGroup", metricGroupName );
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( xAxis, static_cast<void(QCPAxis::*)(const QCPRange &newRange)>(&QCPAxis::rangeChanged),
                  this, &PerformanceDataPlotView::handleAxisRangeChangeForMetricGroup );
         // connect slot to handle value axis range changes and regenerate the tick marks appropriately
         connect( xAxis, static_cast<void(QCPAxis::*)(const QCPRange &newRange)>(&QCPAxis::rangeChanged),
                  this, &PerformanceDataPlotView::handleAxisRangeChange );
+#else
+        connect( xAxis, SIGNAL(rangeChanged(QCPRange)), this,SLOT(handleAxisRangeChangeForMetricGroup(QCPRange)) );
+        connect( xAxis, SIGNAL(rangeChanged(QCPRange)), this,SLOT(handleAxisRangeChange(QCPRange)) );
+#endif
     }
 
     // prepare y axis
@@ -444,7 +465,7 @@ void PerformanceDataPlotView::addMetric(const QString &metricGroupName, const QS
 
     QMutexLocker guard( &m_mutex );
 
-    MetricGroup* metricGroup( nullptr );
+    MetricGroup* metricGroup( Q_NULLPTR );
     if ( ! m_metricGroups.contains( metricGroupName ) ) {
         metricGroup = new MetricGroup;
         QCPLayoutGrid* layout = new QCPLayoutGrid;
@@ -497,7 +518,7 @@ void PerformanceDataPlotView::addMetric(const QString &metricGroupName, const QS
  */
 void PerformanceDataPlotView::setMetricDuration(const QString& metricGroupName, const QString& metricName, double duration)
 {
-    QCPAxisRect* axisRect( nullptr );
+    QCPAxisRect* axisRect( Q_NULLPTR );
 
     {
         // handle references to metric group map inside this local block
@@ -538,7 +559,7 @@ void PerformanceDataPlotView::setMetricDuration(const QString& metricGroupName, 
  */
 void PerformanceDataPlotView::handleAddDataTransfer(const QString &metricGroupName, const QString &metricName, const Base::Time &time_origin, const CUDA::DataTransfer &details)
 {
-    QCPAxisRect* axisRect( nullptr );
+    QCPAxisRect* axisRect( Q_NULLPTR );
 
     {
         QMutexLocker guard( &m_mutex );
@@ -550,7 +571,7 @@ void PerformanceDataPlotView::handleAddDataTransfer(const QString &metricGroupNa
         }
     }
 
-    if ( nullptr == axisRect )
+    if ( Q_NULLPTR == axisRect )
         return;
 
     OSSDataTransferItem* dataXferItem = new OSSDataTransferItem( axisRect, ui->graphView );
@@ -572,7 +593,7 @@ void PerformanceDataPlotView::handleAddDataTransfer(const QString &metricGroupNa
  */
 void PerformanceDataPlotView::handleAddKernelExecution(const QString &metricGroupName, const QString &metricName, const Base::Time &time_origin, const CUDA::KernelExecution &details)
 {
-    QCPAxisRect* axisRect( nullptr );
+    QCPAxisRect* axisRect( Q_NULLPTR );
 
     {
         QMutexLocker guard( &m_mutex );
@@ -584,7 +605,7 @@ void PerformanceDataPlotView::handleAddKernelExecution(const QString &metricGrou
         }
     }
 
-    if ( nullptr == axisRect )
+    if ( Q_NULLPTR == axisRect )
         return;
 
     OSSKernelExecutionItem* kernelExecItem = new OSSKernelExecutionItem( axisRect, ui->graphView );

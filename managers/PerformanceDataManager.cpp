@@ -52,13 +52,29 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
-#include <QtConcurrent>
+#include <QtConcurrentRun>
+#include <QFutureSynchronizer>
+#include <QFileInfo>
 
 using namespace OpenSpeedShop;
 using namespace OpenSpeedShop::Framework;
 using namespace OpenSpeedShop::Queries;
 
+#if defined(HAS_OSSCUDA2XML)
 extern int cuda2xml(const QString& dbFilename, QTextStream& xml);
+#endif
+
+#ifndef Q_NULLPTR
+#define Q_NULLPTR NULL
+#endif
+
+#ifndef QStringLiteral
+#define QStringLiteral QString
+#endif
+
+#ifndef qCeil
+#define qCeil ceil
+#endif
 
 Q_DECLARE_METATYPE( ArgoNavis::Base::Time )
 Q_DECLARE_METATYPE( ArgoNavis::CUDA::DataTransfer )
@@ -104,13 +120,21 @@ PerformanceDataManager::~PerformanceDataManager()
  */
 PerformanceDataManager *PerformanceDataManager::instance()
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     PerformanceDataManager* inst = s_instance.loadAcquire();
+#else
+    PerformanceDataManager* inst = s_instance;
+#endif
 
     if ( ! inst ) {
         inst = new PerformanceDataManager();
         if ( ! s_instance.testAndSetRelease( 0, inst ) ) {
             delete inst;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
             inst = s_instance.loadAcquire();
+#else
+            inst = s_instance;
+#endif
         }
     }
 
@@ -127,7 +151,7 @@ void PerformanceDataManager::destroy()
     if ( s_instance )
         delete s_instance;
 
-    s_instance = nullptr;
+    s_instance = Q_NULLPTR;
 }
 
 /**
@@ -491,6 +515,7 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
 #endif
 }
 
+#if defined(HAS_OSSCUDA2XML)
 /**
  * @brief PerformanceDataManager::xmlDump
  * @param filePath  Filename path to experiment database file with CUDA data collection (.openss file)
@@ -508,6 +533,7 @@ void PerformanceDataManager::xmlDump(const QString &filePath)
         file.close();
     }
 }
+#endif
 
 
 } // GUI

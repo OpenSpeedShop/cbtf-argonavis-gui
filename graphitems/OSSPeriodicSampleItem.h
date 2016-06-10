@@ -48,7 +48,7 @@ private:
     // raw period sample data
     double m_time_begin;
     double m_time_end;
-    uint64_t m_count;
+    double m_count;
 
 };
 
