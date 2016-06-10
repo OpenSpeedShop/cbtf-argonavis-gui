@@ -302,7 +302,12 @@ void PerformanceDataManager::processMetricView(const Experiment* experiment, con
 #endif
     // Evaluate the first collector's time metric for all functions
     SmartPtr<std::map<Function, std::map<Thread, double> > > individual;
-    Queries::GetMetricValues(*experiment->getCollectors().begin(), metric.toStdString(),
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    std::string metricStr = metric.toStdString();
+#else
+    std::string metricStr = std::string( metric.toLatin1().data() );
+#endif
+    Queries::GetMetricValues(*experiment->getCollectors().begin(), metricStr,
                              TimeInterval(Time::TheBeginning(), Time::TheEnd()),
                              experiment->getThreads(),
                              experiment->getThreads().getFunctions(),
@@ -337,7 +342,11 @@ void PerformanceDataManager::processMetricView(const Experiment* experiment, con
         double value( i->first * 1000.0 );
 
         metricData << QVariant::fromValue< double >( value );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         metricData << QString::fromStdString( i->second.getDemangledName() );
+#else
+        metricData << QString( i->second.getDemangledName().c_str() );
+#endif
 
         emit addMetricViewData( metric, metricData );
 
@@ -387,7 +396,11 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::loadCudaViews: STARTED";
 #endif
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     Experiment experiment( filePath.toStdString() );
+#else
+    Experiment experiment( std::string( filePath.toLatin1().data() ) );
+#endif
 
     QFutureSynchronizer<void> synchronizer;
 
@@ -433,10 +446,8 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
         }
     }
 
-    if ( ! collector ) {
-        qDebug() << "ERROR: database " << QString::fromStdString( experiment->getName() ) << " doesn't contain CUDA performance data";
+    if ( ! collector )
         return;
-    }
 
     std::set<int> ranks;
     CUDA::PerformanceData data;
@@ -464,14 +475,22 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
     QVector< QString > sampleCounterNames;
 
     for ( std::vector<std::string>::size_type i = 0; i < data.counters().size(); ++i ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         sampleCounterNames << QString::fromStdString( data.counters()[i] );
+#else
+        sampleCounterNames << QString( data.counters()[i].c_str() );
+#endif
     }
 
     if ( sampleCounterNames.isEmpty() ) {
         sampleCounterNames << "Default";
     }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     QFileInfo fileInfo( QString::fromStdString( experiment->getName() ) );
+#else
+    QFileInfo fileInfo( QString( experiment->getName().c_str() ) );
+#endif
     QString expName( fileInfo.fileName() );
     expName.replace( QString(".openss"), QString("") );
 
