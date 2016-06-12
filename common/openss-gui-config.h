@@ -1,5 +1,5 @@
 /*!
-   \file OSSEventItem.h
+   \file openss-gui-config.h
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
@@ -21,40 +21,25 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef OSSEVENTITEM_H
-#define OSSEVENTITEM_H
-
-#include "qcustomplot.h"
-
-#include "common/openss-gui-config.h"
-
-#include <ArgoNavis/Base/Time.hpp>
+#ifndef OPENSS_GUI_CONFIG_H
+#define OPENSS_GUI_CONFIG_H
 
 
-namespace ArgoNavis { namespace GUI {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+#define Q_DECL_OVERRIDE
+#endif
+
+#ifndef Q_NULLPTR
+#define Q_NULLPTR NULL
+#endif
+
+#ifndef QStringLiteral
+#define QStringLiteral QString
+#endif
+
+#ifndef qCeil
+#define qCeil ceil
+#endif
 
 
-class OSSEventItem : public QCPItemRect
-{
-    Q_OBJECT
-
-public:
-
-    explicit OSSEventItem(QCPAxisRect* axisRect, QCustomPlot* parentPlot = 0);
-    virtual ~OSSEventItem();
-
-protected:
-
-    virtual void draw(QCPPainter *painter) Q_DECL_OVERRIDE;
-
-protected:
-
-   Base::Time         m_timeOrigin;
-
-};
-
-
-} // GUI
-} // ArgoNavis
-
-#endif // OSSEVENTITEM_H
+#endif // OPENSS_GUI_CONFIG_H

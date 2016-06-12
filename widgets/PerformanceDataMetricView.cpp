@@ -23,6 +23,7 @@
 
 #include "PerformanceDataMetricView.h"
 #include "ui_PerformanceDataMetricView.h"
+#include "common/openss-gui-config.h"
 
 #include "managers/PerformanceDataManager.h"
 
@@ -63,12 +64,21 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     // connect performance data manager signals to performance data metric view slots
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::addMetricView, this, &PerformanceDataMetricView::handleInitModel );
         connect( dataMgr, &PerformanceDataManager::addMetricViewData, this, &PerformanceDataMetricView::handleAddData );
+#else
+        connect( dataMgr, SIGNAL(addMetricView(QString,QStringList)), this, SLOT(handleInitModel(QString,QStringList)) );
+        connect( dataMgr, SIGNAL(addMetricViewData(QString,QVariantList)), this, SLOT(handleAddData(QString,QVariantList)) );
+#endif
     }
 
     // connect signal/slot for metric view selection handling
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( ui->comboBox_MetricViews, &QComboBox::currentTextChanged, this, &PerformanceDataMetricView::handleMetricViewChanged );
+#else
+    connect( ui->comboBox_MetricViews, SIGNAL(currentIndexChanged(QString)), this, SLOT(handleMetricViewChanged(QString)) );
+#endif
 
     // initially show blank view
     showBlankView();
@@ -198,6 +208,7 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
     if ( Q_NULLPTR == view )
         return;
 
+    view->setSortingEnabled( true );
     view->setModel( proxyModel );
 
     for ( int i=0; i<metrics.size(); ++i ) {
@@ -212,7 +223,11 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
 
     // Add metric view to combobox and make current view
     ui->comboBox_MetricViews->addItem( metricView );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     ui->comboBox_MetricViews->setCurrentText( metricView );
+#else
+    ui->comboBox_MetricViews->setCurrentIndex( ui->comboBox_MetricViews->count()-1 );
+#endif
 }
 
 /**

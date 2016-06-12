@@ -26,6 +26,8 @@
 
 #include <QAbstractItemModel>
 
+#include "common/openss-gui-config.h"
+
 
 namespace ArgoNavis { namespace GUI {
 

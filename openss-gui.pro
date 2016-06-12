@@ -4,10 +4,9 @@
 #
 #-------------------------------------------------
 
-QT += core gui concurrent
-QT += printsupport
+QT += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets concurrent printsupport
 
 CONFIG += c++11
 
@@ -70,11 +69,16 @@ SOURCES += \
     graphitems/OSSDataTransferItem.cpp \
     graphitems/OSSKernelExecutionItem.cpp \
     graphitems/OSSEventItem.cpp \
-    util/osscuda2xml.cxx \
     graphitems/OSSPeriodicSampleItem.cpp \
     managers/PerformanceDataManager.cpp \
     widgets/PerformanceDataPlotView.cpp \
     widgets/PerformanceDataMetricView.cpp
+
+greaterThan(QT_MAJOR_VERSION, 4): {
+DEFINES += HAS_OSSCUDA2XML
+SOURCES += \
+    util/osscuda2xml.cxx \
+}
 
 HEADERS += \
     QCustomPlot/qcustomplot.h \
@@ -88,7 +92,8 @@ HEADERS += \
     graphitems/OSSPeriodicSampleItem.h \
     managers/PerformanceDataManager.h \
     widgets/PerformanceDataPlotView.h \
-    widgets/PerformanceDataMetricView.h
+    widgets/PerformanceDataMetricView.h \
+    common/openss-gui-config.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

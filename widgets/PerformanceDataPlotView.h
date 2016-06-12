@@ -2,9 +2,11 @@
 #define PERFORMANCE_DATA_VIEW_H
 
 #include <QWidget>
-#include <QInputDialog>
+#include <QMutex>
 
 #include "qcustomplot.h"
+
+#include "common/openss-gui-config.h"
 
 namespace Ui {
 class PerformanceDataPlotView;

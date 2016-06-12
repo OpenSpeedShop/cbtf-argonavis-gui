@@ -50,14 +50,17 @@ protected:
 
     CUDA::DataTransfer m_details;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 private:
 
     friend QTextStream& operator<<(QTextStream& os, const OSSDataTransferItem& item);
-
+#endif
 };
 
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 QTextStream& operator<<(QTextStream& os, const OSSDataTransferItem& item);
+#endif
 
 
 } // GUI

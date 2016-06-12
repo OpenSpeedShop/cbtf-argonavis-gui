@@ -49,14 +49,13 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     virtual ~MainWindow();
 
-    void shutdownApplication();
-
 private slots:
 
     void loadOpenSsExperiment();
     void unloadOpenSsExperiment();
     void handleLoadComplete();
     void addUnloadOpenSsExperimentMenuItem(const QString& filePath);
+    void shutdownApplication();
 
 private:
 

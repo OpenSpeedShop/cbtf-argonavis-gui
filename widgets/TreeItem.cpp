@@ -132,7 +132,7 @@ QVariant TreeItem::data(int column) const
 
 /*!
  * \brief TreeItem::parentItem
- * \return - the parent tree item.  Return nullptr is this is the root.
+ * \return - the parent tree item.  Return Q_NULLPTR is this is the root.
  */
 TreeItem *TreeItem::parentItem()
 {
@@ -148,8 +148,10 @@ TreeItem *TreeItem::parentItem()
  */
 void TreeItem::setData(int column, QVariant data)
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(4, 7, 0))
     if ( column > m_itemData.size() )
         m_itemData.reserve( column );
+#endif
     m_itemData.insert( column, data );
 }
 
