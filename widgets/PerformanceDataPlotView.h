@@ -6,9 +6,7 @@
 
 #include "qcustomplot.h"
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
-#define Q_DECL_OVERRIDE
-#endif
+#include "common/openss-gui-config.h"
 
 namespace Ui {
 class PerformanceDataPlotView;

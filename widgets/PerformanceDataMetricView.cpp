@@ -23,6 +23,7 @@
 
 #include "PerformanceDataMetricView.h"
 #include "ui_PerformanceDataMetricView.h"
+#include "common/openss-gui-config.h"
 
 #include "managers/PerformanceDataManager.h"
 
@@ -31,9 +32,6 @@
 #include <QStandardItemModel>
 #include <QSortFilterProxyModel>
 
-#ifndef Q_Q_NULLPTR
-#define Q_Q_NULLPTR NULL
-#endif
 
 namespace ArgoNavis { namespace GUI {
 
@@ -190,7 +188,7 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
     QStandardItemModel* model = new QStandardItemModel( 0, metrics.size(), this );
     QSortFilterProxyModel* proxyModel = new QSortFilterProxyModel;
 
-    if ( Q_Q_NULLPTR == model || Q_Q_NULLPTR == proxyModel )
+    if ( Q_NULLPTR == model || Q_NULLPTR == proxyModel )
         return;
 
     for ( int i=0; i<metrics.size(); ++i ) {
@@ -201,15 +199,16 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
     proxyModel->setSourceModel( model );
     proxyModel->sort( 0, Qt::DescendingOrder );
 
-    QTreeView* view = m_views.value( metricView, Q_Q_NULLPTR );
+    QTreeView* view = m_views.value( metricView, Q_NULLPTR );
 
-    if ( Q_Q_NULLPTR == view ) {
+    if ( Q_NULLPTR == view ) {
         view = new QTreeView;
     }
 
-    if ( Q_Q_NULLPTR == view )
+    if ( Q_NULLPTR == view )
         return;
 
+    view->setSortingEnabled( true );
     view->setModel( proxyModel );
 
     for ( int i=0; i<metrics.size(); ++i ) {
@@ -242,7 +241,7 @@ void PerformanceDataMetricView::handleAddData(const QString &metricView, const Q
 {
     QStandardItemModel* model = m_models.value( metricView );
 
-    if ( Q_Q_NULLPTR == model )
+    if ( Q_NULLPTR == model )
         return;
 
     model->insertRow( 0 );
@@ -260,9 +259,9 @@ void PerformanceDataMetricView::handleAddData(const QString &metricView, const Q
  */
 void PerformanceDataMetricView::handleMetricViewChanged(const QString &metricView)
 {
-    QTreeView* view = m_views.value( metricView, Q_Q_NULLPTR );
+    QTreeView* view = m_views.value( metricView, Q_NULLPTR );
 
-    if ( Q_Q_NULLPTR != view ) {
+    if ( Q_NULLPTR != view ) {
         m_viewStack->setCurrentWidget( view );
     }
 }

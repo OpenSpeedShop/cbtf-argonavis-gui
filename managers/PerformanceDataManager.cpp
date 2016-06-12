@@ -25,6 +25,8 @@
 
 #include "managers/PerformanceDataManager.h"
 
+#include "common/openss-gui-config.h"
+
 #include <ArgoNavis/Base/StackTrace.hpp>
 #include <ArgoNavis/Base/Time.hpp>
 
@@ -62,18 +64,6 @@ using namespace OpenSpeedShop::Queries;
 
 #if defined(HAS_OSSCUDA2XML)
 extern int cuda2xml(const QString& dbFilename, QTextStream& xml);
-#endif
-
-#ifndef Q_NULLPTR
-#define Q_NULLPTR NULL
-#endif
-
-#ifndef QStringLiteral
-#define QStringLiteral QString
-#endif
-
-#ifndef qCeil
-#define qCeil ceil
 #endif
 
 Q_DECLARE_METATYPE( ArgoNavis::Base::Time )

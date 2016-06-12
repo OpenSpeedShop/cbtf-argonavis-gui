@@ -92,7 +92,8 @@ HEADERS += \
     graphitems/OSSPeriodicSampleItem.h \
     managers/PerformanceDataManager.h \
     widgets/PerformanceDataPlotView.h \
-    widgets/PerformanceDataMetricView.h
+    widgets/PerformanceDataMetricView.h \
+    common/openss-gui-config.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

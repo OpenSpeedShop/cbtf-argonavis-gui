@@ -2,6 +2,7 @@
 #include "ui_PerformanceDataPlotView.h"
 
 #include "managers/PerformanceDataManager.h"
+#include "common/openss-gui-config.h"
 
 #include "graphitems/OSSDataTransferItem.h"
 #include "graphitems/OSSKernelExecutionItem.h"
@@ -10,10 +11,6 @@
 #include <QtGlobal>
 #include <QPen>
 #include <QInputDialog>
-
-#ifndef Q_NULLPTR
-#define Q_NULLPTR NULL
-#endif
 
 
 namespace ArgoNavis { namespace GUI {
@@ -151,7 +148,7 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
     mTickStep = qMax( 1.0, mTickStep );
 
     //qDebug() << "using tick step: " << mTickStep << "magnitude factor: " << magnitudeFactor << "tickStepMantissa: " << tickStepMantissa;
-    xAxis->setSubTickCount( qMax( 1, qCeil( tickStepMantissa ) ) - 1 );
+    xAxis->setSubTickCount( qMax( 1.0, qCeil( tickStepMantissa ) ) - 1 );
 
     // Generate tick positions according to mTickStep:
     qint64 firstStep = qMax( 0.0, floor( newRange.lower / mTickStep ) ); // do not use qFloor here, or we'll lose 64 bit precision
