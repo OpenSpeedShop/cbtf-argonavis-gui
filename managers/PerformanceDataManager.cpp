@@ -354,10 +354,10 @@ void PerformanceDataManager::processMetricView(const Experiment* experiment, con
 
         std::cout << std::endl;
 #endif
-#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
-        qDebug() << "PerformanceDataManager::processMetricView FINISHED" << metric;
-#endif
     }
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::processMetricView FINISHED" << metric;
+#endif
 }
 
 /**
