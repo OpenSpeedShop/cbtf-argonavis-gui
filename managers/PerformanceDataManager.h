@@ -1,5 +1,5 @@
 /*!
-   \file ViewManager.h
+   \file PerformanceDataManager.h
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
