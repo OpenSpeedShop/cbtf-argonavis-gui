@@ -31,15 +31,15 @@
     </widget>
    </item>
    <item>
-    <widget class="QCustomPlot" name="graphView" native="true"/>
+    <widget class="CustomPlot" name="graphView" native="true"/>
    </item>
   </layout>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QCustomPlot</class>
+   <class>CustomPlot</class>
    <extends>QWidget</extends>
-   <header>QCustomPlot/qcustomplot.h</header>
+   <header>QCustomPlot/CustomPlot.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

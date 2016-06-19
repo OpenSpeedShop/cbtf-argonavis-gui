@@ -36,7 +36,19 @@ CBTF_MESSAGES_PRI_INCLUDED = 1
 
     isEmpty(CBTF_MESSAGES_LIBPATH): CBTF_MESSAGES_LIBPATH = $${CBTF_MESSAGES_PATH}
 
-    CBTF_MESSAGES_LIBFILES = cbtf cbtf-core cbtf-mrnet cbtf-core-mrnet cbtf-messages-base cbtf-messages-collector cbtf-messages-events cbtf-messages-instrumentation cbtf-messages-perfdata  cbtf-messages-symtab  cbtf-messages-thread cbtf-messages-cuda cbtf-xml
+    CBTF_MESSAGES_LIBFILES = cbtf
+    CBTF_MESSAGES_LIBFILES += cbtf-core
+    CBTF_MESSAGES_LIBFILES += cbtf-mrnet
+    CBTF_MESSAGES_LIBFILES += cbtf-core-mrnet
+    CBTF_MESSAGES_LIBFILES += cbtf-messages-base
+    CBTF_MESSAGES_LIBFILES += cbtf-messages-collector
+    CBTF_MESSAGES_LIBFILES += cbtf-messages-events
+    CBTF_MESSAGES_LIBFILES += cbtf-messages-instrumentation
+    CBTF_MESSAGES_LIBFILES += cbtf-messages-perfdata
+    CBTF_MESSAGES_LIBFILES += cbtf-messages-symtab
+    CBTF_MESSAGES_LIBFILES += cbtf-messages-thread
+    CBTF_MESSAGES_LIBFILES += cbtf-messages-cuda
+    CBTF_MESSAGES_LIBFILES += cbtf-xml
 
     for(CBTF_MESSAGES_LIBFILE, CBTF_MESSAGES_LIBFILES) {
       CBTF_MESSAGES_FILENAME = lib$${CBTF_MESSAGES_LIBFILE}.so

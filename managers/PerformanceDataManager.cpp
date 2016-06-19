@@ -1,5 +1,5 @@
 /*!
-   \file PerformanceDataManager.h
+   \file PerformanceDataManager.cpp
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE

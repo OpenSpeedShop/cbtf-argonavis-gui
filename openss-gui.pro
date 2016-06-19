@@ -4,6 +4,8 @@
 #
 #-------------------------------------------------
 
+!greaterThan(QT_VERSION, "4.6.3"): error("Minimum required version of Qt is 4.6.3")
+
 QT += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets concurrent printsupport
@@ -72,7 +74,8 @@ SOURCES += \
     graphitems/OSSPeriodicSampleItem.cpp \
     managers/PerformanceDataManager.cpp \
     widgets/PerformanceDataPlotView.cpp \
-    widgets/PerformanceDataMetricView.cpp
+    widgets/PerformanceDataMetricView.cpp \
+    QCustomPlot/CustomPlot.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 DEFINES += HAS_OSSCUDA2XML
@@ -93,7 +96,8 @@ HEADERS += \
     managers/PerformanceDataManager.h \
     widgets/PerformanceDataPlotView.h \
     widgets/PerformanceDataMetricView.h \
-    common/openss-gui-config.h
+    common/openss-gui-config.h \
+    QCustomPlot/CustomPlot.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

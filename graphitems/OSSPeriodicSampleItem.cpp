@@ -1,5 +1,5 @@
 /*!
-   \file OSSPeriodicSample.cpp
+   \file OSSPeriodicSampleItem.cpp
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE

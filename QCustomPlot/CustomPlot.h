@@ -1,5 +1,5 @@
 /*!
-   \file OSSPeriodicSampleItem.h
+   \file CustomPlot.h
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
@@ -21,39 +21,25 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef OSSPERIODICSAMPLEITEM_H
-#define OSSPERIODICSAMPLEITEM_H
+#ifndef CUSTOMPLOT_H
+#define CUSTOMPLOT_H
 
 #include "qcustomplot.h"
 
 
-namespace ArgoNavis { namespace GUI {
-
-
-class OSSPeriodicSampleItem : public QCPItemRect
+class CustomPlot : public QCustomPlot
 {
     Q_OBJECT
 
 public:
 
-    explicit OSSPeriodicSampleItem(QCPAxisRect* axisRect, QCustomPlot* parentPlot = 0);
-    virtual ~OSSPeriodicSampleItem();
+    explicit CustomPlot(QWidget *parent = 0);
 
-    void setData(const double& time_begin,
-                 const double& time_end,
-                 const double& count);
+protected:
 
-private:
-
-    // raw period sample data
-    double m_time_begin;
-    double m_time_end;
-    double m_count;
+    virtual void resizeEvent(QResizeEvent *event);
 
 };
 
 
-} // GUI
-} // ArgoNavis
-
-#endif // OSSPERIODICSAMPLEITEM_H
+#endif // CUSTOMPLOT_H
