@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-!greaterThan(QT_VERSION, "4.6.3"): error("Minimum required version of Qt is 4.6.3")
+!greaterThan(QT_VERSION, "4.6.2"): error("Minimum required version of Qt is 4.6.3")
 
 QT += core gui
 
