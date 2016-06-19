@@ -31,7 +31,6 @@ KRELL_ROOT = /devel/DEVEL/krellroot_v2.2.2
 CBTF_ROOT = /devel/DEVEL/cbtf_v2.2.2
 OSS_CBTF_ROOT = /devel/DEVEL/osscbtf_v2.2.2
 BOOST_ROOT = $$KRELL_ROOT
-PYTHON_ROOT = $$KRELL_ROOT
 
 LIBS += -L$$KRELL_ROOT/lib64
 LIBS += -Wl,-rpath $$KRELL_ROOT/lib64
