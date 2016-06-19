@@ -68,7 +68,7 @@ INCLUDEPATH += $$QCUSTOMPLOTDIR
 
 SOURCES += \
     QCustomPlot/qcustomplot.cpp \
-    QCustomPlot/Customplot.cpp \
+    QCustomPlot/CustomPlot.cpp \
     main/main.cpp \
     main/MainWindow.cpp \
     widgets/TreeItem.cpp \
