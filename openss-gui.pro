@@ -63,19 +63,19 @@ INCLUDEPATH += $$QCUSTOMPLOTDIR
 
 SOURCES += \
     QCustomPlot/qcustomplot.cpp \
+    QCustomPlot/CustomPlot.cpp \
     main/main.cpp \
     main/MainWindow.cpp \
-    widgets/TreeItem.cpp \
-    widgets/TreeModel.cpp \
-    widgets/ExperimentPanel.cpp \
     graphitems/OSSDataTransferItem.cpp \
     graphitems/OSSKernelExecutionItem.cpp \
     graphitems/OSSEventItem.cpp \
     graphitems/OSSPeriodicSampleItem.cpp \
-    managers/PerformanceDataManager.cpp \
+    widgets/TreeItem.cpp \
+    widgets/TreeModel.cpp \
+    widgets/ExperimentPanel.cpp \
     widgets/PerformanceDataPlotView.cpp \
     widgets/PerformanceDataMetricView.cpp \
-    QCustomPlot/CustomPlot.cpp
+    managers/PerformanceDataManager.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 DEFINES += HAS_OSSCUDA2XML
@@ -84,20 +84,20 @@ SOURCES += \
 }
 
 HEADERS += \
+    common/openss-gui-config.h \
     QCustomPlot/qcustomplot.h \
+    QCustomPlot/CustomPlot.h \
     main/MainWindow.h \
-    widgets/TreeItem.h \
-    widgets/TreeModel.h \
-    widgets/ExperimentPanel.h \
     graphitems/OSSDataTransferItem.h \
     graphitems/OSSKernelExecutionItem.h \
     graphitems/OSSEventItem.h \
     graphitems/OSSPeriodicSampleItem.h \
-    managers/PerformanceDataManager.h \
+    widgets/TreeItem.h \
+    widgets/TreeModel.h \
+    widgets/ExperimentPanel.h \
     widgets/PerformanceDataPlotView.h \
     widgets/PerformanceDataMetricView.h \
-    common/openss-gui-config.h \
-    QCustomPlot/CustomPlot.h
+    managers/PerformanceDataManager.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

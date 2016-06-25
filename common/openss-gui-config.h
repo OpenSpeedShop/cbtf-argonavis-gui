@@ -27,6 +27,7 @@
 
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 #define Q_DECL_OVERRIDE
+#define Q_DECL_EQ_DEFAULT
 #endif
 
 #ifndef Q_NULLPTR

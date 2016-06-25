@@ -57,6 +57,9 @@ public:
 
     explicit ExperimentPanel(QWidget *parent = 0);
 
+signals:
+
+    void criteriaSelectionUpdate();
 
 public slots:
 

@@ -240,6 +240,15 @@ bool TreeModel::removeRows(int row, int count, const QModelIndex &parent)
     return true;
 }
 
+/**
+ * @brief TreeModel::roleNames
+ * @return hash map of user role names
+*/
+QHash<int, QByteArray> TreeModel::roleNames() const
+{
+    return QAbstractItemModel::roleNames();
+}
+
 /*!
  * \brief TreeModel::data
  * \param index - the tree item desired

@@ -84,6 +84,10 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
                             "        border-image: none;"
                             "        image: url(:/images/branch-open);"
                             "}");
+
+    connect( &m_expView, &QTreeView::clicked, [=](const QModelIndex &index) {
+        qDebug() << "SELECTED: index=" << index << "data=" << m_expModel->data( index ).toString();
+    } );
 }
 
 /**

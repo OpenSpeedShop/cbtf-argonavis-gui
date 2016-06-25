@@ -488,9 +488,22 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
 
     QVector< QString > clusterNames;
 
+#if 0
     for( int i=0; i<threads.size(); ++i ) {
         clusterNames << tr("Group of %1 Thread").arg(1);
     }
+#else
+    QMap< Base::ThreadName, Thread>::iterator iter( threads.begin() );
+    while ( iter != threads.end() ) {
+        Thread thread( *iter );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        clusterNames << QString::fromStdString( thread.getHost() );
+#else
+        clusterNames << QString( thread.getHost().c_str() );
+#endif
+        ++iter;
+    }
+#endif
 
     emit addExperiment( expName, metricGroupName, clusterNames, sampleCounterNames );
 
