@@ -82,13 +82,13 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        connect( dataMgr, &PerformanceDataManager::addMetric, this, &PerformanceDataPlotView::addMetric, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addCluster, this, &PerformanceDataPlotView::handleAddCluster, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::setMetricDuration, this, &PerformanceDataPlotView::setMetricDuration, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addDataTransfer, this, &PerformanceDataPlotView::handleAddDataTransfer, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addKernelExecution, this, &PerformanceDataPlotView::handleAddKernelExecution, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addPeriodicSample, this, &PerformanceDataPlotView::handleAddPeriodicSample, Qt::QueuedConnection );
 #else
-        connect( dataMgr, SIGNAL(addMetric(QString,QString)), this, SLOT(addMetric(QString,QString)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAddCluster(QString,QString)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double)), this, SLOT(setMetricDuration(QString,QString,double)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), this, SLOT(handleAddDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
@@ -466,17 +466,17 @@ void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAx
 }
 
 /**
- * @brief PerformanceDataPlotView::addMetric
- * @param metricGroupName - an existing or new metric group
- * @param metricName - the metric to be added
+ * @brief PerformanceDataPlotView::handleAddCluster
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param clusterName - the cluster name
  *
- * Setup graph representing a metric in a group of related metrics.  If this is for a new metric group, then
- * initialize the metric group which is a new grid layout to be added to the QCustomPlot layout.  A new axis rect
+ * Setup a graph representing a metric for a specific cluster.  If this is for a new clustering criteria, then
+ * initialize the clustering critera which is a new grid layout to be added to the QCustomPlot layout.  A new axis rect
  * is created to hold the graph items and plottables to be added for this metric.  The axis rect is added to the
  * grid layout for the metric group.  A metric group has synchronized x axis ranges; thus, if one axis has been
  * dragged or zoomed, then the ranges for the other axes of the metric group will be modified to be identical.
  */
-void PerformanceDataPlotView::addMetric(const QString &metricGroupName, const QString &metricName)
+void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteriaName, const QString &clusterName)
 {
     // create axis rect for this metric
     QCPAxisRect *axisRect = new QCPAxisRect( ui->graphView );
@@ -487,7 +487,7 @@ void PerformanceDataPlotView::addMetric(const QString &metricGroupName, const QS
     QMutexLocker guard( &m_mutex );
 
     MetricGroup* metricGroup( Q_NULLPTR );
-    if ( ! m_metricGroups.contains( metricGroupName ) ) {
+    if ( ! m_metricGroups.contains( clusteringCriteriaName ) ) {
         metricGroup = new MetricGroup;
         QCPLayoutGrid* layout = new QCPLayoutGrid;
         ui->graphView->plotLayout()->addElement( m_metricCount++, 0, layout );
@@ -500,10 +500,10 @@ void PerformanceDataPlotView::addMetric(const QString &metricGroupName, const QS
         axisRect->setMarginGroup( QCP::msLeft | QCP::msRight, group );
         metricGroup->marginGroup = group;
         metricGroup->layout = layout;
-        m_metricGroups[ metricGroupName ] = metricGroup;
+        m_metricGroups[ clusteringCriteriaName ] = metricGroup;
     }
     else {
-        metricGroup = m_metricGroups[ metricGroupName ];
+        metricGroup = m_metricGroups[ clusteringCriteriaName ];
     }
 
     if ( ! metricGroup && ! metricGroup->layout )
@@ -513,8 +513,8 @@ void PerformanceDataPlotView::addMetric(const QString &metricGroupName, const QS
 
     // set/update attributes of metric group
     metricGroup->layout->addElement( idx, 0, axisRect );  // add axis rect to layout
-    metricGroup->axisRects[ metricName ] = axisRect;      // save axis rect in map
-    metricGroup->metricList << metricName;                // add new metric name to metric list
+    metricGroup->axisRects[ clusterName ] = axisRect;      // save axis rect in map
+    metricGroup->metricList << clusterName;                // add new metric name to metric list
 
     // initialize axis rect
     foreach ( QCPAxis *axis, axisRect->axes() ) {
@@ -526,18 +526,18 @@ void PerformanceDataPlotView::addMetric(const QString &metricGroupName, const QS
     axisRect->setAutoMargins( QCP::msLeft | QCP::msRight | QCP::msBottom );
     axisRect->setMargins( QMargins( 0, 0, 0, 0 ) );
 
-    initPlotView( metricGroupName, axisRect );
+    initPlotView( clusteringCriteriaName, axisRect );
 }
 
 /**
  * @brief PerformanceDataPlotView::setMetricDuration
- * @param metricGroupName - the metric group name of the metric
- * @param metricName - the name of the metric
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param clusterName - the cluster name
  * @param duration - the duration of the experiment in the range [ 0 .. duration ]
  *
  * This method sets the upper value of the visible range of data in the graph view.  Also cause update of metric graph by calling QCustomPlot::replot method.
  */
-void PerformanceDataPlotView::setMetricDuration(const QString& metricGroupName, const QString& metricName, double duration)
+void PerformanceDataPlotView::setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
@@ -545,11 +545,11 @@ void PerformanceDataPlotView::setMetricDuration(const QString& metricGroupName, 
         // handle references to metric group map inside this local block
         QMutexLocker guard( &m_mutex );
 
-        if ( m_metricGroups.contains( metricGroupName ) &&
-             m_metricGroups[ metricGroupName ]->axisRects.contains( metricName ) ) {
-            axisRect = m_metricGroups[ metricGroupName ]->axisRects[ metricName ];
+        if ( m_metricGroups.contains( clusteringCriteriaName ) &&
+             m_metricGroups[ clusteringCriteriaName ]->axisRects.contains( clusterName ) ) {
+            axisRect = m_metricGroups[ clusteringCriteriaName ]->axisRects[ clusterName ];
             if ( axisRect ) {
-                m_metricGroups[ metricGroupName ]->duration = duration;
+                m_metricGroups[ clusteringCriteriaName ]->duration = duration;
             }
         }
     }
@@ -558,7 +558,7 @@ void PerformanceDataPlotView::setMetricDuration(const QString& metricGroupName, 
         QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
         QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
 
-        yAxis->setLabel( metricName );
+        yAxis->setLabel( clusterName );
         yAxis->setVisible( true );
 
         xAxis->setRangeUpper( duration );
@@ -570,25 +570,25 @@ void PerformanceDataPlotView::setMetricDuration(const QString& metricGroupName, 
 
 /**
  * @brief PerformanceDataPlotView::handleAddDataTransfer
- * @param metricGroupName - the metric group associated with the data transfer event
- * @param metricName - the metric associated with the data transfer event
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param clusterName - the cluster name
  * @param time_origin - the time origin of the experiment
  * @param details - the details of the data transfer event
  *
  * Find the axis rect associated with the specified metric group and metric name.  Create the data transfer graph item from the details using the associated axis rect.
  * Add graph item to QCustomPlot instance.
  */
-void PerformanceDataPlotView::handleAddDataTransfer(const QString &metricGroupName, const QString &metricName, const Base::Time &time_origin, const CUDA::DataTransfer &details)
+void PerformanceDataPlotView::handleAddDataTransfer(const QString &clusteringCriteriaName, const QString &clusterName, const Base::Time &time_origin, const CUDA::DataTransfer &details)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
     {
         QMutexLocker guard( &m_mutex );
 
-        if ( m_metricGroups.contains( metricGroupName ) ) {
-            QMap< QString, QCPAxisRect* >& axisRects = m_metricGroups[ metricGroupName ]->axisRects;
-            if ( axisRects.contains( metricName ) )
-                axisRect = axisRects[ metricName ];
+        if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
+            QMap< QString, QCPAxisRect* >& axisRects = m_metricGroups[ clusteringCriteriaName ]->axisRects;
+            if ( axisRects.contains( clusterName ) )
+                axisRect = axisRects[ clusterName ];
         }
     }
 
@@ -604,25 +604,25 @@ void PerformanceDataPlotView::handleAddDataTransfer(const QString &metricGroupNa
 
 /**
  * @brief PerformanceDataPlotView::handleAddKernelExecution
- * @param metricGroupName - the metric group associated with the kernel execution event
- * @param metricName - the metric associated with the kernel execution event
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param clusterName - the cluster name
  * @param time_origin - the time origin of the experiment
  * @param details - the details of the kernel execution event
  *
  * Find the axis rect associated with the specified metric group and metric name.  Create the kernel execution graph item from the details using the associated axis rect.
  * Add graph item to QCustomPlot instance.
  */
-void PerformanceDataPlotView::handleAddKernelExecution(const QString &metricGroupName, const QString &metricName, const Base::Time &time_origin, const CUDA::KernelExecution &details)
+void PerformanceDataPlotView::handleAddKernelExecution(const QString &clusteringCriteriaName, const QString &clusterName, const Base::Time &time_origin, const CUDA::KernelExecution &details)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
     {
         QMutexLocker guard( &m_mutex );
 
-        if ( m_metricGroups.contains( metricGroupName ) ) {
-            QMap< QString, QCPAxisRect* >& axisRects = m_metricGroups[ metricGroupName ]->axisRects;
-            if ( axisRects.contains( metricName ) )
-                axisRect = axisRects[ metricName ];
+        if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
+            QMap< QString, QCPAxisRect* >& axisRects = m_metricGroups[ clusteringCriteriaName ]->axisRects;
+            if ( axisRects.contains( clusterName ) )
+                axisRect = axisRects[ clusterName ];
         }
     }
 
@@ -638,8 +638,8 @@ void PerformanceDataPlotView::handleAddKernelExecution(const QString &metricGrou
 
 /**
  * @brief PerformanceDataPlotView::handleAddPeriodicSample
- * @param metricGroupName - the metric group associated with the periodic sample event
- * @param counterIndex - sample counter index
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param clusterName - the cluster name
  * @param time_begin - the begin time of the periodic sample (relative to time origin of the experiment)
  * @param time_end - the end time of the periodic sample (relative to time origin of the experiment)
  * @param count - the period sample counter value
@@ -647,14 +647,22 @@ void PerformanceDataPlotView::handleAddKernelExecution(const QString &metricGrou
  * Find the axis rect associated with the specified metric group and sample counter index.  Create the periodic sample graph item from the details using the associated axis rect.
  * Add graph item to QCustomPlot instance.  Update y-axis upper range value if counter value is greater than the current y-axis upper range value.
  */
-void PerformanceDataPlotView::handleAddPeriodicSample(const QString &metricGroupName, int counterIndex, const double &time_begin, const double &time_end, const double &count)
+void PerformanceDataPlotView::handleAddPeriodicSample(const QString &clusteringCriteriaName, const QString& clusterName, const double &time_begin, const double &time_end, const double &count)
 {
-    QList<QCPAxisRect *> axisRects = getAxisRectsForMetricGroup( metricGroupName );
+    QCPAxisRect* axisRect( Q_NULLPTR );
 
-    if ( counterIndex < 0 || counterIndex >= axisRects.size() )
+    {
+        QMutexLocker guard( &m_mutex );
+
+        if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
+            QMap< QString, QCPAxisRect* >& axisRects = m_metricGroups[ clusteringCriteriaName ]->axisRects;
+            if ( axisRects.contains( clusterName ) )
+                axisRect = axisRects[ clusterName ];
+        }
+    }
+
+    if ( Q_NULLPTR == axisRect )
         return;
-
-    QCPAxisRect* axisRect = axisRects[ counterIndex ];
 
     OSSPeriodicSampleItem* periodicSampleItem = new OSSPeriodicSampleItem( axisRect, ui->graphView );
 
@@ -670,19 +678,19 @@ void PerformanceDataPlotView::handleAddPeriodicSample(const QString &metricGroup
 
 /**
  * @brief PerformanceDataPlotView::getAxisRectsForMetricGroup
- * @param metricGroupName - the metric group name
+ * @param clusteringCriteriaName - the clustering criteria name
  * @return - the list of axis rects for the metric group (if any or names a valid metric group)
  *
  * Determines the list of axis rects for the metric group, if any, or names a valid metric group.
  */
-QList<QCPAxisRect *> PerformanceDataPlotView::getAxisRectsForMetricGroup(const QString &metricGroupName)
+QList<QCPAxisRect *> PerformanceDataPlotView::getAxisRectsForMetricGroup(const QString &clusteringCriteriaName)
 {
     QList<QCPAxisRect *> axisRects;
 
     QMutexLocker guard( &m_mutex );
 
-    if ( m_metricGroups.contains( metricGroupName ) ) {
-        MetricGroup* group = m_metricGroups[ metricGroupName ];
+    if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
+        MetricGroup* group = m_metricGroups[ clusteringCriteriaName ];
 
         foreach( const QString& metricName, group->metricList ) {
             if ( group->axisRects.contains( metricName ) )

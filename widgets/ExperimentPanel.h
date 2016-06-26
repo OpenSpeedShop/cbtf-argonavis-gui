@@ -64,7 +64,7 @@ signals:
 public slots:
 
     void handleAddExperiment(const QString& name,
-                             const QString& groupName,
+                             const QString& clusteringCriteriaName,
                              const QVector< QString >& clusterNames,
                              const QVector< QString >& sampleCounterNames);
 

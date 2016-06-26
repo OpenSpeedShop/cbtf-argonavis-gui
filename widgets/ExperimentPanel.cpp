@@ -93,13 +93,13 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
 /**
  * @brief ExperimentPanel::handleAddExperiment
  * @param name - the experiment name
- * @param groupName - the group name
- * @param threads - the thread group names
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param clusterNames - the clustering group names
  * @param sampleCounters - the sample counter identifiers
  *
  * Add the given experiment to the tree model which will be detected and added to the view.
  */
-void ExperimentPanel::handleAddExperiment(const QString &name, const QString &groupName, const QVector<QString> &clusterNames, const QVector<QString> &sampleCounterNames)
+void ExperimentPanel::handleAddExperiment(const QString &name, const QString &clusteringCriteriaName, const QVector<QString> &clusterNames, const QVector<QString> &sampleCounterNames)
 {
     // get number of experiments loaded
     int expCount = m_expModel->rowCount();
@@ -114,7 +114,7 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &gr
     success = m_expModel->insertRow( expCount, expIndex );
     Q_ASSERT( success );
     QModelIndex critIndex = m_expModel->index( 0, 0, expIndex );
-    m_expModel->setData( critIndex, groupName, Qt::EditRole );
+    m_expModel->setData( critIndex, clusteringCriteriaName, Qt::EditRole );
 
     int clusterNum = 0;
     foreach( const QString& clusterName, clusterNames ) {

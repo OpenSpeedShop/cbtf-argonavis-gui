@@ -65,22 +65,22 @@ public:
 
 public slots:
 
-    void addMetric(const QString& metricGroupName, const QString& metricName);
+    void handleAddCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
-    void setMetricDuration(const QString& metricGroupName, const QString& metricName, double duration);
+    void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration);
 
-    void handleAddDataTransfer(const QString &metricGroupName,
-                               const QString &metricName,
+    void handleAddDataTransfer(const QString &clusteringCriteriaName,
+                               const QString &clusterName,
                                const Base::Time &time_origin,
                                const CUDA::DataTransfer &details);
 
-    void handleAddKernelExecution(const QString& metricGroupName,
-                                  const QString& metricName,
+    void handleAddKernelExecution(const QString& clusteringCriteriaName,
+                                  const QString& clusterName,
                                   const Base::Time& time_origin,
                                   const CUDA::KernelExecution& details);
 
-    void handleAddPeriodicSample(const QString& metricGroupName,
-                                 int counterIndex,
+    void handleAddPeriodicSample(const QString& clusteringCriteriaName,
+                                 const QString& clusterName,
                                  const double& time_begin,
                                  const double& time_end,
                                  const double& count);

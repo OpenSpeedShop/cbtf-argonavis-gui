@@ -87,22 +87,22 @@ public slots:
 signals:
 
     void addExperiment(const QString& name,
-                       const QString& groupName,
+                       const QString& clusteringCriteriaName,
                        const QVector< QString >& clusterNames,
                        const QVector< QString >& sampleCounterNames);
 
-    void addDataTransfer(const QString &metricGroupName,
-                         const QString &metricName,
+    void addDataTransfer(const QString &clusteringCriteriaName,
+                         const QString &clusterName,
                          const Base::Time &time_origin,
                          const CUDA::DataTransfer &details);
 
-    void addKernelExecution(const QString& metricGroupName,
-                            const QString& metricName,
+    void addKernelExecution(const QString& clusteringCriteriaName,
+                            const QString& clusterName,
                             const Base::Time& time_origin,
                             const CUDA::KernelExecution& details);
 
-    void addPeriodicSample(const QString& metricGroupName,
-                           int counterIndex,
+    void addPeriodicSample(const QString& clusteringCriteriaName,
+                           const QString& clusterName,
                            const double& time_begin,
                            const double& time_end,
                            const double& count);
@@ -111,7 +111,7 @@ signals:
 
     void addMetricViewData(const QString& metricView, const QVariantList& data);
 
-    void addMetric(const QString& metricGroupName, const QString& metricName);
+    void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
     void setMetricDuration(const QString& metricGroupName, const QString& metricName, double duration);
 
@@ -130,23 +130,23 @@ private:
 
     bool processDataTransferEvent(const ArgoNavis::Base::Time& time_origin,
                                   const ArgoNavis::CUDA::DataTransfer& details,
-                                  const QVector< QString >& metricNames,
-                                  const QString& metricGroupName);
+                                  const QString& clusterName,
+                                  const QString& clusteringCriteriaName);
 
     bool processKernelExecutionEvent(const ArgoNavis::Base::Time& time_origin,
                                      const ArgoNavis::CUDA::KernelExecution& details,
-                                     const QVector< QString >& metricNames,
-                                     const QString& metricGroupName);
+                                     const QString& clusterName,
+                                     const QString& clusteringCriteriaName);
 
     bool processPeriodicSample(const ArgoNavis::Base::Time& time_origin,
                                const ArgoNavis::Base::Time& time,
                                const std::vector<uint64_t>& counts,
-                               const QString& metricGroupName);
+                               const QString& clusterName,
+                               const QString& clusteringCriteriaName);
 
-    bool convert_performance_data(const ArgoNavis::CUDA::PerformanceData& data,
-                                  const ArgoNavis::Base::ThreadName& thread,
-                                  const QVector< QString >& metricNames,
-                                  const QString& metricGroupName);
+    bool processPerformanceData(const ArgoNavis::CUDA::PerformanceData& data,
+                                const ArgoNavis::Base::ThreadName& thread,
+                                const QString& clusteringCriteriaName);
 
 private:
 

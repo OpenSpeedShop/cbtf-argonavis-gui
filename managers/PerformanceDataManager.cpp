@@ -148,20 +148,18 @@ void PerformanceDataManager::destroy()
  * @brief PerformanceDataManager::processDataTransferEvent
  * @param time_origin - the time origin of the experiment
  * @param details - the details of the data transfer event
- * @param metricNames - the metrics associated with the data transfer event
- * @param metricGroupName - the metric group associated with the data transfer event
+ * @param clusterName - the cluster group name
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @return - continue (=true) or not continue (=false) the visitation
  *
  * Emit signal for the data transfer event collected from the CUDA collector at the current experiment time.
  */
 bool PerformanceDataManager::processDataTransferEvent(const Base::Time& time_origin,
                                                       const CUDA::DataTransfer& details,
-                                                      const QVector< QString >& metricNames,
-                                                      const QString& metricGroupName)
+                                                      const QString& clusterName,
+                                                      const QString& clusteringCriteriaName)
 {
-    foreach( const QString& metricName, metricNames ) {
-        emit addDataTransfer( metricGroupName, metricName, time_origin, details );
-    }
+    emit addDataTransfer( clusteringCriteriaName, clusterName, time_origin, details );
 
     return true; // continue the visitation
 }
@@ -170,20 +168,18 @@ bool PerformanceDataManager::processDataTransferEvent(const Base::Time& time_ori
  * @brief PerformanceDataManager::processKernelExecutionEvent
  * @param time_origin - the time origin of the experiment
  * @param details - the details of the kernel execution event
- * @param metricNames - the metrics associated with the kernel execution event
- * @param metricGroupName - the metric group associated with the kernel execution event
+ * @param clusterName - the cluster group name
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @return - continue (=true) or not continue (=false) the visitation
  *
  * Emit signal for the kernel execution event collected from the CUDA collector at the current experiment time.
  */
 bool PerformanceDataManager::processKernelExecutionEvent(const Base::Time& time_origin,
                                                          const CUDA::KernelExecution& details,
-                                                         const QVector< QString >& metricNames,
-                                                         const QString& metricGroupName)
+                                                         const QString& clusterName,
+                                                         const QString& clusteringCriteriaName)
 {
-    foreach( const QString& metricName, metricNames ) {
-        emit addKernelExecution( metricGroupName, metricName, time_origin, details );
-    }
+    emit addKernelExecution( clusteringCriteriaName, clusterName, time_origin, details );
 
     return true; // continue the visitation
 }
@@ -193,7 +189,8 @@ bool PerformanceDataManager::processKernelExecutionEvent(const Base::Time& time_
  * @param time_origin - the time origin of the experiment
  * @param time - the time of the period sample collection
  * @param counts - the vector of periodic sample counts for the time period
- * @param metricGroupName - the metric group associated with the kernel execution event
+ * @param clusterName - the cluster group name
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @return - continue (=true) or not continue (=false) the visitation
  *
  * Emit signal for each periodic sample collected at the indicated experiment time.
@@ -201,7 +198,8 @@ bool PerformanceDataManager::processKernelExecutionEvent(const Base::Time& time_
 bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin,
                                                    const Base::Time& time,
                                                    const std::vector<uint64_t>& counts,
-                                                   const QString& metricGroupName)
+                                                   const QString& clusterName,
+                                                   const QString& clusteringCriteriaName)
 {
     double timeStamp = static_cast<uint64_t>( time - time_origin ) / 1000000.0;
     double lastTimeStamp;
@@ -230,7 +228,9 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
         m_sampleValues[i] << value;
         m_rawValues[i] << counts[i];
 
-        emit addPeriodicSample( metricGroupName, i, lastTimeStamp, timeStamp, value );
+        if ( 0 == i ) {
+            emit addPeriodicSample( clusteringCriteriaName, clusterName, lastTimeStamp, timeStamp, value );
+        }
     }
 
     return true; // continue the visitation
@@ -240,37 +240,42 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
  * @brief PerformanceDataManager::convert_performance_data
  * @param data - the performance data structure to be parsed
  * @param thread - the thread of interest
- * @param metricNames - the metrics associated with the specified thread
- * @param metricGroupName - the metric group associated with the specified thread
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @return - continue (=true) or not continue (=false) the visitation
  *
  * Initiate visitations for data transfer and kernel execution events and period sample data.
  * Emit signals for each of these to be handled by the performance data view to build graph items for plotting.
  */
-bool PerformanceDataManager::convert_performance_data(const CUDA::PerformanceData& data,
-                                                      const Base::ThreadName& thread,
-                                                      const QVector< QString >& metricNames,
-                                                      const QString& metricGroupName)
+bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData& data,
+                                                    const Base::ThreadName& thread,
+                                                    const QString& clusteringCriteriaName)
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    QString clusterName = QString::fromStdString( thread.host() );
+#else
+    QString clusterName = QString( thread.host().c_str() );
+#endif
+    qDebug() << "PerformanceDataManager::processPerformanceData: cluster name: " << clusterName;
+
     data.visitDataTransfers(
                 thread, data.interval(),
                 boost::bind( &PerformanceDataManager::processDataTransferEvent, instance(),
                              boost::cref(data.interval().begin()), _1,
-                             boost::cref(metricNames), boost::cref(metricGroupName) )
+                             boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
                 );
 
     data.visitKernelExecutions(
                 thread, data.interval(),
                 boost::bind( &PerformanceDataManager::processKernelExecutionEvent, instance(),
                              boost::cref(data.interval().begin()), _1,
-                             boost::cref(metricNames), boost::cref(metricGroupName) )
+                             boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
                 );
 
     data.visitPeriodicSamples(
                 thread, data.interval(),
                 boost::bind( &PerformanceDataManager::processPeriodicSample, instance(),
                              boost::cref(data.interval().begin()), _1, _2,
-                             boost::cref(metricGroupName) )
+                             boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
                 );
 
     return true; // continue the visitation
@@ -472,9 +477,11 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
 #endif
     }
 
+#if 0
     if ( sampleCounterNames.isEmpty() ) {
         sampleCounterNames << "Default";
     }
+#endif
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     QFileInfo fileInfo( QString::fromStdString( experiment->getName() ) );
@@ -484,7 +491,7 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
     QString expName( fileInfo.fileName() );
     expName.replace( QString(".openss"), QString("") );
 
-    const QString metricGroupName = QStringLiteral( "GPU Compute / Data Transfer Ratio" );
+    const QString clusteringCriteriaName = QStringLiteral( "GPU Compute / Data Transfer Ratio" );
 
     QVector< QString > clusterNames;
 
@@ -505,18 +512,18 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
     }
 #endif
 
-    emit addExperiment( expName, metricGroupName, clusterNames, sampleCounterNames );
+    emit addExperiment( expName, clusteringCriteriaName, clusterNames, sampleCounterNames );
 
-    foreach( const QString& metricName, sampleCounterNames ) {
-        emit addMetric( metricGroupName, metricName );
+    foreach( const QString& clusterName, clusterNames ) {
+        emit addCluster( clusteringCriteriaName, clusterName );
     }
 
     data.visitThreads( boost::bind(
-                           &PerformanceDataManager::convert_performance_data, instance(),
-                           boost::cref(data), _1, boost::cref(sampleCounterNames), boost::cref(metricGroupName) ) );
+                           &PerformanceDataManager::processPerformanceData, instance(),
+                           boost::cref(data), _1, boost::cref(clusteringCriteriaName) ) );
 
-    foreach( const QString& metricName, sampleCounterNames ) {
-        emit setMetricDuration( metricGroupName, metricName, durationMs );
+    foreach( const QString& clusterName, clusterNames ) {
+        emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs );
     }
 
     // clear temporary data structures used during thread visitation
