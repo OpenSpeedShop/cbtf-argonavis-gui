@@ -113,7 +113,7 @@ signals:
 
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
-    void setMetricDuration(const QString& metricGroupName, const QString& metricName, double duration);
+    void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration);
 
     void loadComplete();
 
