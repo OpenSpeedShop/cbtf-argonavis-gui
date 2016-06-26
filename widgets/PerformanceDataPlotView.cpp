@@ -92,7 +92,7 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double)), this, SLOT(setMetricDuration(QString,QString,double)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), this, SLOT(handleAddDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
-        connect( dataMgr, SIGNAL(addPeriodicSample(QString,int,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,int,double,double,double)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addPeriodicSample(QString,QString,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,QString,double,double,double)), Qt::QueuedConnection );
 #endif
     }
 }
