@@ -255,6 +255,11 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
 #else
     QString clusterName = QString( thread.host().c_str() );
 #endif
+#ifdef HAS_STRIP_DOMAIN_NAME
+    int index = clusterName.indexOf( '.' );
+    if ( index > 0 )
+        clusterName = clusterName.left( index );
+#endif
     qDebug() << "PerformanceDataManager::processPerformanceData: cluster name: " << clusterName;
 
     data.visitDataTransfers(
@@ -504,10 +509,16 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
     while ( iter != threads.end() ) {
         Thread thread( *iter );
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        clusterNames << QString::fromStdString( thread.getHost() );
+        QString hostName = QString::fromStdString( thread.getHost() );
 #else
-        clusterNames << QString( thread.getHost().c_str() );
+        QString hostName = QString( thread.getHost().c_str() );
 #endif
+#ifdef HAS_STRIP_DOMAIN_NAME
+        int index = hostName.indexOf( '.' );
+        if ( index > 0 )
+            hostName = hostName.left( index );
+#endif
+        clusterNames << hostName;
         ++iter;
     }
 #endif

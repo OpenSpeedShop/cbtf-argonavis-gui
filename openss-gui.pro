@@ -55,6 +55,7 @@ DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
 #DEFINES += HAS_DESTROY_SINGLETONS
 #DEFINES += HAS_ITEM_CLICK_DEBUG
 #DEFINES += HAS_PROCESS_METRIC_VIEW_DEBUG
+DEFINES += HAS_STRIP_DOMAIN_NAME
 
 INCLUDEPATH += $$BOOST_ROOT/include $$BOOST_ROOT/include/boost
 LIBS += -L$$BOOST_ROOT/lib -lboost_system -lboost_program_options -lboost_thread -lboost_date_time -lboost_filesystem -lboost_unit_test_framework
