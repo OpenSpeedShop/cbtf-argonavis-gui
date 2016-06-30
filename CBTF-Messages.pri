@@ -38,8 +38,8 @@ CBTF_MESSAGES_PRI_INCLUDED = 1
 
     CBTF_MESSAGES_LIBFILES = cbtf
     CBTF_MESSAGES_LIBFILES += cbtf-core
-    CBTF_MESSAGES_LIBFILES += cbtf-mrnet
-    CBTF_MESSAGES_LIBFILES += cbtf-core-mrnet
+#    CBTF_MESSAGES_LIBFILES += cbtf-mrnet
+#    CBTF_MESSAGES_LIBFILES += cbtf-core-mrnet
     CBTF_MESSAGES_LIBFILES += cbtf-messages-base
     CBTF_MESSAGES_LIBFILES += cbtf-messages-collector
     CBTF_MESSAGES_LIBFILES += cbtf-messages-events

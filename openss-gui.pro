@@ -34,7 +34,8 @@ BOOST_ROOT = $$(BOOST_ROOT)
 
 LIBS += -L$$KRELL_ROOT/lib64
 LIBS += -Wl,-rpath $$KRELL_ROOT/lib64
-LIBS += -lxerces-c-3.1 -lxplat -lmrnet
+LIBS += -lxerces-c-3.1 -lxplat
+#LIBS += -lmrnet
 
 INCLUDEPATH += $$CBTF_ROOT/include
 LIBS += -L$$CBTF_ROOT/lib64
@@ -59,8 +60,8 @@ DEFINES += HAS_STRIP_DOMAIN_NAME
 
 INCLUDEPATH += $$BOOST_ROOT/include $$BOOST_ROOT/include/boost
 LIBS += -L$$BOOST_ROOT/lib -lboost_system -lboost_program_options -lboost_thread -lboost_date_time -lboost_filesystem -lboost_unit_test_framework
-LIBS += -Wl,-rpath $$BOOST_ROOT/lib
-LIBS += -lgomp
+#LIBS += -Wl,-rpath $$BOOST_ROOT/lib
+#LIBS += -lgomp
 
 QCUSTOMPLOTDIR = $$PWD/QCustomPlot
 INCLUDEPATH += $$QCUSTOMPLOTDIR
