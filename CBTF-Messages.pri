@@ -41,12 +41,12 @@ CBTF_MESSAGES_PRI_INCLUDED = 1
 #    CBTF_MESSAGES_LIBFILES += cbtf-mrnet
 #    CBTF_MESSAGES_LIBFILES += cbtf-core-mrnet
     CBTF_MESSAGES_LIBFILES += cbtf-messages-base
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-collector
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-events
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-instrumentation
+#    CBTF_MESSAGES_LIBFILES += cbtf-messages-collector
+#    CBTF_MESSAGES_LIBFILES += cbtf-messages-events
+#    CBTF_MESSAGES_LIBFILES += cbtf-messages-instrumentation
     CBTF_MESSAGES_LIBFILES += cbtf-messages-perfdata
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-symtab
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-thread
+#    CBTF_MESSAGES_LIBFILES += cbtf-messages-symtab
+#    CBTF_MESSAGES_LIBFILES += cbtf-messages-thread
     CBTF_MESSAGES_LIBFILES += cbtf-messages-cuda
     CBTF_MESSAGES_LIBFILES += cbtf-xml
 

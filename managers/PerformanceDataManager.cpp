@@ -23,28 +23,7 @@
 
 #include "PerformanceDataManager.h"
 
-#include "managers/PerformanceDataManager.h"
-
 #include "common/openss-gui-config.h"
-
-#include <ArgoNavis/Base/StackTrace.hpp>
-#include <ArgoNavis/Base/Time.hpp>
-
-#include <ArgoNavis/CUDA/PerformanceData.hpp>
-#include <ArgoNavis/CUDA/DataTransfer.hpp>
-#include <ArgoNavis/CUDA/Device.hpp>
-#include <ArgoNavis/CUDA/KernelExecution.hpp>
-#include <ArgoNavis/CUDA/stringify.hpp>
-#include <ArgoNavis/CUDA/Vector.hpp>
-
-#include "ToolAPI.hxx"
-#include "Queries.hxx"
-#include "CUDAQueries.hxx"
-
-#include "collectors/cuda/CUDACountsDetail.hxx"
-#include "collectors/cuda/CUDAExecDetail.hxx"
-#include "collectors/cuda/CUDAXferDetail.hxx"
-#include "collectors/cuda/CUDACollector.hxx"
 
 #include <iostream>
 #include <string>
@@ -57,6 +36,14 @@
 #include <QtConcurrentRun>
 #include <QFutureSynchronizer>
 #include <QFileInfo>
+
+#include <ArgoNavis/CUDA/PerformanceData.hpp>
+#include <ArgoNavis/CUDA/DataTransfer.hpp>
+#include <ArgoNavis/CUDA/KernelExecution.hpp>
+
+#include "ToolAPI.hxx"
+#include "Queries.hxx"
+#include "CUDAQueries.hxx"
 
 using namespace OpenSpeedShop;
 using namespace OpenSpeedShop::Framework;

@@ -38,8 +38,8 @@ OPENSS_PRI_INCLUDED = 1
     OPENSS_LIBFILES += openss-cli
     OPENSS_LIBFILES += openss-framework
     OPENSS_LIBFILES += openss-framework-cbtf
-    OPENSS_LIBFILES += openss-framework-symtabapi
-    OPENSS_LIBFILES += openss-message
+#    OPENSS_LIBFILES += openss-framework-symtabapi
+#    OPENSS_LIBFILES += openss-message
     OPENSS_LIBFILES += openss-queries
     OPENSS_LIBFILES += openss-queries-cuda
 
