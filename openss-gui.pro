@@ -60,7 +60,7 @@ DEFINES += HAS_STRIP_DOMAIN_NAME
 
 INCLUDEPATH += $$BOOST_ROOT/include $$BOOST_ROOT/include/boost
 LIBS += -L$$BOOST_ROOT/lib -lboost_system -lboost_program_options -lboost_thread -lboost_date_time -lboost_filesystem -lboost_unit_test_framework
-#LIBS += -Wl,-rpath $$BOOST_ROOT/lib
+LIBS += -Wl,-rpath $$BOOST_ROOT/lib
 LIBS += -lgomp
 
 QCUSTOMPLOTDIR = $$PWD/QCustomPlot

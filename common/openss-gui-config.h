@@ -39,6 +39,7 @@
 #endif
 
 #ifndef qCeil
+#include "math.h"
 #define qCeil ceil
 #endif
 
