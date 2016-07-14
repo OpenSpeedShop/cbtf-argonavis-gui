@@ -51,7 +51,7 @@ LIBS += -Wl,-rpath $$OSS_CBTF_ROOT/lib64
 
 #DEFINES += USE_DISCRETE_SAMPLES
 DEFINES += USE_PERIODIC_SAMPLE_AVG
-DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
+#DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
 #DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG
 #DEFINES += HAS_DESTROY_SINGLETONS
 #DEFINES += HAS_ITEM_CLICK_DEBUG
@@ -59,7 +59,8 @@ DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
 DEFINES += HAS_STRIP_DOMAIN_NAME
 
 INCLUDEPATH += $$BOOST_ROOT/include $$BOOST_ROOT/include/boost
-LIBS += -L$$BOOST_ROOT/lib -lboost_system -lboost_program_options -lboost_thread -lboost_date_time -lboost_filesystem -lboost_unit_test_framework
+LIBS += -L$$BOOST_ROOT/lib -lboost_system -lboost_thread
+# -lboost_date_time -lboost_filesystem -lboost_unit_test_framework -lboost_program_options
 LIBS += -Wl,-rpath $$BOOST_ROOT/lib
 LIBS += -lgomp
 
