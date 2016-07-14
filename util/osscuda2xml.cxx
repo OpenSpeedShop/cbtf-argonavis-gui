@@ -31,7 +31,6 @@
 #include <vector>
 
 #include <QTextStream>
-#include <QDebug>
 
 #include <ArgoNavis/Base/StackTrace.hpp>
 #include <ArgoNavis/Base/Time.hpp>
@@ -481,10 +480,8 @@ int cuda2xml(const QString& dbFilename, QTextStream& xml)
         }
     }
 
-    if ( ! collector ) {
-        qDebug() << "ERROR: database " << dbFilename << " doesn't contain CUDA performance data";
-        return 1;        
-    }
+    if ( ! collector )
+        return 1;
 
     std::set<int> ranks;
 
