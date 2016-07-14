@@ -108,11 +108,10 @@ void MainWindow::loadOpenSsExperiment()
 
     QByteArray normalizedSignature = QMetaObject::normalizedSignature( "asyncLoadCudaViews(QString)" );
     int methodIndex = dataMgr ->metaObject()->indexOfMethod( normalizedSignature );
-    QMetaMethod method = dataMgr->metaObject()->method( methodIndex );
-    method.invoke( dataMgr, Qt::QueuedConnection, Q_ARG( QString, filePath ) );
-#if defined(HAS_OSSCUDA2XML)
-    dataMgr->xmlDump( filePath );
-#endif
+    if ( -1 != methodIndex ) {
+        QMetaMethod method = dataMgr->metaObject()->method( methodIndex );
+        method.invoke( dataMgr, Qt::QueuedConnection, Q_ARG( QString, filePath ) );
+    }
 
     addUnloadOpenSsExperimentMenuItem( filePath );
 }
