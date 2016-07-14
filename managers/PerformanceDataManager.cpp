@@ -275,14 +275,15 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
 
 /**
  * @brief PerformanceDataManager::processMetricView
- * @param experiment - a reference to the experiment database
+ * @param collector - a reference to the cuda collector
+ * @param threads - all threads known by the cuda collector
  * @param metric - the metric to generate data for
  * @param metricDesc - the metrics to generate data for
  *
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
  * NOTE: must be metrics providing time information.
  */
-void PerformanceDataManager::processMetricView(const Experiment* experiment, const QString &metric, const QStringList &metricDesc)
+void PerformanceDataManager::processMetricView(const Collector& collector, const ThreadGroup& threads, const QString &metric, const QStringList &metricDesc)
 {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView STARTED" << metric;
@@ -294,13 +295,14 @@ void PerformanceDataManager::processMetricView(const Experiment* experiment, con
 #else
     std::string metricStr = std::string( metric.toLatin1().data() );
 #endif
-    Queries::GetMetricValues(*experiment->getCollectors().begin(), metricStr,
-                             TimeInterval(Time::TheBeginning(), Time::TheEnd()),
-                             experiment->getThreads(),
-                             experiment->getThreads().getFunctions(),
-                             individual);
+    Queries::GetMetricValues( collector,
+                              metricStr,
+                              TimeInterval(Time::TheBeginning(), Time::TheEnd()),
+                              threads,
+                              threads.getFunctions(),
+                              individual );
     SmartPtr<std::map<Function, double> > data =
-            Queries::Reduction::Apply(individual, Queries::Reduction::Summation);
+            Queries::Reduction::Apply( individual, Queries::Reduction::Summation );
     individual = SmartPtr<std::map<Function, std::map<Thread, double> > >();
 
     // Sort the results
@@ -321,8 +323,8 @@ void PerformanceDataManager::processMetricView(const Experiment* experiment, con
 
     emit addMetricView( metric, metricDesc );
 
-    for(std::multimap<double, Function>::reverse_iterator
-        i = sorted.rbegin(); i != sorted.rend(); ++i) {
+    for ( std::multimap<double, Function>::reverse_iterator
+          i = sorted.rbegin(); i != sorted.rend(); ++i ) {
 
         QVariantList metricData;
 
@@ -389,23 +391,72 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
     Experiment experiment( std::string( filePath.toLatin1().data() ) );
 #endif
 
-    QFutureSynchronizer<void> synchronizer;
-
-    QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, &experiment );
-    synchronizer.addFuture( future );
-
+    const QString timeMetric( "time" );
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-    // Generate the default CUDA metric view
-    const QString execTimeMetric = QStringLiteral( "exec_time" );
-    const QString xferTimeMetric = QStringLiteral( "xfer_time" );
-    QStringList metricDesc = QStringList() << "Exclusive Time (msec)" << "Function (defining location)";
-    QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, &experiment, xferTimeMetric, metricDesc );
-    synchronizer.addFuture( future1 );
-    QFuture<void> future2 = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, &experiment, execTimeMetric, metricDesc );
-    synchronizer.addFuture( future2 );
+    QStringList metricList;
+    QStringList metricDescList;
+    const QString functionTitle( "Function (defining location)" );
 #endif
 
-    synchronizer.waitForFinished();
+    CollectorGroup collectors = experiment.getCollectors();
+    boost::optional<Collector> collector;
+    bool foundOne( false );
+
+    for ( CollectorGroup::const_iterator i = collectors.begin(); i != collectors.end() && ! foundOne; ++i ) {
+        std::set<Metadata> metrics = i->getMetrics();
+        std::set<Metadata>::iterator iter( metrics.begin() );
+        while ( iter != metrics.end() ) {
+            Metadata metadata( *iter );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+            QString metricName = QString::fromStdString( metadata.getUniqueId() );
+            QString metricDesc = QString::fromStdString( metadata.getShortName() );
+#else
+            QString metricName( metadata.getUniqueId().c_str() );
+            QString metricDesc( metadata.getShortName().c_str() );
+#endif
+            if ( metricName.contains( timeMetric ) && metadata.isType( typeid(double) ) ) {
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+                metricList << metricName;
+                metricDescList <<  metricDesc + " (msec)";
+#endif
+                foundOne = true;
+            }
+            iter++;
+        }
+        collector = *i;
+    }
+
+    if ( collector ) {
+        QFutureSynchronizer<void> synchronizer;
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        QString experimentName = QString::fromStdString( experiment.getName() );
+#else
+        QString experimentName( QString( experiment.getName().c_str() ) );
+#endif
+
+        QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, collector.get(), experiment.getThreads() );
+        synchronizer.addFuture( future );
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        QMap< QString, QFuture<void> > futures;
+        foreach ( const QString& metric, metricList ) {
+            QStringList metricDesc;
+            metricDesc << metricDescList.takeFirst() << functionTitle;
+            futures[metric] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, collector.get(), experiment.getThreads(), metric, metricDesc );
+            synchronizer.addFuture( futures[ metric ] );
+        }
+#endif
+
+#if defined(HAS_OSSCUDA2XML)
+        PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
+        if ( dataMgr )
+            dataMgr->xmlDump( filePath );
+#endif
+
+        synchronizer.waitForFinished();
+    }
+
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::loadCudaViews: ENDED";
 #endif
@@ -415,46 +466,37 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
 /**
  * @brief PerformanceDataManager::loadCudaView
- * @param experiment - experiment database object instance
+ * @param experimentName - experiment database filename
+ * @param collector - a reference to the cuda collector
+ * @param all_threads - all threads known by the cuda collector
  *
  * Parse the requested CUDA performance data to metric model data.
  */
-void PerformanceDataManager::loadCudaView(const Experiment *experiment)
+void PerformanceDataManager::loadCudaView(const QString& experimentName, const Collector& collector, const ThreadGroup& all_threads)
 {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::loadCudaView STARTED!!";
 #endif
-    boost::optional<Collector> collector;
-    CollectorGroup collectors = experiment->getCollectors();
-    for ( CollectorGroup::const_iterator i = collectors.begin(); i != collectors.end(); ++i ) {
-        if ( i->getMetadata().getUniqueId() == "cuda" ) {
-            collector = *i;
-            break;
-        }
-    }
-
-    if ( ! collector )
-        return;
 
     std::set<int> ranks;
     CUDA::PerformanceData data;
     QMap< Base::ThreadName, Thread> threads;
+    bool hasCudaCollector( false );
 
-    ThreadGroup all_threads = experiment->getThreads();
     for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
         std::pair<bool, int> rank = i->getMPIRank();
 
         if ( ranks.empty() || ( rank.first && (ranks.find(rank.second) != ranks.end() )) ) {
-            GetCUDAPerformanceData( *collector, *i, data );
+            if ( "cuda" == collector.getMetadata().getUniqueId() ) {
+                GetCUDAPerformanceData( collector, *i, data );
+                hasCudaCollector = true;
+            }
             threads.insert( ConvertToArgoNavis(*i), *i );
         }
     }
 
     double durationMs( 0.0 );
-    if ( data.interval().empty() ) {
-        return;
-    }
-    else {
+    if ( ! data.interval().empty() ) {
         uint64_t duration = static_cast<uint64_t>(data.interval().end() - data.interval().begin());
         durationMs = qCeil( duration / 1000000.0 );
     }
@@ -475,15 +517,15 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
     }
 #endif
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    QFileInfo fileInfo( QString::fromStdString( experiment->getName() ) );
-#else
-    QFileInfo fileInfo( QString( experiment->getName().c_str() ) );
-#endif
+    QFileInfo fileInfo( experimentName );
     QString expName( fileInfo.fileName() );
     expName.replace( QString(".openss"), QString("") );
 
-    const QString clusteringCriteriaName = QStringLiteral( "GPU Compute / Data Transfer Ratio" );
+    QString clusteringCriteriaName;
+    if ( hasCudaCollector )
+        clusteringCriteriaName = QStringLiteral( "GPU Compute / Data Transfer Ratio" );
+    else
+        clusteringCriteriaName = QStringLiteral( "Thread Groups" );
 
     QVector< QString > clusterNames;
 
@@ -512,31 +554,58 @@ void PerformanceDataManager::loadCudaView(const Experiment *experiment)
 
     emit addExperiment( expName, clusteringCriteriaName, clusterNames, sampleCounterNames );
 
-    foreach( const QString& clusterName, clusterNames ) {
-        emit addCluster( clusteringCriteriaName, clusterName );
+    if ( hasCudaCollector ) {
+        foreach( const QString& clusterName, clusterNames ) {
+            emit addCluster( clusteringCriteriaName, clusterName );
+        }
+
+        data.visitThreads( boost::bind(
+                               &PerformanceDataManager::processPerformanceData, instance(),
+                               boost::cref(data), _1, boost::cref(clusteringCriteriaName) ) );
+
+        foreach( const QString& clusterName, clusterNames ) {
+            emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs );
+        }
+
+        // clear temporary data structures used during thread visitation
+        m_sampleKeys.clear();
+        m_sampleValues.clear();
+        m_rawValues.clear();
     }
-
-    data.visitThreads( boost::bind(
-                           &PerformanceDataManager::processPerformanceData, instance(),
-                           boost::cref(data), _1, boost::cref(clusteringCriteriaName) ) );
-
-    foreach( const QString& clusterName, clusterNames ) {
-        emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs );
-    }
-
-    // clear temporary data structures used during thread visitation
-    m_sampleKeys.clear();
-    m_sampleValues.clear();
-    m_rawValues.clear();
 
 #if !defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-    // Generate the default CUDA metric view
-    const QString execTimeMetric = QStringLiteral( "exec_time" );
-    const QString xferTimeMetric = QStringLiteral( "xfer_time" );
-    QStringList metricDesc = QStringList() << "Exclusive Time (msec)" << "Function (defining location)";
-    processMetricView( experiment, xferTimeMetric, metricDesc );
-    processMetricView( experiment, execTimeMetric, metricDesc );
+    const QString timeMetric( "time" );
+    QStringList metricList;
+    QStringList metricDescList;
+    const QString functionTitle( "Function (defining location)" );
+    std::set<Metadata> metrics = collector.getMetrics();
+    std::set<Metadata>::iterator miter( metrics.begin() );
+    while ( miter != metrics.end() ) {
+        Metadata metadata( *miter );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        QString metricName = QString::fromStdString( metadata.getUniqueId() );
+        QString metricDesc = QString::fromStdString( metadata.getShortName() );
+#else
+        QString metricName( metadata.getUniqueId().c_str() );
+        QString metricDesc( metadata.getShortName().c_str() );
 #endif
+        if ( metricName.contains( timeMetric ) && metadata.isType( typeid(double) ) ) {
+            metricList << metricName;
+            metricDescList <<  metricDesc + " (msec)";
+        }
+        miter++;
+    }
+    // Generate the default metric view
+    foreach ( const QString& metric, metricList ) {
+        Collector collector_copy( collector );
+        ThreadGroup all_threads_copy( all_threads );
+        qDebug() << "Proccessing metric: " << metric;
+        QStringList metricDesc;
+        metricDesc << metricDescList.takeFirst() << functionTitle;
+        processMetricView( collector_copy, all_threads_copy, metric, metricDesc );
+    }
+#endif
+
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::loadCudaView ENDED!!";
 #endif
@@ -564,4 +633,4 @@ void PerformanceDataManager::xmlDump(const QString &filePath)
 
 
 } // GUI
-} // ArgoNavis
+                    } // ArgoNavis

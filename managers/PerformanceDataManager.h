@@ -38,6 +38,8 @@
 namespace OpenSpeedShop {
 namespace Framework {
 class Experiment;
+class Collector;
+class ThreadGroup;
 }
 }
 
@@ -122,9 +124,12 @@ private:
     explicit PerformanceDataManager(QObject* parent = 0);
     virtual ~PerformanceDataManager();
 
-    void loadCudaView(const OpenSpeedShop::Framework::Experiment* experiment);
+    void loadCudaView(const QString& experimentName,
+                      const OpenSpeedShop::Framework::Collector& collector,
+                      const OpenSpeedShop::Framework::ThreadGroup& all_threads);
 
-    void processMetricView(const OpenSpeedShop::Framework::Experiment* experiment,
+    void processMetricView(const OpenSpeedShop::Framework::Collector& collector,
+                           const OpenSpeedShop::Framework::ThreadGroup& threads,
                            const QString &metric,
                            const QStringList &metricDesc);
 
