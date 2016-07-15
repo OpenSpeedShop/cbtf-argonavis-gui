@@ -128,7 +128,7 @@ private:
                       const OpenSpeedShop::Framework::Collector& collector,
                       const OpenSpeedShop::Framework::ThreadGroup& all_threads);
 
-    void processMetricView(const OpenSpeedShop::Framework::Collector& collector,
+    void processMetricView(const OpenSpeedShop::Framework::Collector collector,
                            const OpenSpeedShop::Framework::ThreadGroup& threads,
                            const QString &metric,
                            const QStringList &metricDesc);
