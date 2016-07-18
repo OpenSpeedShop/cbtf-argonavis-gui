@@ -86,7 +86,7 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
  */
 PerformanceDataManager::~PerformanceDataManager()
 {
-    qDebug() << "PerformanceDataManager::~PerformanceDataManager: TERMINATED";
+    qDebug() << "PerformanceDataManager FINISHED";
 }
 
 /**
