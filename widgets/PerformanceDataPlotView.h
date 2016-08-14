@@ -49,6 +49,7 @@ class KernelExecution;
 
 namespace GUI {
 
+class OSSEventsSummaryItem;
 
 class PerformanceDataPlotView : public QWidget
 {
@@ -63,11 +64,26 @@ public:
 
     QList< QCPAxisRect* > getAxisRectsForMetricGroup(const QString& metricGroupName);
 
-public slots:
+signals:
+
+    void graphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size);
+
+protected:
+
+    QSize sizeHint() const Q_DECL_OVERRIDE;
+
+private slots:
+
+    void handleAxisRangeChange(const QCPRange &requestedRange);
+    void handleAxisRangeChangeForMetricGroup(const QCPRange &requestedRange);
+    void handleAxisLabelDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part);
+    void handleSelectionChanged();
+    void handleGraphClicked(QCPAbstractPlottable *plottable);
+    void handleItemClick(QCPAbstractItem *item, QMouseEvent *event);
 
     void handleAddCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
-    void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration);
+    void handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration);
 
     void handleAddDataTransfer(const QString &clusteringCriteriaName,
                                const QString &clusterName,
@@ -84,26 +100,14 @@ public slots:
                                  const double& time_begin,
                                  const double& time_end,
                                  const double& count);
-
-protected:
-
-    QSize sizeHint() const Q_DECL_OVERRIDE;
-
-private slots:
-
-    void handleAxisRangeChange(const QCPRange &requestedRange);
-    void handleAxisRangeChangeForMetricGroup(const QCPRange &requestedRange);
-    void handleAxisLabelDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part);
-    void handleSelectionChanged();
-    void handleGraphClicked(QCPAbstractPlottable *plottable);
-    void handleItemClick(QCPAbstractItem *item, QMouseEvent *event);
+    void handleCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
 
 private:
 
     void initPlotView(const QString& metricGroupName, QCPAxisRect* axisRect);
     QList< QCPAxis* > getAxesForMetricGroup(const QCPAxis::AxisType axisType, const QString& metricGroupName);
     const QCPRange getRange(const QVector<double> &values, bool sortHint = false);
-    double getDurationForMetricGroup(const QCPAxis* axis);
+    double getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusterName, QSize& size);
 
 private:
 
@@ -115,6 +119,7 @@ private:
         QMap< QString, QCPAxisRect* > axisRects;  // an axis rect for each group item
         QStringList metricList;                   // list of metrics
         QCPMarginGroup* marginGroup;              // one margin group to line up the left and right axes
+        QMap< QString, OSSEventsSummaryItem* > eventSummary;
     } MetricGroup;
 
     QMap< QString, MetricGroup* > m_metricGroups; // defines each metric group

@@ -25,6 +25,8 @@
 
 #include "common/openss-gui-config.h"
 
+#include "managers/BackgroundGraphRenderer.h"
+
 #include <iostream>
 #include <string>
 #include <map>
@@ -72,11 +74,21 @@ QAtomicPointer< PerformanceDataManager > PerformanceDataManager::s_instance;
  */
 PerformanceDataManager::PerformanceDataManager(QObject *parent)
     : QObject( parent )
+    , m_processEvents( false )
+    , m_renderer( Q_NULLPTR )
 {
     qRegisterMetaType< Base::Time >("Base::Time");
     qRegisterMetaType< CUDA::DataTransfer >("CUDA::DataTransfer");
     qRegisterMetaType< CUDA::KernelExecution >("CUDA::KernelExecution");
     qRegisterMetaType< QVector< QString > >("QVector< QString >");
+
+    if ( ! m_processEvents ) {
+        m_renderer = new BackgroundGraphRenderer;
+        connect( this, &PerformanceDataManager::replotCompleted, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
+        //connect( this, &PerformanceDataManager::setMetricDuration, m_renderer, &BackgroundGraphRenderer::handleSetMetricDuration );
+        connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
+        connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
+    }
 }
 
 /**
@@ -87,6 +99,7 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 PerformanceDataManager::~PerformanceDataManager()
 {
     qDebug() << "PerformanceDataManager FINISHED";
+    delete m_renderer;
 }
 
 /**
@@ -249,19 +262,21 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
 #endif
     qDebug() << "PerformanceDataManager::processPerformanceData: cluster name: " << clusterName;
 
-    data.visitDataTransfers(
-                thread, data.interval(),
-                boost::bind( &PerformanceDataManager::processDataTransferEvent, instance(),
-                             boost::cref(data.interval().begin()), _1,
-                             boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
-                );
+    if ( m_processEvents ) {
+        data.visitDataTransfers(
+                    thread, data.interval(),
+                    boost::bind( &PerformanceDataManager::processDataTransferEvent, instance(),
+                                 boost::cref(data.interval().begin()), _1,
+                                 boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
+                    );
 
-    data.visitKernelExecutions(
-                thread, data.interval(),
-                boost::bind( &PerformanceDataManager::processKernelExecutionEvent, instance(),
-                             boost::cref(data.interval().begin()), _1,
-                             boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
-                );
+        data.visitKernelExecutions(
+                    thread, data.interval(),
+                    boost::bind( &PerformanceDataManager::processKernelExecutionEvent, instance(),
+                                 boost::cref(data.interval().begin()), _1,
+                                 boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
+                    );
+    }
 
     data.visitPeriodicSamples(
                 thread, data.interval(),
@@ -463,6 +478,19 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 }
 
 /**
+ * @brief PerformanceDataManager::unloadCudaViews
+ * @param clusteringCriteriaName
+ * @param clusterNames
+ */
+void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaName, const QStringList &clusterNames)
+{
+    if ( m_renderer ) {
+        m_renderer->unloadCudaViews( clusteringCriteriaName, clusterNames );
+    }
+
+}
+
+/**
  * @brief PerformanceDataManager::loadCudaView
  * @param experimentName - experiment database filename
  * @param collector - a reference to the cuda collector
@@ -553,6 +581,10 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     emit addExperiment( expName, clusteringCriteriaName, clusterNames, sampleCounterNames );
 
     if ( hasCudaCollector ) {
+        if ( ! m_processEvents ) {
+            m_renderer->setPerformanceData( clusteringCriteriaName, clusterNames, data );
+        }
+
         foreach( const QString& clusterName, clusterNames ) {
             emit addCluster( clusteringCriteriaName, clusterName );
         }
@@ -598,4 +630,4 @@ void PerformanceDataManager::xmlDump(const QString &filePath)
 
 
 } // GUI
-                    } // ArgoNavis
+} // ArgoNavis

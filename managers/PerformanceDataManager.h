@@ -65,6 +65,9 @@ class KernelExecution;
 namespace GUI {
 
 
+class BackgroundGraphRenderer;
+
+
 class PerformanceDataManager : public QObject
 {
     Q_OBJECT
@@ -77,6 +80,7 @@ public:
     static void destroy();
 
     void loadCudaViews(const QString& filePath);
+    void unloadCudaViews(const QString& clusteringCriteriaName, const QStringList& clusterNames);
 
 #if defined(HAS_OSSCUDA2XML)
     void xmlDump(const QString& filePath);
@@ -109,6 +113,8 @@ signals:
                            const double& time_end,
                            const double& count);
 
+    void addCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
+
     void addMetricView(const QString& metricView, const QStringList& metrics);
 
     void addMetricViewData(const QString& metricView, const QVariantList& data);
@@ -116,6 +122,10 @@ signals:
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
     void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration);
+
+    void graphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size);
+
+    void replotCompleted();
 
     void loadComplete();
 
@@ -160,6 +170,10 @@ private:
     QVector<double> m_sampleKeys;
     QMap< int, QVector<double> > m_sampleValues;
     QMap< int, QVector<double> > m_rawValues;
+
+    bool m_processEvents;
+
+    BackgroundGraphRenderer* m_renderer;
 
 };
 

@@ -82,7 +82,10 @@ SOURCES += \
     widgets/ExperimentPanel.cpp \
     widgets/PerformanceDataPlotView.cpp \
     widgets/PerformanceDataMetricView.cpp \
-    managers/PerformanceDataManager.cpp
+    managers/PerformanceDataManager.cpp \
+    managers/BackgroundGraphRendererBackend.cpp \
+    managers/BackgroundGraphRenderer.cpp \
+    graphitems/OSSEventsSummaryItem.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 DEFINES += HAS_OSSCUDA2XML
@@ -104,7 +107,10 @@ HEADERS += \
     widgets/ExperimentPanel.h \
     widgets/PerformanceDataPlotView.h \
     widgets/PerformanceDataMetricView.h \
-    managers/PerformanceDataManager.h
+    managers/PerformanceDataManager.h \
+    managers/BackgroundGraphRendererBackend.h \
+    managers/BackgroundGraphRenderer.h \
+    graphitems/OSSEventsSummaryItem.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

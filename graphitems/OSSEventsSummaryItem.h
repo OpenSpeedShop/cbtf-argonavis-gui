@@ -1,5 +1,5 @@
 /*!
-   \file openss-gui-config.h
+   \file OSSEventsSummaryItem.h
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
@@ -21,29 +21,40 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef OPENSS_GUI_CONFIG_H
-#define OPENSS_GUI_CONFIG_H
+#ifndef OSSEVENTSSUMMARYITEM_H
+#define OSSEVENTSSUMMARYITEM_H
+
+#include "qcustomplot.h"
+
+#include <ArgoNavis/Base/Time.hpp>
 
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
-#define Q_DECL_OVERRIDE
-#define Q_DECL_EQ_DEFAULT
-#endif
-
-#ifndef Q_NULLPTR
-#define Q_NULLPTR NULL
-#endif
-
-#ifndef QStringLiteral
-#define QStringLiteral QString
-#endif
-
-#include <QtMath>
-
-#ifndef qCeil
-#include "math.h"
-#define qCeil ceil
-#endif
+namespace ArgoNavis { namespace GUI {
 
 
-#endif // OPENSS_GUI_CONFIG_H
+class OSSEventsSummaryItem : public QCPItemRect
+{
+    Q_OBJECT
+
+public:
+
+    explicit OSSEventsSummaryItem(QCPAxisRect* axisRect, QCustomPlot* parentPlot = 0);
+    virtual ~OSSEventsSummaryItem();
+
+    void setData(double timeBegin, double timeEnd, const QImage& image);
+
+protected:
+
+    virtual void draw(QCPPainter *painter) Q_DECL_OVERRIDE;
+
+protected:
+
+    QImage m_image;
+
+};
+
+
+} // GUI
+} // ArgoNavis
+
+#endif // OSSEVENTSSUMMARYITEM_H

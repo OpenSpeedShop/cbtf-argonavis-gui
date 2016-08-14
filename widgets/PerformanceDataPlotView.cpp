@@ -30,6 +30,7 @@
 #include "graphitems/OSSDataTransferItem.h"
 #include "graphitems/OSSKernelExecutionItem.h"
 #include "graphitems/OSSPeriodicSampleItem.h"
+#include "graphitems/OSSEventsSummaryItem.h"
 
 #include <QtGlobal>
 #include <QPen>
@@ -83,16 +84,22 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
     if ( dataMgr ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::addCluster, this, &PerformanceDataPlotView::handleAddCluster, Qt::QueuedConnection );
-        connect( dataMgr, &PerformanceDataManager::setMetricDuration, this, &PerformanceDataPlotView::setMetricDuration, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::setMetricDuration, this, &PerformanceDataPlotView::handleSetMetricDuration, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addDataTransfer, this, &PerformanceDataPlotView::handleAddDataTransfer, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addKernelExecution, this, &PerformanceDataPlotView::handleAddKernelExecution, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addPeriodicSample, this, &PerformanceDataPlotView::handleAddPeriodicSample, Qt::QueuedConnection );
+        connect( ui->graphView, &QCustomPlot::afterReplot, dataMgr, &PerformanceDataManager::replotCompleted );
+        connect( dataMgr, &PerformanceDataManager::addCudaEventSnapshot, this, &PerformanceDataPlotView::handleCudaEventSnapshot, Qt::QueuedConnection );
+        connect( this, &PerformanceDataPlotView::graphRangeChanged, dataMgr, &PerformanceDataManager::graphRangeChanged );
 #else
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAddCluster(QString,QString)), Qt::QueuedConnection );
-        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double)), this, SLOT(setMetricDuration(QString,QString,double)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double)), this, SLOT(handleSetMetricDuration(QString,QString,double)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), this, SLOT(handleAddDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addPeriodicSample(QString,QString,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,QString,double,double,double)), Qt::QueuedConnection );
+        connect( ui->graphView, SIGNAL(afterReplot()), dataMgr, SIGNAL(replotCompleted()) );
+        connect( dataMgr, SIGNAL(addCudaEventSnapshot(const QImage&)), this, SLOT(handleCudaEventSnapshot(const QImage&)), Qt::QueuedConnection );
+        connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), dataMgr, SIGNAL(graphRangeChanged(QString,double,double,QSize)) );
 #endif
     }
 }
@@ -127,6 +134,15 @@ void PerformanceDataPlotView::unloadExperimentDataFromView(const QString &experi
 
     QMutexLocker guard( &m_mutex );
 
+    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
+    if ( dataMgr ) {
+    QMap< QString, MetricGroup* >::iterator iter( m_metricGroups.begin() );
+    while ( iter != m_metricGroups.end() ) {
+        MetricGroup* group = iter.value();
+        dataMgr->unloadCudaViews( iter.key(), group->metricList );
+        iter++;
+    }
+    }
     qDeleteAll( m_metricGroups );
     m_metricGroups.clear();
 
@@ -144,11 +160,15 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
 {
     // get the sender axis
     QCPAxis* xAxis = qobject_cast< QCPAxis* >( sender() );
+    QString clusterName;
+    QSize size;
+    double duration = getGraphInfoForMetricGroup( xAxis, clusterName, size );
 
-    // termporarily block signals for X Axis
+    if ( 0 == size.width() || 0 == size.height() )
+        return;
+
+    // temporarily block signals for X Axis
     xAxis->blockSignals( true );
-
-    double duration = getDurationForMetricGroup( xAxis );
 
     //qDebug() << "rangeChanged: lower: " << requestedRange.lower << "upper: " << requestedRange.upper;
     // clamp requested range to 0 .. duration but minimum allowed range is 'minXspread'
@@ -156,12 +176,16 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
     double upper = qMax( minXspread, qMin( duration, requestedRange.upper ) );
     double lower = qMin( upper - minXspread, qMax( 0.0, requestedRange.lower ) );
 
+    //qDebug() << "requestedRange: lower: " << lower << "upper: " << upper;
     xAxis->setRange( lower, upper );
+
+    emit graphRangeChanged( clusterName, lower, upper, size );
 
     // unblock signals for X Axis
     xAxis->blockSignals( false );
 
     QCPRange newRange = xAxis->range();
+    //qDebug() << "newRange: lower: " << newRange.lower << "upper: " << newRange.upper;
 
     // Generate tick positions according to linear scaling:
     double mTickStep = newRange.size() / (double)( 10.0 + 1e-10 ); // mAutoTickCount ticks on average, the small addition is to prevent jitter on exact integers
@@ -324,6 +348,70 @@ void PerformanceDataPlotView::handleItemClick(QCPAbstractItem *item, QMouseEvent
 }
 
 /**
+ * @brief PerformanceDataPlotView::handleCudaEventSnapshot
+ * @param clusteringCriteriaName
+ * @param clusteringName
+ * @param lower
+ * @param upper
+ * @param image
+ */
+void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage &image)
+{
+#if 0
+    static int counter = 0;
+    image.save( QString("image-%1.png").arg(counter++), "PNG" );    QCPAxisRect* axisRect( Q_NULLPTR );
+#endif
+
+    QCPAxisRect* axisRect( Q_NULLPTR );
+    OSSEventsSummaryItem* eventSummaryItem( Q_NULLPTR );
+
+    {
+        QMutexLocker guard( &m_mutex );
+
+        if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
+            QMap< QString, QCPAxisRect* >& axisRects = m_metricGroups[ clusteringCriteriaName ]->axisRects;
+            if ( axisRects.contains( clusteringName ) )
+                axisRect = axisRects[ clusteringName ];
+            QMap< QString, OSSEventsSummaryItem* >& eventSummary = m_metricGroups[ clusteringCriteriaName ]->eventSummary;
+            if ( eventSummary.contains( clusteringName ) ) {
+                eventSummaryItem = eventSummary[ clusteringName ];
+            }
+        }
+    }
+
+    qDebug() << "PerformanceDataPlotView::handleCudaEventSnapshot CALLED: clusterName=" << clusteringName << "lower=" << lower << "upper=" << upper << "image size=" << image.size();
+
+    if ( Q_NULLPTR == axisRect )
+        return;
+
+    bool newItem( false );
+    if ( Q_NULLPTR == eventSummaryItem ) {
+        eventSummaryItem = new OSSEventsSummaryItem( axisRect, ui->graphView );
+        newItem = true;
+    }
+
+    if ( Q_NULLPTR == eventSummaryItem )
+        return;
+
+    eventSummaryItem->setData( lower, upper, image );
+
+    if ( newItem ) {
+        ui->graphView->addItem( eventSummaryItem );
+
+        {
+            QMutexLocker guard( &m_mutex );
+
+            if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
+                m_metricGroups[ clusteringCriteriaName ]->eventSummary.insert( clusteringName, eventSummaryItem );
+            }
+        }
+    }
+    //else {
+        ui->graphView->replot( QCustomPlot::rpQueued );
+    //}
+}
+
+/**
  * @brief PerformanceDataPlotView::getRange
  * @param values - vector of data for either x or y axis
  * @param sortHint - specifies if vector can be expected to be pre-sorted (increasing order)
@@ -358,24 +446,37 @@ const QCPRange PerformanceDataPlotView::getRange(const QVector<double> &values, 
 /**
  * @brief PerformanceDataPlotView::getDurationForMetricGroup
  * @param axis
- * @return
+ * @param clusterName
+ * @return Duration for metric group
  */
-double PerformanceDataPlotView::getDurationForMetricGroup(const QCPAxis *axis)
+double PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusterName, QSize& size)
 {
+    double durationResult( 0.0 );
+
     // get metric group the axis is associated with axis
-    QVariant metricGroupVar = axis->property( "associatedMetricGroup" );
+    QVariant clusteringCriteriaNameVar = axis->property( "associatedMetricGroup" );
 
-    if ( ! metricGroupVar.isValid() )
-        return 0.0;
+    if ( clusteringCriteriaNameVar.isValid() ) {
+        QString clusteringCriteriaName = clusteringCriteriaNameVar.toString();
 
-    QString metricGroupName = metricGroupVar.toString();
+        QMutexLocker guard( &m_mutex );
 
-    QMutexLocker guard( &m_mutex );
+        if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
+            durationResult = m_metricGroups[ clusteringCriteriaName ]->duration;
+            MetricGroup* group = m_metricGroups[ clusteringCriteriaName ];
+            QMap< QString, QCPAxisRect* >::iterator iter( group->axisRects.begin() );
+            while ( iter != group->axisRects.end() ) {
+                if ( iter.value()->axis( QCPAxis::atBottom ) == axis ) {
+                    clusterName = iter.key();
+                    size = iter.value()->size();
+                    break;
+                }
+                iter++;
+            }
+        }
+    }
 
-    if ( m_metricGroups.contains( metricGroupName ) )
-        return m_metricGroups[ metricGroupName ]->duration;
-    else
-        return 0.0;
+    return durationResult;
 }
 
 /**
@@ -537,7 +638,7 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
  *
  * This method sets the upper value of the visible range of data in the graph view.  Also cause update of metric graph by calling QCustomPlot::replot method.
  */
-void PerformanceDataPlotView::setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration)
+void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
