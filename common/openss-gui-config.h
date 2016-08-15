@@ -38,8 +38,6 @@
 #define QStringLiteral QString
 #endif
 
-#include <QtMath>
-
 #ifndef qCeil
 #include "math.h"
 #define qCeil ceil
