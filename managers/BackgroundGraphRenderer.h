@@ -62,9 +62,6 @@ signals:
 public slots:
 
     void handleGraphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size);
-#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
-    void processGraphRangeChangedTimeout();
-#endif
 
 private slots:
 
@@ -77,6 +74,7 @@ private slots:
     void handleProcessCudaEventViewDone();
     void handleCreatePlotForClustering(const QString& clusteringCriteriaName, const QString& clusteringName);
     void processCudaEventSnapshots();
+    void processGraphRangeChangedTimeout();
 
 private:
 

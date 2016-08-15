@@ -26,6 +26,8 @@
 
 #include "qcustomplot.h"
 
+#include "common/openss-gui-config.h"
+
 #include <ArgoNavis/Base/Time.hpp>
 
 

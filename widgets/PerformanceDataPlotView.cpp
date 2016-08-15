@@ -98,7 +98,8 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addPeriodicSample(QString,QString,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,QString,double,double,double)), Qt::QueuedConnection );
         connect( ui->graphView, SIGNAL(afterReplot()), dataMgr, SIGNAL(replotCompleted()) );
-        connect( dataMgr, SIGNAL(addCudaEventSnapshot(const QImage&)), this, SLOT(handleCudaEventSnapshot(const QImage&)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addCudaEventSnapshot(const QString&,const QString&,double,double,const QImage&)),
+                                 this, SLOT(handleCudaEventSnapshot(const QString&,const QString&,double,double,const QImage&)), Qt::QueuedConnection );
         connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), dataMgr, SIGNAL(graphRangeChanged(QString,double,double,QSize)) );
 #endif
     }

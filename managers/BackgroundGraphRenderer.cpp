@@ -31,6 +31,7 @@
 #include "graphitems/OSSKernelExecutionItem.h"
 
 #include <QImage>
+#include <QTimer>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -107,7 +108,7 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
         connect( backend, &BackgroundGraphRendererBackend::addKernelExecution, this, &BackgroundGraphRenderer::processKernelExecutionEvent, Qt::QueuedConnection );
         connect( backend, &BackgroundGraphRendererBackend::signalProcessCudaEventViewDone, this, &BackgroundGraphRenderer::handleProcessCudaEventViewDone, Qt::QueuedConnection );
 #else
-        connect( this, &BackgroundGraphRenderer::signalProcessCudaEventView, backend, &BackgroundGraphRendererBackend::signalProcessCudaEventViewStart );
+        connect( this, SIGNAL(signalProcessCudaEventView()), backend, SIGNAL(signalProcessCudaEventViewStart()) );
         connect( backend, SIGNAL(addDataTransfer(QString,Base::Time,CUDA::DataTransfer)), this, SLOT(processDataTransferEvent(QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
         connect( backend, SIGNAL(addKernelExecution(QString,Base::Time,CUDA::KernelExecution)), this, SLOT(processKernelExecutionEvent(QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
         connect( backend, SIGNAL(signalProcessCudaEventViewDone()), this, SLOT(handleProcessCudaEventViewDone()), Qt::QueuedConnection );
@@ -228,9 +229,6 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
                 connect( thread, SIGNAL(started()), timer, SLOT(start()) );
                 // stop the timer when the thread finishes
                 connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
-                // when the thread finishes schedule the timer and timer thread instances for deletion
-                connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
-                connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
                 // setup the timer expiry handler to process the graph range change only if the waiting period completes
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
                 connect( timer, &QTimer::timeout, [=]() {
@@ -252,6 +250,10 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
                 timer->setProperty( "size" , size );
                 connect( timer, SIGNAL(timeout()), this, SLOT(processGraphRangeChangedTimeout()) );
 #endif
+                // when the thread finishes schedule the timer and timer thread instances for deletion
+                connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
+                connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
+
                 // start the thread (and the timer per previously setup signal-to-slot connection)
                 thread->start();
             }
@@ -259,7 +261,6 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
     }
 }
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 /**
  * @brief BackgroundGraphRenderer::processGraphRangeChangedTimeout
  */
@@ -299,7 +300,6 @@ void BackgroundGraphRenderer::processGraphRangeChangedTimeout()
         }
     }
 }
-#endif
 
 /**
  * @brief BackgroundGraphRenderer::processDataTransferEvent
