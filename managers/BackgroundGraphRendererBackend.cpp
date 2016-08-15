@@ -48,7 +48,9 @@ BackgroundGraphRendererBackend::BackgroundGraphRendererBackend(const QString& cl
     : QObject( parent )
     , m_data( data )
 {
-    connect( this, &BackgroundGraphRendererBackend::signalProcessCudaEventViewStart, this, &BackgroundGraphRendererBackend::handleProcessCudaEventView );
+    Q_UNUSED(clusteringCriteriaName)
+
+    connect( this, SIGNAL(signalProcessCudaEventViewStart()), this, SLOT(handleProcessCudaEventView()) );
 }
 
 /**
@@ -108,8 +110,8 @@ void BackgroundGraphRendererBackend::handleProcessCudaEventView()
     m_watcher = new QFutureWatcher<void>();
 
     if ( m_watcher ) {
-        connect( m_watcher, &QFutureWatcher<void>::finished, this, &BackgroundGraphRendererBackend::signalProcessCudaEventViewDone );
-        connect( m_watcher, &QFutureWatcher<void>::finished, m_watcher, &QFutureWatcher<void>::deleteLater );
+        connect( m_watcher, SIGNAL(finished()), this, SIGNAL(signalProcessCudaEventViewDone()) );
+        connect( m_watcher, SIGNAL(finished()), m_watcher, SLOT(deleteLater()) );
 
         m_watcher->setFuture( QtConcurrent::run( &m_data, &CUDA::PerformanceData::visitThreads,
                                                  boost::bind( &BackgroundGraphRendererBackend::processThreadCudaEvents, this, _1 ) ) );
