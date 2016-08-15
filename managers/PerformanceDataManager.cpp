@@ -84,10 +84,15 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 
     if ( ! m_processEvents ) {
         m_renderer = new BackgroundGraphRenderer;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( this, &PerformanceDataManager::replotCompleted, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
-        //connect( this, &PerformanceDataManager::setMetricDuration, m_renderer, &BackgroundGraphRenderer::handleSetMetricDuration );
         connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
         connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
+#else
+        connect( this, SIGNAL(replotCompleted()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
+        connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,double,double,QSize)) );
+        connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
+#endif
     }
 }
 
