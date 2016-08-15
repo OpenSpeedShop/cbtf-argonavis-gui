@@ -127,7 +127,11 @@ void BackgroundGraphRendererBackend::handleProcessCudaEventView()
  */
 bool BackgroundGraphRendererBackend::processThreadCudaEvents(const Base::ThreadName& thread)
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     QString clusterName = QString::fromStdString( thread.host() );
+#else
+    QString clusterName( thread.host().c_str() );
+#endif
 #ifdef HAS_STRIP_DOMAIN_NAME
     int index = clusterName.indexOf( '.' );
     if ( index > 0 )
