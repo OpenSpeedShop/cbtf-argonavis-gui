@@ -32,8 +32,6 @@
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 
-#include "QCustomPlot/qcustomplot.h"
-
 
 namespace ArgoNavis { namespace GUI {
 

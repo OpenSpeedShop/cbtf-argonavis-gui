@@ -112,6 +112,7 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
  */
 void BackgroundGraphRenderer::unloadCudaViews(const QString &clusteringCriteriaName, const QStringList &clusterNames)
 {
+    Q_UNUSED(clusteringCriteriaName)
     qDebug() << "BackgroundGraphRenderer::unloadCudaViews: clusterNames=" << clusterNames.join(",");
     QMutableMapIterator< QString, CustomPlot* > piter( m_plot );
     while ( piter.hasNext() ) {
