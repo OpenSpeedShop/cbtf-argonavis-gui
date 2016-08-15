@@ -87,6 +87,8 @@ private:
 
     QMap< QString, BackgroundGraphRendererBackend* > m_backend;
 
+    static QMap< QString, QPair<double, double> > lastReplotRange;
+
 };
 
 

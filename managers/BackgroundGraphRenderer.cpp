@@ -38,7 +38,7 @@ namespace ArgoNavis { namespace GUI {
 
 
 // a filter to prevent repeated graph range changed events
-static QMap< QString, QPair<double, double> > lastReplotRange;
+QMap< QString, QPair<double, double> > BackgroundGraphRenderer::lastReplotRange;
 
 
 /**
@@ -272,6 +272,9 @@ void BackgroundGraphRenderer::processGraphRangeChangedTimeout()
         return;
 
     QString clusterName = timer->property( "clusterName" ).toString();
+    double lower = timer->property( "lower" ).toDouble();
+    double upper = timer->property( "upper" ).toDouble();
+    QSize size = timer->property( "size" ).toSize();
 
     {
         QMutexLocker guard( &m_mutex );
@@ -288,9 +291,6 @@ void BackgroundGraphRenderer::processGraphRangeChangedTimeout()
         if ( axisRect ) {
             QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
             if ( xAxis ) {
-                double lower = timer->property( "lower" ).toDouble();
-                double upper = timer->property( "upper" ).toDouble();
-                QSize size = timer->property( "size" ).toSize();
                 lastReplotRange.insert( clusterName, qMakePair( lower, upper ) );
                 xAxis->setRange( lower, upper );
                 plot->setProperty( "imageWidth", size.width() );
