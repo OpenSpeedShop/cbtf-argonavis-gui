@@ -61,8 +61,10 @@ signals:
 
 public slots:
 
-//    void handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration);
     void handleGraphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size);
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+    void processGraphRangeChangedTimeout();
+#endif
 
 private slots:
 

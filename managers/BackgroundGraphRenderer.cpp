@@ -36,6 +36,10 @@
 namespace ArgoNavis { namespace GUI {
 
 
+// a filter to prevent repeated graph range changed events
+static QMap< QString, QPair<double, double> > lastReplotRange;
+
+
 /**
  * @brief BackgroundGraphRenderer::BackgroundGraphRenderer
  * @param parent - the parent QWidget instance
@@ -48,7 +52,11 @@ BackgroundGraphRenderer::BackgroundGraphRenderer(QWidget *parent)
     resize( 0, 0 );
 
     // setup signal-to-slot connection for creating QCustomPlot instance in the GUI thread
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( this, &BackgroundGraphRenderer::createPlotForClustering, this, &BackgroundGraphRenderer::handleCreatePlotForClustering, Qt::QueuedConnection );
+#else
+    connect( this, SIGNAL(createPlotForClustering(QString,QString)), this, SLOT(handleCreatePlotForClustering(QString,QString)), Qt::QueuedConnection );
+#endif
 
     // start thread for backend processing
     m_thread.start();
@@ -92,11 +100,18 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
         backend->setObjectName( clusteringCriteriaName );
         backend->moveToThread( &m_thread );
 
-        // setup signal-to-signal and signal-to-slot connections
+        // setup signal-to-signal and signal-to-slot connectionsthread
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( this, &BackgroundGraphRenderer::signalProcessCudaEventView, backend, &BackgroundGraphRendererBackend::signalProcessCudaEventViewStart );
         connect( backend, &BackgroundGraphRendererBackend::addDataTransfer, this, &BackgroundGraphRenderer::processDataTransferEvent, Qt::QueuedConnection );
         connect( backend, &BackgroundGraphRendererBackend::addKernelExecution, this, &BackgroundGraphRenderer::processKernelExecutionEvent, Qt::QueuedConnection );
         connect( backend, &BackgroundGraphRendererBackend::signalProcessCudaEventViewDone, this, &BackgroundGraphRenderer::handleProcessCudaEventViewDone, Qt::QueuedConnection );
+#else
+        connect( this, &BackgroundGraphRenderer::signalProcessCudaEventView, backend, &BackgroundGraphRendererBackend::signalProcessCudaEventViewStart );
+        connect( backend, SIGNAL(addDataTransfer(QString,Base::Time,CUDA::DataTransfer)), this, SLOT(processDataTransferEvent(QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
+        connect( backend, SIGNAL(addKernelExecution(QString,Base::Time,CUDA::KernelExecution)), this, SLOT(processKernelExecutionEvent(QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
+        connect( backend, SIGNAL(signalProcessCudaEventViewDone()), this, SLOT(handleProcessCudaEventViewDone()), Qt::QueuedConnection );
+#endif
 
         // insert backend instance into the backend map
         m_backend.insert( clusteringCriteriaName, backend );
@@ -179,8 +194,6 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
         }
     }
 
-    // a filter to prevent repeated graph range changed events
-    static QMap< QString, QPair<double, double> > lastReplotRange;
     if ( lastReplotRange.contains( clusterName ) ) {
         QPair<double, double> range = lastReplotRange.value( clusterName );
         if ( qFuzzyCompare( range.first, lower ) && qFuzzyCompare( range.second, upper ) )
@@ -212,13 +225,14 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
                 }
                 timer->moveToThread( thread );
                 // start the timer when the thread is started
-                connect( thread, &QThread::started, timer, static_cast<void(QTimer::*)()>(&QTimer::start) );
+                connect( thread, SIGNAL(started()), timer, SLOT(start()) );
                 // stop the timer when the thread finishes
-                connect( thread, &QThread::finished, timer, &QTimer::stop );
+                connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
                 // when the thread finishes schedule the timer and timer thread instances for deletion
-                connect( thread, &QThread::finished, timer, &QTimer::deleteLater );
-                connect( thread, &QThread::finished, thread, &QThread::deleteLater );
+                connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
+                connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
                 // setup the timer expiry handler to process the graph range change only if the waiting period completes
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
                 connect( timer, &QTimer::timeout, [=]() {
                     {
                         QMutexLocker guard( &m_mutex );
@@ -231,12 +245,61 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
                     plot->setProperty( "imageHeight", size.height() );
                     plot->replot();
                 } );
+#else
+                timer->setProperty( "clusterName" , clusterName );
+                timer->setProperty( "lower" , lower );
+                timer->setProperty( "upper" , upper );
+                timer->setProperty( "size" , size );
+                connect( timer, SIGNAL(timeout()), this, SLOT(processGraphRangeChangedTimeout()) );
+#endif
                 // start the thread (and the timer per previously setup signal-to-slot connection)
                 thread->start();
             }
         }
     }
 }
+
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+/**
+ * @brief BackgroundGraphRenderer::processGraphRangeChangedTimeout
+ */
+void BackgroundGraphRenderer::processGraphRangeChangedTimeout()
+{
+    QTimer* timer = qobject_cast< QTimer* >( sender() );
+
+    if ( ! timer )
+        return;
+
+    QString clusterName = timer->property( "clusterName" ).toString();
+
+    {
+        QMutexLocker guard( &m_mutex );
+        QThread* thread = m_timerThreads.take( clusterName );
+        thread->quit();
+    }
+
+    if ( ! m_plot.contains( clusterName ) )
+        return;
+
+    QCustomPlot* plot( m_plot.value( clusterName ) );
+    if ( plot ) {
+        QCPAxisRect* axisRect = plot->axisRect();
+        if ( axisRect ) {
+            QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
+            if ( xAxis ) {
+                double lower = timer->property( "lower" ).toDouble();
+                double upper = timer->property( "upper" ).toDouble();
+                QSize size = timer->property( "size" ).toSize();
+                lastReplotRange.insert( clusterName, qMakePair( lower, upper ) );
+                xAxis->setRange( lower, upper );
+                plot->setProperty( "imageWidth", size.width() );
+                plot->setProperty( "imageHeight", size.height() );
+                plot->replot();
+            }
+        }
+    }
+}
+#endif
 
 /**
  * @brief BackgroundGraphRenderer::processDataTransferEvent
@@ -400,7 +463,7 @@ void BackgroundGraphRenderer::handleCreatePlotForClustering(const QString& clust
         plot->setPalette( pal );
         plot->setProperty( "clusteringCriteriaName", clusteringCriteriaName );
         plot->setProperty( "clusteringName", clusteringName );
-        connect( plot, &QCustomPlot::afterReplot, this, &BackgroundGraphRenderer::processCudaEventSnapshots );
+        connect( plot, SIGNAL(afterReplot()), this,SLOT(processCudaEventSnapshots()) );
         QCPAxisRect* axisRect = plot->axisRect();
         if ( axisRect ) {
             QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
