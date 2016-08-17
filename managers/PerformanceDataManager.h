@@ -141,6 +141,9 @@ private slots:
 
     void handleLoadCudaMetricViewsTimeout();
 
+    void threadDestroyed();
+    void timerDestroyed();
+
 private:
 
     explicit PerformanceDataManager(QObject* parent = 0);

@@ -562,6 +562,8 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
             // when the thread finishes schedule the timer and timer thread instances for deletion
             connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
             connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
+            connect( thread, SIGNAL(destroyed()), this, SLOT(threadDestroyed()) );
+            connect( timer, SIGNAL(destroyed()), this, SLOT(timerDestroyed()) );
 
             // start the thread (and the timer per previously setup signal-to-slot connection)
             thread->start();
@@ -574,6 +576,20 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
     else {
         qWarning() << "Not able to allocate thread";
     }
+}
+
+void PerformanceDataManager::threadDestroyed()
+{
+    QThread* thread = qobject_cast< QThread* >( sender() );
+    if ( thread )
+        qDebug() << "THREAD DESTROYED: clusterName=" << thread->objectName();
+}
+
+void PerformanceDataManager::timerDestroyed()
+{
+    QTimer* timer = qobject_cast< QTimer* >( sender() );
+    if ( timer )
+        qDebug() << "TIMER DESTROYED: clusterName=" << timer->property( "clusterName" ).toString();
 }
 
 /**
