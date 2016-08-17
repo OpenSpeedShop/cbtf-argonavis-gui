@@ -46,8 +46,7 @@ OSSDataTransferItem::OSSDataTransferItem(QCPAxisRect* axisRect, QCustomPlot *par
     : OSSEventItem( axisRect, parentPlot )
 {
     // set brushes and pens for normal (non-selected) appearance
-    setBrush( QColor(255, 0, 0, 64) );
-    setPen( QPen( brush(), 0.0 ) ); // cosmetic pen
+    setBrush( QColor( 0xff, 0xbf, 0xbf ) );
 
     // set brushes and pens for selected appearance (only highlight border)
     setSelectedBrush( brush() );  // same brush as normal appearance

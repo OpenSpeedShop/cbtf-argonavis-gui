@@ -78,6 +78,10 @@ private slots:
 
 private:
 
+    void processCudaEventSnapshot(CustomPlot* plot);
+
+private:
+
     QMap< QString, CustomPlot* > m_plot;
 
     QThread m_thread;

@@ -43,6 +43,8 @@ public:
     explicit OSSEventItem(QCPAxisRect* axisRect, QCustomPlot* parentPlot = 0);
     virtual ~OSSEventItem();
 
+    void setBrush(const QColor& color);
+
 protected:
 
     virtual void draw(QCPPainter *painter) Q_DECL_OVERRIDE;

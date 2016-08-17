@@ -63,6 +63,17 @@ OSSEventItem::~OSSEventItem()
 }
 
 /**
+ * @brief OSSEventItem::setBrush
+ * @param color - the brush color
+ */
+void OSSEventItem::setBrush(const QColor &color)
+{
+    QCPItemRect::setBrush( color );
+    setPen( QPen( color, 0.0 ) ); // cosmetic pen
+
+}
+
+/**
  * @brief OSSEventItem::draw
  * @param painter
  */

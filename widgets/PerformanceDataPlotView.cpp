@@ -358,11 +358,6 @@ void PerformanceDataPlotView::handleItemClick(QCPAbstractItem *item, QMouseEvent
  */
 void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage &image)
 {
-#if 0
-    static int counter = 0;
-    image.save( QString("image-%1.png").arg(counter++), "PNG" );    QCPAxisRect* axisRect( Q_NULLPTR );
-#endif
-
     QCPAxisRect* axisRect( Q_NULLPTR );
     OSSEventsSummaryItem* eventSummaryItem( Q_NULLPTR );
 

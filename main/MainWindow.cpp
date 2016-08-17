@@ -29,6 +29,7 @@
 #include <QFileDialog>
 #include <QMetaMethod>
 #include <QMessageBox>
+#include <QThread>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -46,6 +47,8 @@ MainWindow::MainWindow(QWidget *parent)
     , ui( new Ui::MainWindow )
 {
     ui->setupUi( this );
+
+    qDebug() << "MainWindow::MainWindow: thread=" << QString::number((long long)QThread::currentThread(), 16);
 
     setStyleSheet(
                 "QSplitter::handle:vertical   { height: 4px; image: url(:/images/vsplitter-handle); background-color: rgba(200, 200, 200, 80); }"

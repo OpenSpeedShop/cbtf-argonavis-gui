@@ -32,6 +32,8 @@
 
 #include <QImage>
 #include <QTimer>
+#include <QtConcurrentRun>
+#include <QFutureSynchronizer>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -51,6 +53,9 @@ BackgroundGraphRenderer::BackgroundGraphRenderer(QWidget *parent)
     : QWidget( parent )
 {
     resize( 0, 0 );
+
+    qDebug() << "BackgroundGraphRenderer::BackgroundGraphRenderer: thread=" << QString::number((long long)QThread::currentThread(), 16);
+    qDebug() << "BackgroundGraphRenderer::BackgroundGraphRenderer: &m_thread=" << QString::number((long long)&m_thread, 16);
 
     // setup signal-to-slot connection for creating QCustomPlot instance in the GUI thread
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -129,7 +134,6 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
 void BackgroundGraphRenderer::unloadCudaViews(const QString &clusteringCriteriaName, const QStringList &clusterNames)
 {
     Q_UNUSED(clusteringCriteriaName)
-    qDebug() << "BackgroundGraphRenderer::unloadCudaViews: clusterNames=" << clusterNames.join(",");
     QMutableMapIterator< QString, CustomPlot* > piter( m_plot );
     while ( piter.hasNext() ) {
         piter.next();
@@ -139,41 +143,7 @@ void BackgroundGraphRenderer::unloadCudaViews(const QString &clusteringCriteriaN
             piter.remove();
         }
     }
-
-    qDebug() << QString("BackgroundGraphRenderer::unloadCudaViews: m_timerThreads.size()=%2 m_backends.size()=%3 m_plot.size()=%4")
-                .arg(m_timerThreads.size()).arg(m_backend.size()).arg(m_plot.size());
 }
-
-#if 0
-/**
- * @brief BackgroundGraphRenderer::handleSetMetricDuration
- * @param clusteringCriteriaName - the clustering criteria name
- * @param clusterName - the cluster group name
- * @param duration - the maximum relative CUDA event timestamp for the cluster
- *
- * Set the upper range of the timescale for the indicated cluster group
- */
-void BackgroundGraphRenderer::handleSetMetricDuration(const QString &clusteringCriteriaName, const QString &clusterName, double duration)
-{
-    Q_UNUSED(clusteringCriteriaName);
-
-    if ( ! m_plot.contains( clusterName ) )
-        return;
-
-    QCustomPlot* plot = m_plot.value( clusterName );
-
-    if ( Q_NULLPTR == plot )
-        return;
-
-    QCPAxisRect* axisRect = plot->axisRect();
-
-    if ( axisRect ) {
-        qDebug() << "BackgroundGraphRenderer::handleSetMetricDuration: clusterName=" << clusterName << "duration=" << duration << "size=" << axisRect->size();
-        QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
-        xAxis->setRangeUpper( duration );
-    }
-}
-#endif
 
 /**
  * @brief BackgroundGraphRenderer::handleGraphRangeChanged
@@ -191,7 +161,8 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
     {
         QMutexLocker guard( &m_mutex );
         if ( m_timerThreads.contains( clusterName ) ) {
-            m_timerThreads[ clusterName ]->quit();
+            QThread* thread = m_timerThreads.take( clusterName );
+            thread->quit();
         }
     }
 
@@ -200,8 +171,6 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
         if ( qFuzzyCompare( range.first, lower ) && qFuzzyCompare( range.second, upper ) )
             return;
     }
-
-    //qDebug() << "BackgroundGraphRenderer::handleGraphRangeChanged: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper << "size=" << size;
 
     if ( ! m_plot.contains( clusterName ) )
         return;
@@ -218,44 +187,51 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
                 // of another graph range change before the 200 msec waiting period completes.
                 QThread* thread = new QThread;
                 QTimer* timer = new QTimer;
-                timer->setSingleShot( true );
-                timer->setInterval( 200 );
-                {
-                    QMutexLocker guard( &m_mutex );
-                    m_timerThreads[ clusterName ] = thread;
-                }
-                timer->moveToThread( thread );
-                // start the timer when the thread is started
-                connect( thread, SIGNAL(started()), timer, SLOT(start()) );
-                // stop the timer when the thread finishes
-                connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
-                // setup the timer expiry handler to process the graph range change only if the waiting period completes
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-                connect( timer, &QTimer::timeout, [=]() {
+                if ( thread && timer ) {
+                    timer->setSingleShot( true );
+                    timer->setInterval( 200 );
                     {
                         QMutexLocker guard( &m_mutex );
-                        QThread* thread = m_timerThreads.take( clusterName );
-                        thread->quit();
+                        m_timerThreads[ clusterName ] = thread;
                     }
-                    lastReplotRange.insert( clusterName, qMakePair( lower, upper ) );
-                    xAxis->setRange( lower, upper );
-                    plot->setProperty( "imageWidth", size.width() );
-                    plot->setProperty( "imageHeight", size.height() );
-                    plot->replot();
-                } );
+                    timer->moveToThread( thread );
+                    // start the timer when the thread is started
+                    connect( thread, SIGNAL(started()), timer, SLOT(start()) );
+                    // stop the timer when the thread finishes
+                    connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
+                    // setup the timer expiry handler to process the graph range change only if the waiting period completes
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+                    connect( timer, &QTimer::timeout, [=]() {
+                        {
+                            QMutexLocker guard( &m_mutex );
+                            if ( m_timerThreads.contains( clusterName ) ) {
+                                QThread* thread = m_timerThreads.take( clusterName );
+                                thread->quit();
+                            }
+                        }
+                        lastReplotRange.insert( clusterName, qMakePair( lower, upper ) );
+                        xAxis->setRange( lower, upper );
+                        plot->setProperty( "imageWidth", size.width() );
+                        plot->setProperty( "imageHeight", size.height() );
+                        plot->replot();
+                    } );
 #else
-                timer->setProperty( "clusterName" , clusterName );
-                timer->setProperty( "lower" , lower );
-                timer->setProperty( "upper" , upper );
-                timer->setProperty( "size" , size );
-                connect( timer, SIGNAL(timeout()), this, SLOT(processGraphRangeChangedTimeout()) );
+                    timer->setProperty( "clusterName" , clusterName );
+                    timer->setProperty( "lower" , lower );
+                    timer->setProperty( "upper" , upper );
+                    timer->setProperty( "size" , size );
+                    connect( timer, SIGNAL(timeout()), this, SLOT(processGraphRangeChangedTimeout()) );
 #endif
-                // when the thread finishes schedule the timer and timer thread instances for deletion
-                connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
-                connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
+                    // when the thread finishes schedule the timer and timer thread instances for deletion
+                    connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
+                    connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
 
-                // start the thread (and the timer per previously setup signal-to-slot connection)
-                thread->start();
+                    // start the thread (and the timer per previously setup signal-to-slot connection)
+                    thread->start();
+                }
+                else {
+                    qWarning() << "Not able to allocate thread and/or timer";
+                }
             }
         }
     }
@@ -266,6 +242,7 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
  */
 void BackgroundGraphRenderer::processGraphRangeChangedTimeout()
 {
+    qDebug() << "BackgroundGraphRenderer::processGraphRangeChangedTimeout: thread=" << QString::number((long long)QThread::currentThread(), 16);
     QTimer* timer = qobject_cast< QTimer* >( sender() );
 
     if ( ! timer )
@@ -278,8 +255,10 @@ void BackgroundGraphRenderer::processGraphRangeChangedTimeout()
 
     {
         QMutexLocker guard( &m_mutex );
-        QThread* thread = m_timerThreads.take( clusterName );
-        thread->quit();
+        if ( m_timerThreads.contains( clusterName ) ) {
+            QThread* thread = m_timerThreads.take( clusterName );
+            thread->quit();
+        }
     }
 
     if ( ! m_plot.contains( clusterName ) )
@@ -324,6 +303,9 @@ void BackgroundGraphRenderer::processDataTransferEvent(const QString& clustering
 
     OSSDataTransferItem* dataXferItem = new OSSDataTransferItem( plot->axisRect(), plot );
 
+    if ( ! dataXferItem )
+        return;
+
     dataXferItem->setData( time_origin, details );
 
     plot->addItem( dataXferItem );
@@ -359,6 +341,9 @@ void BackgroundGraphRenderer::processKernelExecutionEvent(const QString& cluster
 
     OSSKernelExecutionItem* kernelExecItem = new OSSKernelExecutionItem( plot->axisRect(), plot );
 
+    if ( ! kernelExecItem )
+        return;
+
     kernelExecItem->setData( time_origin, details );
 
     plot->addItem( kernelExecItem );
@@ -380,8 +365,6 @@ void BackgroundGraphRenderer::processKernelExecutionEvent(const QString& cluster
  */
 void BackgroundGraphRenderer::handleProcessCudaEventViewDone()
 {
-    qDebug() << "BackgroundGraphRendererBackend::handleProcessCudaEventViewDone CALLED!!";
-
     BackgroundGraphRendererBackend* backend = qobject_cast< BackgroundGraphRendererBackend* >( sender() );
 
     if ( backend ) {
@@ -405,46 +388,68 @@ void BackgroundGraphRenderer::handleProcessCudaEventViewDone()
  */
 void BackgroundGraphRenderer::processCudaEventSnapshots()
 {
+    qDebug() << "BackgroundGraphRenderer::processCudaEventSnapshots: thread=" << QString::number((long long)QThread::currentThread(), 16);
     QMap< QString, CustomPlot* >::iterator iter( m_plot.begin() );
+
+#ifdef HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
+    QFutureSynchronizer<void> synchronizer;
+#endif
 
     // foreach plot in the plot map
     while ( iter != m_plot.end() ) {
-        QCustomPlot* plot( iter.value() );
+        CustomPlot* plot( iter.value() );
 
         if ( plot ) {
-            // get the associated clustering criteria / cluster name
-            QString clusteringName( plot->property( "clusteringName" ).toString() );
-            QString clusteringCriteriaName( plot->property( "clusteringCriteriaName" ).toString() );
-            int width( plot->property( "imageWidth" ).toInt() );
-            int height( plot->property( "imageHeight" ).toInt() );
-            QCPRange range = plot->axisRect()->axis( QCPAxis::atBottom )->range();
-
-            if ( 0 != width && 0 != height && range.lower != range.upper ) {
-                // setup image and QCPPainter instance rendering to the image
-                QImage image( width, height, QImage::Format_ARGB32 );
-                image.fill( Qt::transparent );
-                QCPPainter* painter = new QCPPainter( &image );
-                if ( painter ) {
-                    // start the rendering to the image
-                    painter->setBackground( Qt::transparent );
-                    plot->toPainter( painter, width, height );
-
-                    // generate a cropped image with just the CUDA event portion
-                    QImage croppedImage = image.copy( 0, height * 0.45 + 1, width, height * 0.10 );
-
-                    // signal the new CUDA event snapshot
-                    emit signalCudaEventSnapshot( clusteringCriteriaName, clusteringName, range.lower, range.upper, croppedImage );
-
-                    // cleanup painter instance
-                    delete painter;
-                }
-                else {
-                    qWarning() << "Not able to allocate QCPPainter";
-                }
-            }
+#ifdef HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
+            synchronizer.addFuture( QtConcurrent::run( this, &BackgroundGraphRenderer::processCudaEventSnapshot, plot ) );
+#else
+            processCudaEventSnapshot( plot );
+#endif
         }
 
         iter++;
+    }
+
+#ifdef HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
+    synchronizer.waitForFinished();
+#endif
+}
+
+/**
+ * @brief BackgroundGraphRenderer::processCudaEventSnapshot
+ * @param plot
+ */
+void BackgroundGraphRenderer::processCudaEventSnapshot(CustomPlot* plot)
+{
+    qDebug() << "BackgroundGraphRenderer::processCudaEventSnapshot: thread=" << QString::number((long long)QThread::currentThread(), 16);
+
+    // get the associated clustering criteria / cluster name
+    QString clusteringName( plot->property( "clusteringName" ).toString() );
+    QString clusteringCriteriaName( plot->property( "clusteringCriteriaName" ).toString() );
+    int width( plot->property( "imageWidth" ).toInt() );
+    int height( plot->property( "imageHeight" ).toInt() );
+    QCPRange range = plot->axisRect()->axis( QCPAxis::atBottom )->range();
+
+    if ( 0 != width && 0 != height && range.lower != range.upper ) {
+        // setup image and QCPPainter instance rendering to the image
+        QImage image( width, height, QImage::Format_ARGB32 );
+        QCPPainter* painter = new QCPPainter( &image );
+        if ( painter ) {
+            // start the rendering to the image
+            plot->toPainter( painter, width, height );
+
+            // generate a cropped image with just the CUDA event portion
+            QImage croppedImage = image.copy( 0, height * 0.45 + 1, width, height * 0.10 );
+
+            // signal the new CUDA event snapshot
+            emit signalCudaEventSnapshot( clusteringCriteriaName, clusteringName, range.lower, range.upper, croppedImage );
+
+            // cleanup painter instance
+            delete painter;
+        }
+        else {
+            qWarning() << "Not able to allocate QCPPainter";
+        }
     }
 }
 
@@ -458,18 +463,17 @@ void BackgroundGraphRenderer::handleCreatePlotForClustering(const QString& clust
 {
     CustomPlot* plot = new CustomPlot( this );
     if ( plot ) {
-        QPalette pal( plot->palette() );
-        pal.setColor( QPalette::Background, Qt::transparent );
-        plot->setPalette( pal );
         plot->setProperty( "clusteringCriteriaName", clusteringCriteriaName );
         plot->setProperty( "clusteringName", clusteringName );
-        connect( plot, SIGNAL(afterReplot()), this,SLOT(processCudaEventSnapshots()) );
+        connect( plot, SIGNAL(afterReplot()), this, SLOT(processCudaEventSnapshots()) );
         QCPAxisRect* axisRect = plot->axisRect();
         if ( axisRect ) {
+            axisRect->setAutoMargins( QCP::msNone );
+            axisRect->setMargins( QMargins(0,0,0,0) );
             QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
             QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
-            xAxis->setVisible( false );
-            yAxis->setVisible( false );
+            if ( xAxis ) xAxis->setVisible( false );
+            if ( yAxis ) yAxis->setVisible( false );
         }
         m_plot.insert( clusteringName, plot );
     }

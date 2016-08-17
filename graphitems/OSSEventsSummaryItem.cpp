@@ -49,11 +49,11 @@ OSSEventsSummaryItem::OSSEventsSummaryItem(QCPAxisRect *axisRect, QCustomPlot *p
     }
 
     // set brushes and pens for normal (non-selected) appearance
-    setBrush( Qt::transparent );
+    setBrush( Qt::NoBrush );
     setPen( Qt::NoPen );
 
     // set brushes and pens for selected appearance (only highlight border)
-    setSelectedBrush( Qt::transparent );
+    setSelectedBrush( Qt::NoBrush );
 }
 
 /**
@@ -76,8 +76,6 @@ void OSSEventsSummaryItem::setData(double timeBegin, double timeEnd, const QImag
 {
     m_image = image;
 
-    //qDebug() << "OSSEventsSummaryItem::setData: timeBegin=" << timeBegin << "timeEnd=" << timeEnd;
-
     topLeft->setCoords( timeBegin, 0.45 );
     bottomRight->setCoords( timeEnd, 0.55 );
 }
@@ -97,7 +95,6 @@ void OSSEventsSummaryItem::draw(QCPPainter *painter)
     QRectF boundingRect = QRectF( p1, p2 ).normalized();
 
     if ( boundingRect.intersects( clipRect() ) ) { // only draw if bounding rect of rect item is visible in cliprect
-        painter->setBackground( Qt::transparent );
         painter->drawImage( boundingRect, m_image );
     }
 }
