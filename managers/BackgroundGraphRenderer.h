@@ -24,10 +24,12 @@
 #ifndef BACKGROUNDGRAPHRENDERER_H
 #define BACKGROUNDGRAPHRENDERER_H
 
-#include <QWidget>
+#include <QObject>
 #include <QMap>
+#include <QPair>
 #include <QThread>
 #include <QMutexLocker>
+#include <QImage>
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
 
@@ -40,13 +42,13 @@ namespace ArgoNavis { namespace GUI {
 class BackgroundGraphRendererBackend;
 
 
-class BackgroundGraphRenderer : public QWidget
+class BackgroundGraphRenderer : public QObject
 {
     Q_OBJECT
 
 public:
 
-    explicit BackgroundGraphRenderer(QWidget *parent = 0);
+    explicit BackgroundGraphRenderer(QObject *parent = 0);
     virtual ~BackgroundGraphRenderer();
 
     void setPerformanceData(const QString& clusteringCriteriaName, const QVector< QString >& clusterNames, const CUDA::PerformanceData& data);

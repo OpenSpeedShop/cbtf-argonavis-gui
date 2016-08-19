@@ -49,11 +49,9 @@ QMap< QString, QPair<double, double> > BackgroundGraphRenderer::lastReplotRange;
  *
  * Constructs a BackgroundGraphRenderer instance
  */
-BackgroundGraphRenderer::BackgroundGraphRenderer(QWidget *parent)
-    : QWidget( parent )
+BackgroundGraphRenderer::BackgroundGraphRenderer(QObject *parent)
+    : QObject( parent )
 {
-    resize( 0, 0 );
-
     qDebug() << "BackgroundGraphRenderer::BackgroundGraphRenderer: thread=" << QString::number((long long)QThread::currentThread(), 16);
     qDebug() << "BackgroundGraphRenderer::BackgroundGraphRenderer: &m_thread=" << QString::number((long long)&m_thread, 16);
 
@@ -99,7 +97,9 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
         // emit signal to create QCustomPlot for each cluster
         // NOTE: signal will be handled in the GUI thread were the QCustomPlot instance needs to live
         foreach(const QString& clusterName, clusterNames) {
-            emit createPlotForClustering( clusteringCriteriaName, clusterName );
+            if ( ! clusterName.contains( "(GPU)" ) ) {
+                emit createPlotForClustering( clusteringCriteriaName, clusterName );
+            }
         }
 
         // set backend object name to clustering criteria name (so it can be identified in timer handlers) and move to backend thread
@@ -433,8 +433,10 @@ void BackgroundGraphRenderer::processCudaEventSnapshot(CustomPlot* plot)
     if ( 0 != width && 0 != height && range.lower != range.upper ) {
         // setup image and QCPPainter instance rendering to the image
         QImage image( width, height, QImage::Format_ARGB32 );
+        image.fill( Qt::transparent );
         QCPPainter* painter = new QCPPainter( &image );
         if ( painter ) {
+            plot->setBackground( Qt::transparent );
             // start the rendering to the image
             plot->toPainter( painter, width, height );
 
@@ -461,8 +463,9 @@ void BackgroundGraphRenderer::processCudaEventSnapshot(CustomPlot* plot)
  */
 void BackgroundGraphRenderer::handleCreatePlotForClustering(const QString& clusteringCriteriaName, const QString &clusteringName)
 {
-    CustomPlot* plot = new CustomPlot( this );
+    CustomPlot* plot = new CustomPlot;
     if ( plot ) {
+        lastReplotRange.remove( clusteringName );
         plot->setProperty( "clusteringCriteriaName", clusteringCriteriaName );
         plot->setProperty( "clusteringName", clusteringName );
         connect( plot, SIGNAL(afterReplot()), this, SLOT(processCudaEventSnapshots()) );
