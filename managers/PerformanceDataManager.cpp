@@ -236,6 +236,9 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
         if ( 0 == i ) {
             emit addPeriodicSample( clusteringCriteriaName, clusterName, lastTimeStamp, timeStamp, value );
         }
+        else if ( 1 == i ) {
+            emit addPeriodicSample( clusteringCriteriaName, clusterName+" (GPU)", lastTimeStamp, timeStamp, value );
+        }
     }
 
     return true; // continue the visitation
@@ -513,6 +516,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     CUDA::PerformanceData data;
     QMap< Base::ThreadName, Thread> threads;
     bool hasCudaCollector( false );
+    bool hasGpuCounts( false );
 
     for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
         std::pair<bool, int> rank = i->getMPIRank();
@@ -536,10 +540,13 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
 
     for ( std::vector<std::string>::size_type i = 0; i < data.counters().size(); ++i ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        sampleCounterNames << QString::fromStdString( data.counters()[i] );
+        QString sampleCounterName = QString::fromStdString( data.counters()[i] );
 #else
-        sampleCounterNames << QString( data.counters()[i].c_str() );
+        QString sampleCounterName( data.counters()[i].c_str() );
 #endif
+        sampleCounterNames << sampleCounterName;
+        if ( sampleCounterName.contains( QStringLiteral("inst_executed") ) )
+            hasGpuCounts = true;
     }
 
 #if 0
@@ -579,6 +586,8 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
             hostName = hostName.left( index );
 #endif
         clusterNames << hostName;
+        if ( hasGpuCounts )
+            clusterNames << ( hostName + " (GPU)" );
         ++iter;
     }
 #endif
