@@ -57,6 +57,9 @@ DEFINES += HAS_DESTROY_SINGLETONS
 #DEFINES += HAS_ITEM_CLICK_DEBUG
 #DEFINES += HAS_PROCESS_METRIC_VIEW_DEBUG
 DEFINES += HAS_STRIP_DOMAIN_NAME
+# uncommenting this is experimental
+# NOTE: Normally QWidgets cannot be moved to a thread but when used in this context invoking a method executed with QtConcurrent::run
+#       seems to be working.  Need to investigate this approach further.
 DEFINES += HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
 
 INCLUDEPATH += $$BOOST_ROOT/include $$BOOST_ROOT/include/boost
