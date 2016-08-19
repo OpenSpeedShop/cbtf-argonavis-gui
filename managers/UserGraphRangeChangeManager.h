@@ -29,11 +29,10 @@
 #include <QMap>
 #include <QSize>
 #include <QString>
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-#include <QUuid>
+#include <QThread>
+
 class QTimer;
-#endif
-class QThread;
+
 
 #include "common/openss-gui-config.h"
 
@@ -49,6 +48,7 @@ class UserGraphRangeChangeManager : public QObject
 public:
 
     explicit UserGraphRangeChangeManager(QObject *parent = 0);
+    virtual ~UserGraphRangeChangeManager();
 
     void create(const QString& clusterName, double lower, double upper, const QSize& size = QSize() );
 
@@ -63,17 +63,14 @@ private slots:
     void handleTimeout();
 
 #ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
-    void threadDestroyed(QObject* obj = Q_NULLPTR);
     void timerDestroyed(QObject* obj = Q_NULLPTR);
 #endif
 
 private:
 
     QMutex m_mutex;
-    QMap< QString, QThread* > m_timerThreads;
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-    QMap< QUuid, QTimer* > m_timers;
-#endif
+    QThread m_thread;
+    QMap< QString, QTimer* > m_timers;
 
 };
 
