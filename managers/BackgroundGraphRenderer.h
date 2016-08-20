@@ -52,7 +52,6 @@ public:
     virtual ~BackgroundGraphRenderer();
 
     void setPerformanceData(const QString& clusteringCriteriaName, const QVector< QString >& clusterNames, const CUDA::PerformanceData& data);
-
     void unloadCudaViews(const QString &clusteringCriteriaName, const QStringList &clusterNames);
 
 signals:
@@ -75,7 +74,7 @@ private slots:
                                      const CUDA::KernelExecution &details);
     void handleProcessCudaEventViewDone();
     void handleCreatePlotForClustering(const QString& clusteringCriteriaName, const QString& clusteringName);
-    void processCudaEventSnapshots();
+    void processCudaEventSnapshot();
     void processGraphRangeChangedTimeout();
 
 private:
