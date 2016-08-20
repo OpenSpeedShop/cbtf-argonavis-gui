@@ -341,14 +341,27 @@ void BackgroundGraphRenderer::processKernelExecutionEvent(const QString& cluster
  */
 void BackgroundGraphRenderer::handleProcessCudaEventViewDone()
 {
+    qDebug() << "BackgroundGraphRenderer::handleProcessCudaEventViewDone: thread=" << QString::number((long long)QThread::currentThread(), 16);
     BackgroundGraphRendererBackend* backend = qobject_cast< BackgroundGraphRendererBackend* >( sender() );
 
     if ( backend ) {
         // get the associated clustering criteria name
         QString clusteringCriteriaName( backend->objectName() );
 
-        // generate the CUDA event plot and send to the plot view
-        processCudaEventSnapshot();
+        QMutexLocker guard( &m_mutex );
+
+        QMap< QString, CustomPlot* >::iterator iter( m_plot.begin() );
+        while ( iter != m_plot.end() ) {
+            CustomPlot* plot( iter.value() );
+            if ( plot ) {
+#ifdef HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
+                QtConcurrent::run( this, &BackgroundGraphRenderer::processCudaEventSnapshot, plot );
+#else
+                processCudaEventSnapshot( plot );
+#endif
+            }
+            iter++;
+        }
 
         // remove the backend from the map and schedule for deletion
         m_backend.remove( clusteringCriteriaName );

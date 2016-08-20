@@ -137,12 +137,12 @@ void PerformanceDataPlotView::unloadExperimentDataFromView(const QString &experi
 
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
-    QMap< QString, MetricGroup* >::iterator iter( m_metricGroups.begin() );
-    while ( iter != m_metricGroups.end() ) {
-        MetricGroup* group = iter.value();
-        dataMgr->unloadCudaViews( iter.key(), group->metricList );
-        iter++;
-    }
+        QMap< QString, MetricGroup* >::iterator iter( m_metricGroups.begin() );
+        while ( iter != m_metricGroups.end() ) {
+            MetricGroup* group = iter.value();
+            dataMgr->unloadCudaViews( iter.key(), group->metricList );
+            iter++;
+        }
     }
     qDeleteAll( m_metricGroups );
     m_metricGroups.clear();
@@ -651,6 +651,8 @@ void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringC
         }
     }
 
+    ui->graphView->replot();
+
     if ( axisRect ) {
         QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
         QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
@@ -660,9 +662,10 @@ void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringC
 
         xAxis->setRangeUpper( duration );
         xAxis->setVisible( true );
-    }
 
-    ui->graphView->replot();
+        // emit signal to provide initial graph range and size
+        emit graphRangeChanged( clusterName, 0, duration, axisRect->size());
+    }
 }
 
 /**
