@@ -330,8 +330,10 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 
     // Sort the results
     std::multimap<double, Function> sorted;
+    double total( 0.0 );
     for( std::map<Function, double>::const_iterator i = data->begin(); i != data->end(); ++i ) {
         sorted.insert(std::make_pair(i->second, i->first));
+        total += i->second;
     }
 
     // Display the results
@@ -350,8 +352,10 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
         QVariantList metricData;
 
         double value( i->first * 1000.0 );
+        double percentage( i->first / total * 100.0 );
 
         metricData << QVariant::fromValue< double >( value );
+        metricData << QVariant::fromValue< double >( percentage );
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         metricData << QString::fromStdString( i->second.getDemangledName() );
 #else
@@ -415,7 +419,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
     const QString timeMetric( "time" );
     QStringList metricList;
     QStringList metricDescList;
-    const QString functionTitle( "Function (defining location)" );
+    const QString functionTitle( tr("Function (defining location)") );
 
     CollectorGroup collectors = experiment.getCollectors();
     boost::optional<Collector> collector;
@@ -435,6 +439,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 #endif
             if ( metricName.contains( timeMetric ) && metadata.isType( typeid(double) ) ) {
                 metricList << metricName;
+                metricDescList <<  "% of " + metricDesc;
                 metricDescList <<  metricDesc + " (msec)";
                 foundOne = true;
             }
@@ -460,7 +465,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 #endif
         foreach ( const QString& metric, metricList ) {
             QStringList metricDesc;
-            metricDesc << metricDescList.takeFirst() << functionTitle;
+            metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << functionTitle;
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
             futures[metric] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, collector.get(), experiment.getThreads(), metric, metricDesc );
             synchronizer.addFuture( futures[ metric ] );
