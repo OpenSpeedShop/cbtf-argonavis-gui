@@ -35,6 +35,8 @@
 #include <QtConcurrentRun>
 #include <QFutureSynchronizer>
 
+#define GRAPH_RANGE_CHANGE_DELAY_TO_CUDA_EVENT_PROCESSING 500
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -176,14 +178,14 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
             QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
             if ( xAxis ) {
                 // Create a new timer and thread to process the timer handling for this graph range change.
-                // Setup as a one shot timer to fire in 200 msec - the current graph range change will only be processed
+                // Setup as a one shot timer to fire in 500 msec - the current graph range change will only be processed
                 // once the timer expires.  The timer can be terminated it the processing thread terminates due to arrival
-                // of another graph range change before the 200 msec waiting period completes.
+                // of another graph range change before the 500 msec waiting period completes.
                 QThread* thread = new QThread;
                 QTimer* timer = new QTimer;
                 if ( thread && timer ) {
                     timer->setSingleShot( true );
-                    timer->setInterval( 200 );
+                    timer->setInterval( GRAPH_RANGE_CHANGE_DELAY_TO_CUDA_EVENT_PROCESSING );
                     {
                         QMutexLocker guard( &m_mutex );
                         m_timerThreads[ clusterName ] = thread;
