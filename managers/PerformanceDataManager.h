@@ -140,6 +140,7 @@ private:
 
     void processMetricView(const OpenSpeedShop::Framework::Collector collector,
                            const OpenSpeedShop::Framework::ThreadGroup& threads,
+                           const OpenSpeedShop::Framework::TimeInterval& interval,
                            const QString &metric,
                            const QStringList &metricDesc);
 

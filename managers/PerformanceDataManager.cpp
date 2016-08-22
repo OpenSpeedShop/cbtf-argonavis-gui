@@ -300,17 +300,19 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
  * @brief PerformanceDataManager::processMetricView
  * @param collector - a copy of the cuda collector
  * @param threads - all threads known by the cuda collector
+ * @param interval - the time interval of interest
  * @param metric - the metric to generate data for
  * @param metricDesc - the metrics to generate data for
  *
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
  * NOTE: must be metrics providing time information.
  */
-void PerformanceDataManager::processMetricView(const Collector collector, const ThreadGroup& threads, const QString &metric, const QStringList &metricDesc)
+void PerformanceDataManager::processMetricView(const Collector collector, const ThreadGroup& threads, const TimeInterval& interval, const QString &metric, const QStringList &metricDesc)
 {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView STARTED" << metric;
 #endif
+    qDebug() << "PerformanceDataManager::processMetricView: thread=" << QString::number((long long)QThread::currentThread(), 16);
     // Evaluate the first collector's time metric for all functions
     SmartPtr<std::map<Function, std::map<Thread, double> > > individual;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -320,7 +322,7 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 #endif
     Queries::GetMetricValues( collector,
                               metricStr,
-                              TimeInterval(Time::TheBeginning(), Time::TheEnd()),
+                              interval,
                               threads,
                               threads.getFunctions(),
                               individual );
@@ -416,6 +418,10 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
     Experiment experiment( std::string( filePath.toLatin1().data() ) );
 #endif
 
+    // Determine full time interval extent of this experiment
+    Extent extent = experiment.getPerformanceDataExtent();
+    TimeInterval interval = extent.getTimeInterval();
+
     const QString timeMetric( "time" );
     QStringList metricList;
     QStringList metricDescList;
@@ -467,7 +473,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
             QStringList metricDesc;
             metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << functionTitle;
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-            futures[metric] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, collector.get(), experiment.getThreads(), metric, metricDesc );
+            futures[metric] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
             synchronizer.addFuture( futures[ metric ] );
 #else
             processMetricView( collector.get(), experiment.getThreads(), metric, metricDesc );
