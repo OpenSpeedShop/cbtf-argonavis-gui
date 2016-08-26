@@ -32,17 +32,23 @@
 #include <QStringList>
 #include <QVariant>
 #include <QAtomicPointer>
+#include <QFutureSynchronizer>
+#include <QMutex>
+
+#include "boost/optional.hpp"
 
 #include "ToolAPI.hxx"
-
+/*
 namespace OpenSpeedShop {
 namespace Framework {
 class Experiment;
 class Collector;
 class ThreadGroup;
+class TimeInterval;
 }
 }
-
+*/
+class QTimer;
 class QCPAxisRect;
 class QTextStream;
 
@@ -129,6 +135,12 @@ signals:
 
     void loadComplete();
 
+private slots:
+
+    void handleLoadCudaMetricViews(const QString& clusterName, double lower, double upper);
+
+    void handleLoadCudaMetricViewsTimeout();
+
 private:
 
     explicit PerformanceDataManager(QObject* parent = 0);
@@ -137,6 +149,17 @@ private:
     void loadCudaView(const QString& experimentName,
                       const OpenSpeedShop::Framework::Collector& collector,
                       const OpenSpeedShop::Framework::ThreadGroup& all_threads);
+
+    void loadCudaMetricViews(
+                             #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+                             QFutureSynchronizer<void>& synchronizer,
+                             QMap< QString, QFuture<void> >& futures,
+                             #endif
+                             const QStringList& metricList,
+                             QStringList metricDescList,
+                             boost::optional<OpenSpeedShop::Framework::Collector>& collector,
+                             const OpenSpeedShop::Framework::Experiment& experiment,
+                             const OpenSpeedShop::Framework::TimeInterval& interval);
 
     void processMetricView(const OpenSpeedShop::Framework::Collector collector,
                            const OpenSpeedShop::Framework::ThreadGroup& threads,
@@ -175,6 +198,17 @@ private:
     bool m_processEvents;
 
     BackgroundGraphRenderer* m_renderer;
+
+    typedef struct {
+        QStringList metricList;
+        QStringList tableColumnHeaders;
+        QString experimentFilename;
+    } MetricTableViewInfo;
+
+    QMap< QString, MetricTableViewInfo > m_tableViewInfo;
+
+    QMutex m_mutex;
+    QMap< QString, QThread* > m_timerThreads;
 
 };
 

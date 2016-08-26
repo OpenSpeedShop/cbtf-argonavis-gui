@@ -91,30 +91,7 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
  */
 PerformanceDataMetricView::~PerformanceDataMetricView()
 {
-    QMutableMapIterator< QString, QTreeView* > viter( m_views );
-    while ( viter.hasNext() ) {
-        viter.next();
-
-        m_viewStack->removeWidget( viter.value() );
-        delete viter.value();
-        viter.remove();
-    }
-
-    QMutableMapIterator< QString, QStandardItemModel* > miter( m_models );
-    while ( miter.hasNext() ) {
-        miter.next();
-
-        delete miter.value();
-        miter.remove();
-    }
-
-    QMutableMapIterator< QString, QSortFilterProxyModel* > pmiter( m_proxyModels );
-    while ( pmiter.hasNext() ) {
-        pmiter.next();
-
-        delete pmiter.value();
-        pmiter.remove();
-    }
+    deleteAllModelsViews();
 
     delete ui;
 }
@@ -138,31 +115,25 @@ void PerformanceDataMetricView::deleteAllModelsViews()
 {
     showBlankView();
 
-    QMutableMapIterator< QString, QTreeView* > viter( m_views );
-    while ( viter.hasNext() ) {
-        viter.next();
+    {
+        QMutexLocker guard( &m_mutex );
 
-        if ( viter.key() != "none" ) {
-            m_viewStack->removeWidget( viter.value() );
-            delete viter.value();
-            viter.remove();
+        QMutableMapIterator< QString, QTreeView* > viter( m_views );
+        while ( viter.hasNext() ) {
+            viter.next();
+
+            if ( viter.key() != "none" ) {
+                m_viewStack->removeWidget( viter.value() );
+                delete viter.value();
+                viter.remove();
+            }
         }
-    }
 
-    QMutableMapIterator< QString, QStandardItemModel* > miter( m_models );
-    while ( miter.hasNext() ) {
-        miter.next();
+        qDeleteAll( m_models );
+        m_models.clear();
 
-        delete miter.value();
-        miter.remove();
-    }
-
-    QMutableMapIterator< QString, QSortFilterProxyModel* > pmiter( m_proxyModels );
-    while ( pmiter.hasNext() ) {
-        pmiter.next();
-
-        delete pmiter.value();
-        pmiter.remove();
+        qDeleteAll( m_proxyModels );
+        m_proxyModels.clear();
     }
 
     ui->comboBox_MetricViews->clear();
@@ -177,12 +148,21 @@ void PerformanceDataMetricView::deleteAllModelsViews()
  */
 void PerformanceDataMetricView::handleInitModel(const QString &metricView, const QStringList &metrics)
 {
-    if ( m_models.contains( metricView ) ) {
-        delete m_models.value( metricView );
-    }
+    {
+        QMutexLocker guard( &m_mutex );
 
-    if ( m_proxyModels.contains( metricView ) ) {
-        delete m_proxyModels.value( metricView );
+        QSortFilterProxyModel* proxyModel = m_proxyModels.value( metricView, Q_NULLPTR );
+        if ( proxyModel ) {
+            proxyModel->setSourceModel( Q_NULLPTR );
+            m_proxyModels.remove( metricView );
+            delete proxyModel;
+        }
+
+        QStandardItemModel* model = m_models.value( metricView, Q_NULLPTR );
+        if ( model ) {
+            m_models.remove( metricView );
+            delete model;
+        }
     }
 
     QStandardItemModel* model = new QStandardItemModel( 0, metrics.size(), this );
@@ -200,29 +180,41 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
     proxyModel->sort( 0, Qt::DescendingOrder );
 
     QTreeView* view = m_views.value( metricView, Q_NULLPTR );
+    bool newViewCreated( false );
 
     if ( Q_NULLPTR == view ) {
         view = new QTreeView;
+        newViewCreated = true;
     }
 
     if ( Q_NULLPTR == view )
         return;
 
-    view->setSortingEnabled( true );
-    view->setModel( proxyModel );
+    {
+        QMutexLocker guard( &m_mutex );
 
-    for ( int i=0; i<metrics.size(); ++i ) {
-       view->resizeColumnToContents( i );
+        view->setModel( proxyModel );
+        view->setSortingEnabled( true );
+        for ( int i=0; i<metrics.size(); ++i ) {
+           view->resizeColumnToContents( i );
+        }
+
+        m_models[ metricView ] = model;
+        m_proxyModels[ metricView ] = proxyModel;
+
+        if ( newViewCreated ) {
+            m_viewStack->addWidget( view );
+            m_views[ metricView ] = view;
+        }
     }
 
-    m_viewStack->addWidget( view );
+    // Make sure metric view not already in combobox
+    if ( ui->comboBox_MetricViews->findText( metricView ) == -1 ) {
+        // Add metric view to combobox
+        ui->comboBox_MetricViews->addItem( metricView );
+    }
 
-    m_models[ metricView ] = model;
-    m_proxyModels[ metricView ] = proxyModel;
-    m_views[ metricView ] = view;
-
-    // Add metric view to combobox and make current view
-    ui->comboBox_MetricViews->addItem( metricView );
+    // Make the current view
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     ui->comboBox_MetricViews->setCurrentText( metricView );
 #else
@@ -239,6 +231,8 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
  */
 void PerformanceDataMetricView::handleAddData(const QString &metricView, const QVariantList& data)
 {
+    QMutexLocker guard( &m_mutex );
+
     QStandardItemModel* model = m_models.value( metricView );
 
     if ( Q_NULLPTR == model )
@@ -259,7 +253,13 @@ void PerformanceDataMetricView::handleAddData(const QString &metricView, const Q
  */
 void PerformanceDataMetricView::handleMetricViewChanged(const QString &metricView)
 {
-    QTreeView* view = m_views.value( metricView, Q_NULLPTR );
+    QTreeView* view( Q_NULLPTR );
+
+    {
+        QMutexLocker guard( &m_mutex );
+
+        view = m_views.value( metricView, Q_NULLPTR );
+    }
 
     if ( Q_NULLPTR != view ) {
         m_viewStack->setCurrentWidget( view );

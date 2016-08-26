@@ -36,8 +36,9 @@
 #include <boost/function.hpp>
 
 #include <QtConcurrentRun>
-#include <QFutureSynchronizer>
 #include <QFileInfo>
+#include <QThread>
+#include <QTimer>
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
 #include <ArgoNavis/CUDA/DataTransfer.hpp>
@@ -87,10 +88,12 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( this, &PerformanceDataManager::replotCompleted, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
         connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
+        connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
         connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
 #else
         connect( this, SIGNAL(replotCompleted()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
         connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,double,double,QSize)) );
+        connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,double,double)) );
         connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
 #endif
     }
@@ -425,7 +428,6 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
     const QString timeMetric( "time" );
     QStringList metricList;
     QStringList metricDescList;
-    const QString functionTitle( tr("Function (defining location)") );
 
     CollectorGroup collectors = experiment.getCollectors();
     boost::optional<Collector> collector;
@@ -458,10 +460,14 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         QFutureSynchronizer<void> synchronizer;
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        QString experimentName = QString::fromStdString( experiment.getName() );
+        QString experimentFilename = QString::fromStdString( experiment.getName() );
 #else
-        QString experimentName( QString( experiment.getName().c_str() ) );
+        QString experimentFilename( QString( experiment.getName().c_str() ) );
 #endif
+
+        QFileInfo fileInfo( experimentFilename );
+        QString experimentName( fileInfo.fileName() );
+        experimentName.replace( QString(".openss"), QString("") );
 
         QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, collector.get(), experiment.getThreads() );
         synchronizer.addFuture( future );
@@ -469,16 +475,31 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
         QMap< QString, QFuture<void> > futures;
 #endif
-        foreach ( const QString& metric, metricList ) {
-            QStringList metricDesc;
-            metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << functionTitle;
-#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-            futures[metric] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
-            synchronizer.addFuture( futures[ metric ] );
+
+        MetricTableViewInfo info;
+        info.metricList = metricList;
+        info.tableColumnHeaders = metricDescList;
+        info.experimentFilename = experimentFilename;
+
+        Thread thread = *(experiment.getThreads().begin());
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        QString hostName = QString::fromStdString( thread.getHost() );
 #else
-            processMetricView( collector.get(), experiment.getThreads(), metric, metricDesc );
+        QString hostName = QString( thread.getHost().c_str() );
 #endif
-        }
+#ifdef HAS_STRIP_DOMAIN_NAME
+        int index = hostName.indexOf( '.' );
+        if ( index > 0 )
+            hostName = hostName.left( index );
+#endif
+
+        m_tableViewInfo[ hostName ] = info;
+
+        loadCudaMetricViews(
+                            #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+                            synchronizer, futures,
+                            #endif
+                            metricList, metricDescList, collector, experiment, interval );
 
 #if defined(HAS_OSSCUDA2XML)
         PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
@@ -497,6 +518,170 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 }
 
 /**
+ * @brief PerformanceDataManager::handleLoadCudaMetricViews
+ * @param clusterName
+ * @param lower
+ * @param upper
+ */
+void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterName, double lower, double upper)
+{
+    if ( ! m_tableViewInfo.contains( clusterName ) )
+        return;
+
+    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViews: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
+
+    // abort the timer for a previous graph range change because the graph range has changed again
+    {
+        QMutexLocker guard( &m_mutex );
+        if ( m_timerThreads.contains( clusterName ) ) {
+            QThread* thread = m_timerThreads.take( clusterName );
+            thread->quit();
+        }
+    }
+
+    QThread* thread = new QThread;
+    if ( thread ) {
+        QTimer* timer = new QTimer;
+        if ( timer ) {
+            timer->setSingleShot( true );
+            timer->setInterval( 500 );
+            {
+                QMutexLocker guard( &m_mutex );
+                m_timerThreads[ clusterName ] = thread;
+            }
+            timer->moveToThread( thread );
+            // start the timer when the thread is started
+            connect( thread, SIGNAL(started()), timer, SLOT(start()) );
+            // stop the timer when the thread finishes
+            connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
+            // setup the timer expiry handler to process the graph range change only if the waiting period completes
+            timer->setProperty( "clusterName", clusterName );
+            timer->setProperty( "lower", lower );
+            timer->setProperty( "upper", upper );
+            connect( timer, SIGNAL(timeout()), this, SLOT(handleLoadCudaMetricViewsTimeout()) );
+            // when the thread finishes schedule the timer and timer thread instances for deletion
+            connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
+            connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
+
+            // start the thread (and the timer per previously setup signal-to-slot connection)
+            thread->start();
+        }
+        else {
+            qWarning() << "Not able to allocate timer";
+            delete thread;
+        }
+    }
+    else {
+        qWarning() << "Not able to allocate thread";
+    }
+}
+
+/**
+ * @brief PerformanceDataManager::handleLoadCudaMetricViewsTimeout
+ */
+void PerformanceDataManager::handleLoadCudaMetricViewsTimeout()
+{
+    QTimer* timer = qobject_cast< QTimer* >( sender() );
+
+    if ( ! timer )
+        return;
+
+    QString clusterName = timer->property( "clusterName" ).toString();
+    double lower = timer->property( "lower" ).toDouble();
+    double upper = timer->property( "upper" ).toDouble();
+
+    if ( ! m_tableViewInfo.contains( clusterName ) )
+        return;
+
+    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
+
+    MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
+
+    // re-initialize metric table view
+    foreach ( const QString& metric, info.metricList ) {
+        emit addMetricView( metric, info.tableColumnHeaders );
+    }
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+    QFutureSynchronizer<void> synchronizer;
+
+    QMap< QString, QFuture<void> > futures;
+#endif
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    Experiment experiment( info.experimentFilename.toStdString() );
+#else
+    Experiment experiment( std::string( info.experimentFilename.toLatin1().data() ) );
+#endif
+
+    CollectorGroup collectors = experiment.getCollectors();
+    boost::optional<Collector> collector;
+
+    for ( CollectorGroup::const_iterator i = collectors.begin(); i != collectors.end(); ++i ) {
+        collector = *i;
+        break;
+    }
+
+    // Determine time origin from extent of this experiment
+    Extent extent = experiment.getPerformanceDataExtent();
+    Time timeOrigin = extent.getTimeInterval().getBegin();
+
+    // Calculate new interval from currently selected graph range
+    Time lowerTime = timeOrigin + lower * 1000000;
+    Time upperTime = timeOrigin + upper * 1000000;
+
+    // Load update metric view corresponding to currently graph view
+    loadCudaMetricViews(
+                        #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+                        synchronizer, futures,
+                        #endif
+                        info.metricList, info.tableColumnHeaders, collector, experiment, TimeInterval(lowerTime, upperTime) );
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+    synchronizer.waitForFinished();
+#endif
+
+    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: DONE!!";
+}
+
+/**
+ * @brief PerformanceDataManager::loadCudaMetricViews
+ * @param synchronizer
+ * @param futures
+ * @param metricList
+ * @param metricDescList
+ * @param collector
+ * @param experiment
+ * @param interval
+ */
+void PerformanceDataManager::loadCudaMetricViews(
+                                                 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+                                                 QFutureSynchronizer<void>& synchronizer,
+                                                 QMap< QString, QFuture<void> >& futures,
+                                                 #endif
+                                                 const QStringList& metricList,
+                                                 QStringList metricDescList,
+                                                 boost::optional<Collector>& collector,
+                                                 const Experiment& experiment,
+                                                 const TimeInterval& interval)
+{
+    const QString functionTitle( tr("Function (defining location)") );
+
+    foreach ( const QString& metric, metricList ) {
+        QStringList metricDesc;
+
+        metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << functionTitle;
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        futures[metric] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
+        synchronizer.addFuture( futures[ metric ] );
+#else
+        processMetricView( collector.get(), experiment.getThreads(), metric, metricDesc );
+#endif
+    }
+}
+
+/**
  * @brief PerformanceDataManager::unloadCudaViews
  * @param clusteringCriteriaName
  * @param clusterNames
@@ -507,6 +692,13 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
         m_renderer->unloadCudaViews( clusteringCriteriaName, clusterNames );
     }
 
+    foreach( const QString& clusterName, clusterNames ) {
+        int numRemoved = m_tableViewInfo.remove( clusterName );
+        if ( numRemoved > 0 ) {
+            qDebug() << "PerformanceDataManager::unloadCudaViews: deleted table view info element for clusterName=" << clusterName;
+            break;
+        }
+    }
 }
 
 /**
@@ -566,10 +758,6 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     }
 #endif
 
-    QFileInfo fileInfo( experimentName );
-    QString expName( fileInfo.fileName() );
-    expName.replace( QString(".openss"), QString("") );
-
     QString clusteringCriteriaName;
     if ( hasCudaCollector )
         clusteringCriteriaName = QStringLiteral( "GPU Compute / Data Transfer Ratio" );
@@ -603,7 +791,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     }
 #endif
 
-    emit addExperiment( expName, clusteringCriteriaName, clusterNames, sampleCounterNames );
+    emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, sampleCounterNames );
 
     if ( hasCudaCollector ) {
         if ( ! m_processEvents ) {

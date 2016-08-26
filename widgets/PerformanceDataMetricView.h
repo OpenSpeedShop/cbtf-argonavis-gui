@@ -26,6 +26,8 @@
 
 #include <QWidget>
 #include <QTreeView>
+#include <QMutex>
+#include <QMap>
 
 // [ Forward Declarations ]
 
@@ -72,9 +74,11 @@ private:
 
     Ui::PerformanceDataMetricView *ui;
 
+    QMutex m_mutex;                                         // mutex for the following QMap objects
     QMap< QString, QStandardItemModel* > m_models;          // map metric to model
     QMap< QString, QSortFilterProxyModel* > m_proxyModels;  // map metric to model
     QMap< QString, QTreeView* > m_views;                    // map metric to view
+
     QStackedLayout* m_viewStack;                            // vertical layout holding current view
 
 };
