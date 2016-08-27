@@ -35,19 +35,20 @@
 #include <QFutureSynchronizer>
 #include <QMutex>
 
+#include "common/openss-gui-config.h"
+
 #include "boost/optional.hpp"
 
-#include "ToolAPI.hxx"
-/*
+#include "TimeInterval.hxx"
+
 namespace OpenSpeedShop {
 namespace Framework {
 class Experiment;
 class Collector;
 class ThreadGroup;
-class TimeInterval;
 }
 }
-*/
+
 class QTimer;
 class QCPAxisRect;
 class QTextStream;
@@ -141,8 +142,8 @@ private slots:
 
     void handleLoadCudaMetricViewsTimeout();
 
-    void threadDestroyed();
-    void timerDestroyed();
+    void threadDestroyed(QObject* obj = Q_NULLPTR);
+    void timerDestroyed(QObject* obj = Q_NULLPTR);
 
 private:
 

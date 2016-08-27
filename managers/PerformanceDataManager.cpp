@@ -562,10 +562,11 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
             // when the thread finishes schedule the timer and timer thread instances for deletion
             connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
             connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
-            connect( thread, SIGNAL(destroyed()), this, SLOT(threadDestroyed()) );
-            connect( timer, SIGNAL(destroyed()), this, SLOT(timerDestroyed()) );
+            connect( thread, SIGNAL(destroyed(QObject*)), this, SLOT(threadDestroyed(QObject*)) );
+            connect( timer, SIGNAL(destroyed(QObject*)), this, SLOT(timerDestroyed(QObject*)) );
 
             // start the thread (and the timer per previously setup signal-to-slot connection)
+            thread->setObjectName( clusterName );
             thread->start();
         }
         else {
@@ -578,18 +579,16 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
     }
 }
 
-void PerformanceDataManager::threadDestroyed()
+void PerformanceDataManager::threadDestroyed(QObject* obj)
 {
-    QThread* thread = qobject_cast< QThread* >( sender() );
-    if ( thread )
-        qDebug() << "THREAD DESTROYED: clusterName=" << thread->objectName();
+    QObject* thread = qobject_cast< QObject* >( sender() );
+    if ( obj )
+        qDebug() << "THREAD DESTROYED: clusterName=" << obj->objectName();
 }
 
-void PerformanceDataManager::timerDestroyed()
+void PerformanceDataManager::timerDestroyed(QObject* obj)
 {
-    QTimer* timer = qobject_cast< QTimer* >( sender() );
-    if ( timer )
-        qDebug() << "TIMER DESTROYED: clusterName=" << timer->property( "clusterName" ).toString();
+    qDebug() << "TIMER DESTROYED!!";
 }
 
 /**
