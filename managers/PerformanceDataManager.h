@@ -34,6 +34,9 @@
 #include <QAtomicPointer>
 #include <QFutureSynchronizer>
 #include <QMutex>
+#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
+#include <QUuid>
+#endif
 
 #include "common/openss-gui-config.h"
 
@@ -191,6 +194,8 @@ private:
                                 const ArgoNavis::Base::ThreadName& thread,
                                 const QString& clusteringCriteriaName);
 
+    void checkMapState(const QString& clusterName);
+
 private:
 
     static QAtomicPointer< PerformanceDataManager > s_instance;
@@ -213,6 +218,9 @@ private:
 
     QMutex m_mutex;
     QMap< QString, QThread* > m_timerThreads;
+#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
+    QMap< QUuid, QTimer* > m_timers;
+#endif
 
 };
 

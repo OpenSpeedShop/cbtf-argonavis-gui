@@ -300,6 +300,28 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
 }
 
 /**
+ * @brief PerformanceDataManager::checkMapState
+ * @param clusterName - the cluster name used as key in maps
+ */
+void PerformanceDataManager::checkMapState(const QString &clusterName)
+{
+    QMutexLocker guard( &m_mutex );
+    if ( m_timerThreads.contains( clusterName ) ) {
+        QThread* thread = m_timerThreads.take( clusterName );
+        thread->quit();
+#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
+        QString uuid = thread->property( "timerId" ).toString();
+        if ( m_timers.contains( uuid ) ) {
+            QTimer* timer = m_timers.take( uuid );
+            if ( timer ) {
+                timer->deleteLater();
+            }
+        }
+#endif
+    }
+}
+
+/**
  * @brief PerformanceDataManager::processMetricView
  * @param collector - a copy of the cuda collector
  * @param threads - all threads known by the cuda collector
@@ -531,13 +553,7 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViews: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
 
     // abort the timer for a previous graph range change because the graph range has changed again
-    {
-        QMutexLocker guard( &m_mutex );
-        if ( m_timerThreads.contains( clusterName ) ) {
-            QThread* thread = m_timerThreads.take( clusterName );
-            thread->quit();
-        }
-    }
+    checkMapState( clusterName );
 
     QThread* thread = new QThread;
     if ( thread ) {
@@ -563,12 +579,18 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
             // stop the timer when the thread finishes
             connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
             // when the thread finishes schedule the timer and timer thread instances for deletion
+#if (QT_VERSION >= QT_VERSION_CHECK(4, 8, 0))
             connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
+#endif
             connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
             connect( thread, SIGNAL(destroyed(QObject*)), this, SLOT(threadDestroyed(QObject*)) );
             connect( timer, SIGNAL(destroyed(QObject*)), this, SLOT(timerDestroyed(QObject*)) );
-
             // start the thread (and the timer per previously setup signal-to-slot connection)
+#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
+            QUuid uuid = QUuid::createUuid();
+            thread->setProperty( "timerId", uuid.toString() );
+            m_timers.insert( uuid, timer );
+#endif
             thread->setObjectName( clusterName );
             thread->start();
         }
@@ -660,13 +682,7 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout()
 #endif
 
     // remove timer's thread from map and quit (causes timer deletion)
-    {
-        QMutexLocker guard( &m_mutex );
-        if ( m_timerThreads.contains( clusterName ) ) {
-            QThread* thread = m_timerThreads.take( clusterName );
-            thread->quit();
-        }
-    }
+    checkMapState( clusterName );
 
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: DONE!!";
 }
