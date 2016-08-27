@@ -543,22 +543,25 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
     if ( thread ) {
         QTimer* timer = new QTimer;
         if ( timer ) {
+            // timer is single-shot expiring in 500ms
             timer->setSingleShot( true );
             timer->setInterval( 500 );
             {
                 QMutexLocker guard( &m_mutex );
                 m_timerThreads[ clusterName ] = thread;
             }
+            // move timer to thread to let signals manage timer start/stop state
             timer->moveToThread( thread );
-            // start the timer when the thread is started
-            connect( thread, SIGNAL(started()), timer, SLOT(start()) );
-            // stop the timer when the thread finishes
-            connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
             // setup the timer expiry handler to process the graph range change only if the waiting period completes
             timer->setProperty( "clusterName", clusterName );
             timer->setProperty( "lower", lower );
             timer->setProperty( "upper", upper );
+            // connect timer timeout signal to handler
             connect( timer, SIGNAL(timeout()), this, SLOT(handleLoadCudaMetricViewsTimeout()) );
+            // start the timer when the thread is started
+            connect( thread, SIGNAL(started()), timer, SLOT(start()) );
+            // stop the timer when the thread finishes
+            connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
             // when the thread finishes schedule the timer and timer thread instances for deletion
             connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
             connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
@@ -655,6 +658,15 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout()
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
     synchronizer.waitForFinished();
 #endif
+
+    // remove timer's thread from map and quit (causes timer deletion)
+    {
+        QMutexLocker guard( &m_mutex );
+        if ( m_timerThreads.contains( clusterName ) ) {
+            QThread* thread = m_timerThreads.take( clusterName );
+            thread->quit();
+        }
+    }
 
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: DONE!!";
 }
