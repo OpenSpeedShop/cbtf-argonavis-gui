@@ -30,6 +30,11 @@
 #include <QThread>
 #include <QMutexLocker>
 #include <QImage>
+#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
+#include <QUuid>
+#endif
+
+#include "common/openss-gui-config.h"
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
 
@@ -77,9 +82,14 @@ private slots:
     void processCudaEventSnapshot();
     void processGraphRangeChangedTimeout();
 
+    void threadDestroyed(QObject* obj = Q_NULLPTR);
+    void timerDestroyed(QObject* obj = Q_NULLPTR);
+
 private:
 
     void processCudaEventSnapshot(CustomPlot* plot);
+
+    void checkMapState(const QString& clusterName);
 
 private:
 
@@ -92,7 +102,9 @@ private:
 
     QMap< QString, BackgroundGraphRendererBackend* > m_backend;
 
-    static QMap< QString, QPair<double, double> > lastReplotRange;
+#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
+    QMap< QUuid, QTimer* > m_timers;
+#endif
 
 };
 

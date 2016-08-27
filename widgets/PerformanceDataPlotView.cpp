@@ -33,6 +33,7 @@
 #include "graphitems/OSSEventsSummaryItem.h"
 
 #include <QtGlobal>
+#include <qmath.h>
 #include <QPen>
 #include <QInputDialog>
 
@@ -197,7 +198,7 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
     mTickStep = qMax( 1.0, mTickStep );
 
     //qDebug() << "using tick step: " << mTickStep << "magnitude factor: " << magnitudeFactor << "tickStepMantissa: " << tickStepMantissa;
-    xAxis->setSubTickCount( qMax( 1.0, qCeil( tickStepMantissa ) ) - 1 );
+    xAxis->setSubTickCount( qMax( 1.0, (qreal) qCeil( tickStepMantissa ) ) - 1 );
 
     // Generate tick positions according to mTickStep:
     qint64 firstStep = qMax( 0.0, floor( newRange.lower / mTickStep ) ); // do not use qFloor here, or we'll lose 64 bit precision

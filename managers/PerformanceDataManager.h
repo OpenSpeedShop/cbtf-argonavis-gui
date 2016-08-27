@@ -38,6 +38,8 @@
 #include <QUuid>
 #endif
 
+#include <vector>
+
 #include "common/openss-gui-config.h"
 
 #include "boost/optional.hpp"

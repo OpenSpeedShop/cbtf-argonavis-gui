@@ -39,6 +39,7 @@
 #include <QFileInfo>
 #include <QThread>
 #include <QTimer>
+#include <qmath.h>
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
 #include <ArgoNavis/CUDA/DataTransfer.hpp>
