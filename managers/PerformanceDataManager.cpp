@@ -314,7 +314,7 @@ void PerformanceDataManager::checkMapState(const QString &clusterName)
         if ( m_timers.contains( uuid ) ) {
             QTimer* timer = m_timers.take( uuid );
             if ( timer ) {
-                timer->stop();'
+                timer->stop();
                 timer->deleteLater();
             }
         }
