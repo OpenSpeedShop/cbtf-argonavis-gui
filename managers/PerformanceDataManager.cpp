@@ -566,6 +566,11 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
             {
                 QMutexLocker guard( &m_mutex );
                 m_timerThreads[ clusterName ] = thread;
+#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
+                QUuid uuid = QUuid::createUuid();
+                thread->setProperty( "timerId", uuid.toString() );
+                m_timers.insert( uuid, timer );
+#endif
             }
             // move timer to thread to let signals manage timer start/stop state
             timer->moveToThread( thread );
@@ -587,11 +592,7 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
             connect( thread, SIGNAL(destroyed(QObject*)), this, SLOT(threadDestroyed(QObject*)) );
             connect( timer, SIGNAL(destroyed(QObject*)), this, SLOT(timerDestroyed(QObject*)) );
             // start the thread (and the timer per previously setup signal-to-slot connection)
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-            QUuid uuid = QUuid::createUuid();
-            thread->setProperty( "timerId", uuid.toString() );
-            m_timers.insert( uuid, timer );
-#endif
+
             thread->setObjectName( clusterName );
             thread->start();
         }
