@@ -309,16 +309,17 @@ void PerformanceDataManager::checkMapState(const QString &clusterName)
     QMutexLocker guard( &m_mutex );
     if ( m_timerThreads.contains( clusterName ) ) {
         QThread* thread = m_timerThreads.take( clusterName );
-        thread->quit();
 #if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
         QString uuid = thread->property( "timerId" ).toString();
         if ( m_timers.contains( uuid ) ) {
             QTimer* timer = m_timers.take( uuid );
             if ( timer ) {
+                timer->stop();'
                 timer->deleteLater();
             }
         }
 #endif
+        thread->quit();
     }
 }
 
@@ -582,12 +583,13 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
             connect( timer, SIGNAL(timeout()), this, SLOT(handleLoadCudaMetricViewsTimeout()) );
             // start the timer when the thread is started
             connect( thread, SIGNAL(started()), timer, SLOT(start()) );
+#if (QT_VERSION >= QT_VERSION_CHECK(4, 8, 0))
             // stop the timer when the thread finishes
             connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
-            // when the thread finishes schedule the timer and timer thread instances for deletion
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 8, 0))
+            // when the thread finishes schedule the timer instance for deletion
             connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
 #endif
+            // when the thread finishes schedule the timer thread instance for deletion
             connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
             connect( thread, SIGNAL(destroyed(QObject*)), this, SLOT(threadDestroyed(QObject*)) );
             connect( timer, SIGNAL(destroyed(QObject*)), this, SLOT(timerDestroyed(QObject*)) );
