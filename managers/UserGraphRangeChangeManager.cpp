@@ -144,13 +144,13 @@ void UserGraphRangeChangeManager::handleTimeout()
 
     QString clusterName = timer->property( "clusterName" ).toString();
 
-    cancel( clusterName );
-
     double lower = timer->property( "lower" ).toDouble();
     double upper = timer->property( "upper" ).toDouble();
     QSize size = timer->property( "size" ).toSize();
 
     emit timeout( clusterName, lower, upper, size );
+
+    cancel( clusterName );
 }
 
 
