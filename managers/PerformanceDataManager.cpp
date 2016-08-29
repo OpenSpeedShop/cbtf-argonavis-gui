@@ -634,6 +634,9 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout()
     double lower = timer->property( "lower" ).toDouble();
     double upper = timer->property( "upper" ).toDouble();
 
+    // remove timer's thread from map and quit (causes timer deletion)
+    checkMapState( clusterName );
+
     if ( ! m_tableViewInfo.contains( clusterName ) )
         return;
 
@@ -684,9 +687,6 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout()
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
     synchronizer.waitForFinished();
 #endif
-
-    // remove timer's thread from map and quit (causes timer deletion)
-    checkMapState( clusterName );
 
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: DONE!!";
 }
