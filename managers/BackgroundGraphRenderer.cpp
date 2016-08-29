@@ -184,6 +184,11 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
                     {
                         QMutexLocker guard( &m_mutex );
                         m_timerThreads[ clusterName ] = thread;
+#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
+                        QUuid uuid = QUuid::createUuid();
+                        thread->setProperty( "timerId", uuid.toString() );
+                        m_timers.insert( uuid, timer );
+#endif
                     }
                     // move timer to thread to let signals manage timer start/stop state
                     timer->moveToThread( thread );
@@ -203,14 +208,10 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
                     connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
 #endif
                     // when the thread finishes schedule the timer thread instance for deletion
-                    connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
+                    connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );;
+#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
                     connect( thread, SIGNAL(destroyed(QObject*)), this, SLOT(threadDestroyed(QObject*)) );
                     connect( timer, SIGNAL(destroyed(QObject*)), this, SLOT(timerDestroyed(QObject*)) );
-                    // start the thread (and the timer per previously setup signal-to-slot connection)
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-                    QUuid uuid = QUuid::createUuid();
-                    thread->setProperty( "timerId", uuid.toString() );
-                    m_timers.insert( uuid, timer );
 #endif
 
                     // start the thread (and the timer per previously setup signal-to-slot connection)
@@ -267,6 +268,11 @@ void BackgroundGraphRenderer::processGraphRangeChangedTimeout()
     }
 }
 
+#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
+/**
+ * @brief BackgroundGraphRenderer::threadDestroyed
+ * @param obj
+ */
 void BackgroundGraphRenderer::threadDestroyed(QObject* obj)
 {
     QObject* thread = qobject_cast< QObject* >( sender() );
@@ -274,10 +280,15 @@ void BackgroundGraphRenderer::threadDestroyed(QObject* obj)
         qDebug() << "BackgroundGraphRenderer THREAD DESTROYED: clusterName=" << obj->objectName();
 }
 
+/**
+ * @brief BackgroundGraphRenderer::timerDestroyed
+ * @param obj
+ */
 void BackgroundGraphRenderer::timerDestroyed(QObject* obj)
 {
     qDebug() << "BackgroundGraphRenderer TIMER DESTROYED!!";
 }
+#endif
 
 /**
  * @brief BackgroundGraphRenderer::processDataTransferEvent

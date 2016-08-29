@@ -147,8 +147,10 @@ private slots:
 
     void handleLoadCudaMetricViewsTimeout();
 
+#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
     void threadDestroyed(QObject* obj = Q_NULLPTR);
     void timerDestroyed(QObject* obj = Q_NULLPTR);
+#endif
 
 private:
 
