@@ -31,11 +31,7 @@
 #include "graphitems/OSSKernelExecutionItem.h"
 
 #include <QImage>
-#include <QTimer>
 #include <QtConcurrentRun>
-#include <QFutureSynchronizer>
-
-#define GRAPH_RANGE_CHANGE_DELAY_TO_CUDA_EVENT_PROCESSING 500
 
 
 namespace ArgoNavis { namespace GUI {
@@ -43,7 +39,7 @@ namespace ArgoNavis { namespace GUI {
 
 /**
  * @brief BackgroundGraphRenderer::BackgroundGraphRenderer
- * @param parent - the parent QWidget instance
+ * @param parent - the parent QObject instance
  *
  * Constructs a BackgroundGraphRenderer instance
  */
@@ -56,8 +52,10 @@ BackgroundGraphRenderer::BackgroundGraphRenderer(QObject *parent)
     // setup signal-to-slot connection for creating QCustomPlot instance in the GUI thread
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( this, &BackgroundGraphRenderer::createPlotForClustering, this, &BackgroundGraphRenderer::handleCreatePlotForClustering, Qt::QueuedConnection );
+    connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeout, this, &BackgroundGraphRenderer::handleGraphRangeChangedTimeout );
 #else
     connect( this, SIGNAL(createPlotForClustering(QString,QString)), this, SLOT(handleCreatePlotForClustering(QString,QString)), Qt::QueuedConnection );
+    connect( &m_userChangeMgr, SIGNAL(timeout(QString,double,double,QSize)), this, SLOT(handleGraphRangeChangedTimeout(QString,double,double,QSize)) );
 #endif
 
     // start thread for backend processing
@@ -157,8 +155,7 @@ void BackgroundGraphRenderer::unloadCudaViews(const QString &clusteringCriteriaN
  */
 void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size)
 {
-    // abort the timer for a previous graph range change because the graph range has changed again
-    checkMapState( clusterName );
+    m_userChangeMgr.cancel( clusterName );
 
     if ( ! m_plot.contains( clusterName ) )
         return;
@@ -171,85 +168,23 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
         if ( axisRect ) {
             QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
             if ( xAxis ) {
-                // Create a new timer and thread to process the timer handling for this graph range change.
-                // Setup as a one shot timer to fire in 500 msec - the current graph range change will only be processed
-                // once the timer expires.  The timer can be terminated it the processing thread terminates due to arrival
-                // of another graph range change before the 500 msec waiting period completes.
-                QThread* thread = new QThread;
-                QTimer* timer = new QTimer;
-                if ( thread && timer ) {
-                    // timer is single-shot expiring in 500ms
-                    timer->setSingleShot( true );
-                    timer->setInterval( GRAPH_RANGE_CHANGE_DELAY_TO_CUDA_EVENT_PROCESSING );
-                    {
-                        QMutexLocker guard( &m_mutex );
-                        m_timerThreads[ clusterName ] = thread;
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-                        QUuid uuid = QUuid::createUuid();
-                        thread->setProperty( "timerId", uuid.toString() );
-                        m_timers.insert( uuid, timer );
-#endif
-                    }
-                    // move timer to thread to let signals manage timer start/stop state
-                    timer->moveToThread( thread );
-                    // setup the timer expiry handler to process the graph range change only if the waiting period completes
-                    timer->setProperty( "clusterName" , clusterName );
-                    timer->setProperty( "lower" , lower );
-                    timer->setProperty( "upper" , upper );
-                    timer->setProperty( "size" , size );
-                    // connect timer timeout signal to handler
-                    connect( timer, SIGNAL(timeout()), this, SLOT(processGraphRangeChangedTimeout()) );
-                    // start the timer when the thread is started
-                    connect( thread, SIGNAL(started()), timer, SLOT(start()) );
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 8, 0))
-                    // stop the timer when the thread finishes
-                    connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
-                    // when the thread finishes schedule the timer instance for deletion
-                    connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
-#endif
-                    // when the thread finishes schedule the timer thread instance for deletion
-                    connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );;
-#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
-                    connect( thread, SIGNAL(destroyed(QObject*)), this, SLOT(threadDestroyed(QObject*)) );
-                    connect( timer, SIGNAL(destroyed(QObject*)), this, SLOT(timerDestroyed(QObject*)) );
-#endif
-
-                    // start the thread (and the timer per previously setup signal-to-slot connection)
-                    thread->setObjectName( clusterName );
-                    thread->start();
-                }
-                else {
-                    qWarning() << "Not able to allocate thread and/or timer";
-                }
+                m_userChangeMgr.create( clusterName, lower, upper, size );
             }
         }
     }
 }
 
 /**
- * @brief BackgroundGraphRenderer::processGraphRangeChangedTimeout
+ * @brief BackgroundGraphRenderer::handleGraphRangeChangedTimeout
+ * @param clusterName - the cluster group name
+ * @param lower - the new X-axis lower range
+ * @param upper - the new X-axis upper range
+ * @param size - the size of the plot axis rectangle
+ *
+ * This handler in invoked when the waiting period has benn reached and actual processing of the CUDA events can proceed.
  */
-void BackgroundGraphRenderer::processGraphRangeChangedTimeout()
+void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clusterName, double lower, double upper, const QSize& size)
 {
-    //qDebug() << "BackgroundGraphRenderer::processGraphRangeChangedTimeout: thread=" << QString::number((long long)QThread::currentThread(), 16);
-    QTimer* timer = qobject_cast< QTimer* >( sender() );
-
-    if ( ! timer )
-        return;
-
-    QString clusterName = timer->property( "clusterName" ).toString();
-    double lower = timer->property( "lower" ).toDouble();
-    double upper = timer->property( "upper" ).toDouble();
-    QSize size = timer->property( "size" ).toSize();
-
-    {
-        QMutexLocker guard( &m_mutex );
-        if ( m_timerThreads.contains( clusterName ) ) {
-            QThread* thread = m_timerThreads.take( clusterName );
-            thread->quit();
-        }
-    }
-
     if ( ! m_plot.contains( clusterName ) )
         return;
 
@@ -271,7 +206,7 @@ void BackgroundGraphRenderer::processGraphRangeChangedTimeout()
 #ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
 /**
  * @brief BackgroundGraphRenderer::threadDestroyed
- * @param obj
+ * @param obj - the QObject instance destroyed
  */
 void BackgroundGraphRenderer::threadDestroyed(QObject* obj)
 {
@@ -282,7 +217,7 @@ void BackgroundGraphRenderer::threadDestroyed(QObject* obj)
 
 /**
  * @brief BackgroundGraphRenderer::timerDestroyed
- * @param obj
+ * @param obj - the QObject instance destroyed
  */
 void BackgroundGraphRenderer::timerDestroyed(QObject* obj)
 {
@@ -382,8 +317,6 @@ void BackgroundGraphRenderer::handleProcessCudaEventViewDone()
         // get the associated clustering criteria name
         QString clusteringCriteriaName( backend->objectName() );
 
-        QMutexLocker guard( &m_mutex );
-
         QMap< QString, CustomPlot* >::iterator iter( m_plot.begin() );
         while ( iter != m_plot.end() ) {
             CustomPlot* plot( iter.value() );
@@ -462,29 +395,6 @@ void BackgroundGraphRenderer::processCudaEventSnapshot(CustomPlot* plot)
         else {
             qWarning() << "Not able to allocate QCPPainter";
         }
-    }
-}
-
-/**
- * @brief BackgroundGraphRenderer::checkMapState
- * @param clusterName - the cluster name used as key in maps
- */
-void BackgroundGraphRenderer::checkMapState(const QString &clusterName)
-{
-    QMutexLocker guard( &m_mutex );
-    if ( m_timerThreads.contains( clusterName ) ) {
-        QThread* thread = m_timerThreads.take( clusterName );
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-        QString uuid = thread->property( "timerId" ).toString();
-        if ( m_timers.contains( uuid ) ) {
-            QTimer* timer = m_timers.take( uuid );
-            if ( timer ) {
-                timer->stop();
-                timer->deleteLater();
-            }
-        }
-#endif
-        thread->quit();
     }
 }
 

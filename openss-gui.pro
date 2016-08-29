@@ -90,7 +90,8 @@ SOURCES += \
     managers/PerformanceDataManager.cpp \
     managers/BackgroundGraphRendererBackend.cpp \
     managers/BackgroundGraphRenderer.cpp \
-    graphitems/OSSEventsSummaryItem.cpp
+    graphitems/OSSEventsSummaryItem.cpp \
+    managers/UserGraphRangeChangeManager.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 DEFINES += HAS_OSSCUDA2XML
@@ -115,7 +116,8 @@ HEADERS += \
     managers/PerformanceDataManager.h \
     managers/BackgroundGraphRendererBackend.h \
     managers/BackgroundGraphRenderer.h \
-    graphitems/OSSEventsSummaryItem.h
+    graphitems/OSSEventsSummaryItem.h \
+    managers/UserGraphRangeChangeManager.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

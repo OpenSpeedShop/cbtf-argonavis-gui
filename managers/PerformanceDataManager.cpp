@@ -91,11 +91,13 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
         connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
         connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
         connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
+        connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeout, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
 #else
         connect( this, SIGNAL(replotCompleted()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
         connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,double,double,QSize)) );
         connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,double,double)) );
         connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
+        connect( &m_userChangeMgr, SIGNAL(timeout(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
 #endif
     }
 }
@@ -298,29 +300,6 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
                 );
 
     return true; // continue the visitation
-}
-
-/**
- * @brief PerformanceDataManager::checkMapState
- * @param clusterName - the cluster name used as key in maps
- */
-void PerformanceDataManager::checkMapState(const QString &clusterName)
-{
-    QMutexLocker guard( &m_mutex );
-    if ( m_timerThreads.contains( clusterName ) ) {
-        QThread* thread = m_timerThreads.take( clusterName );
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-        QString uuid = thread->property( "timerId" ).toString();
-        if ( m_timers.contains( uuid ) ) {
-            QTimer* timer = m_timers.take( uuid );
-            if ( timer ) {
-                timer->stop();
-                timer->deleteLater();
-            }
-        }
-#endif
-        thread->quit();
-    }
 }
 
 /**
@@ -543,9 +522,9 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
 /**
  * @brief PerformanceDataManager::handleLoadCudaMetricViews
- * @param clusterName
- * @param lower
- * @param upper
+ * @param clusterName - the cluster name
+ * @param lower - the lower value of the interval to process
+ * @param upper - the upper value of the interval to process
  */
 void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterName, double lower, double upper)
 {
@@ -554,66 +533,16 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
 
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViews: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
 
-    // abort the timer for a previous graph range change because the graph range has changed again
-    checkMapState( clusterName );
+    // cancel any active processing for this cluster
+    m_userChangeMgr.cancel( clusterName );
 
-    QThread* thread = new QThread;
-    if ( thread ) {
-        QTimer* timer = new QTimer;
-        if ( timer ) {
-            // timer is single-shot expiring in 500ms
-            timer->setSingleShot( true );
-            timer->setInterval( 500 );
-            {
-                QMutexLocker guard( &m_mutex );
-                m_timerThreads[ clusterName ] = thread;
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-                QUuid uuid = QUuid::createUuid();
-                thread->setProperty( "timerId", uuid.toString() );
-                m_timers.insert( uuid, timer );
-#endif
-            }
-            // move timer to thread to let signals manage timer start/stop state
-            timer->moveToThread( thread );
-            // setup the timer expiry handler to process the graph range change only if the waiting period completes
-            timer->setProperty( "clusterName", clusterName );
-            timer->setProperty( "lower", lower );
-            timer->setProperty( "upper", upper );
-            // connect timer timeout signal to handler
-            connect( timer, SIGNAL(timeout()), this, SLOT(handleLoadCudaMetricViewsTimeout()) );
-            // start the timer when the thread is started
-            connect( thread, SIGNAL(started()), timer, SLOT(start()) );
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 8, 0))
-            // stop the timer when the thread finishes
-            connect( thread, SIGNAL(finished()), timer, SLOT(stop()) );
-            // when the thread finishes schedule the timer instance for deletion
-            connect( thread, SIGNAL(finished()), timer, SLOT(deleteLater()) );
-#endif
-            // when the thread finishes schedule the timer thread instance for deletion
-            connect( thread, SIGNAL(finished()), thread, SLOT(deleteLater()) );
-#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
-            connect( thread, SIGNAL(destroyed(QObject*)), this, SLOT(threadDestroyed(QObject*)) );
-            connect( timer, SIGNAL(destroyed(QObject*)), this, SLOT(timerDestroyed(QObject*)) );
-#endif
-
-            // start the thread (and the timer per previously setup signal-to-slot connection)
-            thread->setObjectName( clusterName );
-            thread->start();
-        }
-        else {
-            qWarning() << "Not able to allocate timer";
-            delete thread;
-        }
-    }
-    else {
-        qWarning() << "Not able to allocate thread";
-    }
+    m_userChangeMgr.create( clusterName, lower, upper );
 }
 
 #ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
 /**
  * @brief PerformanceDataManager::threadDestroyed
- * @param obj
+ * @param obj - the QObject instance destroyed
  */
 void PerformanceDataManager::threadDestroyed(QObject* obj)
 {
@@ -624,7 +553,7 @@ void PerformanceDataManager::threadDestroyed(QObject* obj)
 
 /**
  * @brief PerformanceDataManager::timerDestroyed
- * @param obj
+ * @param obj - the QObject instance destroyed
  */
 void PerformanceDataManager::timerDestroyed(QObject* obj)
 {
@@ -634,21 +563,14 @@ void PerformanceDataManager::timerDestroyed(QObject* obj)
 
 /**
  * @brief PerformanceDataManager::handleLoadCudaMetricViewsTimeout
+ * @param clusterName - the cluster name
+ * @param lower - the lower value of the interval to process
+ * @param upper - the upper value of the interval to process
+ *
+ * This handler in invoked when the waiting period has benn reached and actual processing of the CUDA metric view can proceed.
  */
-void PerformanceDataManager::handleLoadCudaMetricViewsTimeout()
+void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clusterName, double lower, double upper)
 {
-    QTimer* timer = qobject_cast< QTimer* >( sender() );
-
-    if ( ! timer )
-        return;
-
-    QString clusterName = timer->property( "clusterName" ).toString();
-    double lower = timer->property( "lower" ).toDouble();
-    double upper = timer->property( "upper" ).toDouble();
-
-    // remove timer's thread from map and quit (causes timer deletion)
-    checkMapState( clusterName );
-
     if ( ! m_tableViewInfo.contains( clusterName ) )
         return;
 
@@ -705,13 +627,13 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout()
 
 /**
  * @brief PerformanceDataManager::loadCudaMetricViews
- * @param synchronizer
- * @param futures
- * @param metricList
- * @param metricDescList
- * @param collector
- * @param experiment
- * @param interval
+ * @param synchronizer - the QFutureSynchronizer to add futures
+ * @param futures - the future map used when invoking QtConcurrent::run
+ * @param metricList - the list of metrics to process and add to metric view
+ * @param metricDescList - the column headers for the metric view
+ * @param collector - the collector object
+ * @param experiment - the experiment object
+ * @param interval - the interval to process for the metric view
  */
 void PerformanceDataManager::loadCudaMetricViews(
                                                  #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
@@ -742,8 +664,8 @@ void PerformanceDataManager::loadCudaMetricViews(
 
 /**
  * @brief PerformanceDataManager::unloadCudaViews
- * @param clusteringCriteriaName
- * @param clusterNames
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param clusterNames - the list of associated clusters
  */
 void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaName, const QStringList &clusterNames)
 {

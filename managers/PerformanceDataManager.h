@@ -46,6 +46,8 @@
 
 #include "TimeInterval.hxx"
 
+#include "UserGraphRangeChangeManager.h"
+
 namespace OpenSpeedShop {
 namespace Framework {
 class Experiment;
@@ -145,7 +147,7 @@ private slots:
 
     void handleLoadCudaMetricViews(const QString& clusterName, double lower, double upper);
 
-    void handleLoadCudaMetricViewsTimeout();
+    void handleLoadCudaMetricViewsTimeout(const QString& clusterName, double lower, double upper);
 
 #ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
     void threadDestroyed(QObject* obj = Q_NULLPTR);
@@ -198,8 +200,6 @@ private:
                                 const ArgoNavis::Base::ThreadName& thread,
                                 const QString& clusteringCriteriaName);
 
-    void checkMapState(const QString& clusterName);
-
 private:
 
     static QAtomicPointer< PerformanceDataManager > s_instance;
@@ -220,12 +220,7 @@ private:
 
     QMap< QString, MetricTableViewInfo > m_tableViewInfo;
 
-    QMutex m_mutex;
-    QMap< QString, QThread* > m_timerThreads;
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-    QMap< QUuid, QTimer* > m_timers;
-#endif
-
+    UserGraphRangeChangeManager m_userChangeMgr;
 };
 
 

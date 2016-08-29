@@ -28,15 +28,13 @@
 #include <QMap>
 #include <QPair>
 #include <QThread>
-#include <QMutexLocker>
 #include <QImage>
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-#include <QUuid>
-#endif
 
 #include "common/openss-gui-config.h"
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
+
+#include "UserGraphRangeChangeManager.h"
 
 class CustomPlot;
 
@@ -80,7 +78,7 @@ private slots:
     void handleProcessCudaEventViewDone();
     void handleCreatePlotForClustering(const QString& clusteringCriteriaName, const QString& clusteringName);
     void processCudaEventSnapshot();
-    void processGraphRangeChangedTimeout();
+    void handleGraphRangeChangedTimeout(const QString& clusterName, double lower, double upper, const QSize& size);
 
 #ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
     void threadDestroyed(QObject* obj = Q_NULLPTR);
@@ -91,22 +89,15 @@ private:
 
     void processCudaEventSnapshot(CustomPlot* plot);
 
-    void checkMapState(const QString& clusterName);
-
 private:
 
     QMap< QString, CustomPlot* > m_plot;
 
     QThread m_thread;
 
-    QMutex m_mutex;
-    QMap< QString, QThread* > m_timerThreads;
-
     QMap< QString, BackgroundGraphRendererBackend* > m_backend;
 
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-    QMap< QUuid, QTimer* > m_timers;
-#endif
+    UserGraphRangeChangeManager m_userChangeMgr;
 
 };
 
