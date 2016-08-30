@@ -539,28 +539,6 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
     m_userChangeMgr.create( clusterName, lower, upper );
 }
 
-#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
-/**
- * @brief PerformanceDataManager::threadDestroyed
- * @param obj - the QObject instance destroyed
- */
-void PerformanceDataManager::threadDestroyed(QObject* obj)
-{
-    QObject* thread = qobject_cast< QObject* >( sender() );
-    if ( obj )
-        qDebug() << "THREAD DESTROYED: clusterName=" << obj->objectName();
-}
-
-/**
- * @brief PerformanceDataManager::timerDestroyed
- * @param obj - the QObject instance destroyed
- */
-void PerformanceDataManager::timerDestroyed(QObject* obj)
-{
-    qDebug() << "TIMER DESTROYED!!";
-}
-#endif
-
 /**
  * @brief PerformanceDataManager::handleLoadCudaMetricViewsTimeout
  * @param clusterName - the cluster name

@@ -203,28 +203,6 @@ void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clus
     }
 }
 
-#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
-/**
- * @brief BackgroundGraphRenderer::threadDestroyed
- * @param obj - the QObject instance destroyed
- */
-void BackgroundGraphRenderer::threadDestroyed(QObject* obj)
-{
-    QObject* thread = qobject_cast< QObject* >( sender() );
-    if ( obj )
-        qDebug() << "BackgroundGraphRenderer THREAD DESTROYED: clusterName=" << obj->objectName();
-}
-
-/**
- * @brief BackgroundGraphRenderer::timerDestroyed
- * @param obj - the QObject instance destroyed
- */
-void BackgroundGraphRenderer::timerDestroyed(QObject* obj)
-{
-    qDebug() << "BackgroundGraphRenderer TIMER DESTROYED!!";
-}
-#endif
-
 /**
  * @brief BackgroundGraphRenderer::processDataTransferEvent
  * @param clusteringName - the cluster group name

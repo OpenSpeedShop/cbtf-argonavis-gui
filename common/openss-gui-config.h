@@ -38,12 +38,5 @@
 #define QStringLiteral QString
 #endif
 
-#if 0
-#ifndef qCeil
-#include "math.h"
-#define qCeil ceil
-#endif
-#endif
-
 
 #endif // OPENSS_GUI_CONFIG_H

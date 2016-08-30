@@ -80,11 +80,6 @@ private slots:
     void processCudaEventSnapshot();
     void handleGraphRangeChangedTimeout(const QString& clusterName, double lower, double upper, const QSize& size);
 
-#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
-    void threadDestroyed(QObject* obj = Q_NULLPTR);
-    void timerDestroyed(QObject* obj = Q_NULLPTR);
-#endif
-
 private:
 
     void processCudaEventSnapshot(CustomPlot* plot);

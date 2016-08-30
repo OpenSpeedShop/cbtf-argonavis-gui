@@ -149,11 +149,6 @@ private slots:
 
     void handleLoadCudaMetricViewsTimeout(const QString& clusterName, double lower, double upper);
 
-#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
-    void threadDestroyed(QObject* obj = Q_NULLPTR);
-    void timerDestroyed(QObject* obj = Q_NULLPTR);
-#endif
-
 private:
 
     explicit PerformanceDataManager(QObject* parent = 0);

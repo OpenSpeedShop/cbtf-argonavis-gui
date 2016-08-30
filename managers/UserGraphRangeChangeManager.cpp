@@ -153,6 +153,28 @@ void UserGraphRangeChangeManager::handleTimeout()
     cancel( clusterName );
 }
 
+#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
+/**
+ * @brief UserGraphRangeChangeManager::threadDestroyed
+ * @param obj - the QObject instance destroyed
+ */
+void UserGraphRangeChangeManager::threadDestroyed(QObject* obj)
+{
+    QObject* thread = qobject_cast< QObject* >( sender() );
+    if ( obj )
+        qDebug() << "THREAD DESTROYED: clusterName=" << obj->objectName();
+}
+
+/**
+ * @brief UserGraphRangeChangeManager::timerDestroyed
+ * @param obj - the QObject instance destroyed
+ */
+void UserGraphRangeChangeManager::timerDestroyed(QObject* obj)
+{
+    qDebug() << "TIMER DESTROYED!!";
+}
+#endif
+
 
 } // GUI
 } // ArgoNavis

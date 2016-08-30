@@ -35,6 +35,8 @@ class QTimer;
 #endif
 class QThread;
 
+#include "common/openss-gui-config.h"
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -59,6 +61,11 @@ signals:
 private slots:
 
     void handleTimeout();
+
+#ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
+    void threadDestroyed(QObject* obj = Q_NULLPTR);
+    void timerDestroyed(QObject* obj = Q_NULLPTR);
+#endif
 
 private:
 
