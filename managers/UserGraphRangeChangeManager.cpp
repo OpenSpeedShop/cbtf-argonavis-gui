@@ -89,7 +89,7 @@ void UserGraphRangeChangeManager::create(const QString &clusterName, double lowe
         connect( timer, SIGNAL(destroyed(QObject*)), this, SLOT(timerDestroyed(QObject*)) );
 #endif
         // start the timer
-        timer->start();
+        QMetaObject::invokeMethod( timer, "start", Qt::QueuedConnection );
     }
     else {
         qWarning() << "Not able to allocate timer";
@@ -106,7 +106,7 @@ void UserGraphRangeChangeManager::cancel(const QString &clusterName)
     if ( m_timers.contains( clusterName ) ) {
         QTimer* timer = m_timers.take( clusterName );
         if ( timer ) {
-            timer->stop();
+            QMetaObject::invokeMethod( timer, "stop", Qt::QueuedConnection );
             timer->deleteLater();
         }
     }
