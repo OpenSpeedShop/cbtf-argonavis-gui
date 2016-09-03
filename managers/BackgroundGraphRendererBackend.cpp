@@ -105,7 +105,9 @@ bool BackgroundGraphRendererBackend::processKernelExecutionEvent(const QString& 
  */
 void BackgroundGraphRendererBackend::handleProcessCudaEventView()
 {
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRendererBackend::handleProcessCudaEventView: STARTED!!";
+#endif
 
     m_watcher = new QFutureWatcher<void>();
 
@@ -137,8 +139,10 @@ bool BackgroundGraphRendererBackend::processThreadCudaEvents(const Base::ThreadN
     if ( index > 0 )
         clusterName = clusterName.left( index );
 #endif
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRendererBackend::processThreadCudaEvents: STARTED: clusterName=" << clusterName <<
                 "thread=" << QString::number((long long)QThread::currentThread(), 16);
+#endif
 
     // concurrently initiate visitations of the CUDA data transfer and kernel execution events
     QFutureSynchronizer<void> synchronizer;
@@ -155,7 +159,9 @@ bool BackgroundGraphRendererBackend::processThreadCudaEvents(const Base::ThreadN
     // wait for the visitations to complete
     synchronizer.waitForFinished();
 
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRendererBackend::processThreadCudaEvents: DONE: clusterName=" << clusterName;
+#endif
 
     return true; // continue the visitation
 }

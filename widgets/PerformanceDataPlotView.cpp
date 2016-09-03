@@ -375,8 +375,9 @@ void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringC
             }
         }
     }
-
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataPlotView::handleCudaEventSnapshot CALLED: clusterName=" << clusteringName << "lower=" << lower << "upper=" << upper << "image size=" << image.size();
+#endif
 
     if ( Q_NULLPTR == axisRect )
         return;
@@ -403,9 +404,8 @@ void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringC
             }
         }
     }
-    //else {
-        ui->graphView->replot( QCustomPlot::rpQueued );
-    //}
+
+    ui->graphView->replot( QCustomPlot::rpQueued );
 }
 
 /**

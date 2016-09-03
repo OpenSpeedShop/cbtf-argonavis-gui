@@ -48,7 +48,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi( this );
 
+#if defined(HAS_CONCURRENT_PROCESSING_VIEW_DEBUG)
     qDebug() << "MainWindow::MainWindow: thread=" << QString::number((long long)QThread::currentThread(), 16);
+#endif
 
     setStyleSheet(
                 "QSplitter::handle:vertical   { height: 4px; image: url(:/images/vsplitter-handle); background-color: rgba(200, 200, 200, 80); }"

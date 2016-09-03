@@ -46,8 +46,10 @@ namespace ArgoNavis { namespace GUI {
 BackgroundGraphRenderer::BackgroundGraphRenderer(QObject *parent)
     : QObject( parent )
 {
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRenderer::BackgroundGraphRenderer: thread=" << QString::number((long long)QThread::currentThread(), 16);
     qDebug() << "BackgroundGraphRenderer::BackgroundGraphRenderer: &m_thread=" << QString::number((long long)&m_thread, 16);
+#endif
 
     // setup signal-to-slot connection for creating QCustomPlot instance in the GUI thread
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -97,8 +99,6 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
                 emit createPlotForClustering( clusteringCriteriaName, clusterName );
             }
         }
-
-        qDebug() << "BackgroundGraphRenderer::setPerformanceData: data.interval().width()=" << data.interval().width();
 
         // set backend object name to clustering criteria name (so it can be identified in timer handlers) and move to backend thread
         backend->setObjectName( clusteringCriteriaName );
@@ -160,7 +160,9 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
     if ( ! m_plot.contains( clusterName ) )
         return;
 
-    //qDebug() << "BackgroundGraphRenderer::handleGraphRangeChanged: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+    qDebug() << "BackgroundGraphRenderer::handleGraphRangeChanged: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
+#endif
 
     QCustomPlot* plot( m_plot.value( clusterName ) );
     if ( plot ) {
@@ -288,7 +290,9 @@ void BackgroundGraphRenderer::processKernelExecutionEvent(const QString& cluster
  */
 void BackgroundGraphRenderer::handleProcessCudaEventViewDone()
 {
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRenderer::handleProcessCudaEventViewDone: thread=" << QString::number((long long)QThread::currentThread(), 16);
+#endif
     BackgroundGraphRendererBackend* backend = qobject_cast< BackgroundGraphRendererBackend* >( sender() );
 
     if ( backend ) {
@@ -322,7 +326,9 @@ void BackgroundGraphRenderer::handleProcessCudaEventViewDone()
  */
 void BackgroundGraphRenderer::processCudaEventSnapshot()
 {
-    //qDebug() << "BackgroundGraphRenderer::processCudaEventSnapshot: thread=" << QString::number((long long)QThread::currentThread(), 16);
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+    qDebug() << "BackgroundGraphRenderer::processCudaEventSnapshot: thread=" << QString::number((long long)QThread::currentThread(), 16);
+#endif
     CustomPlot* plot = qobject_cast< CustomPlot* >( sender() );
 
     if ( plot ) {
@@ -342,8 +348,9 @@ void BackgroundGraphRenderer::processCudaEventSnapshot()
  */
 void BackgroundGraphRenderer::processCudaEventSnapshot(CustomPlot* plot)
 {
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRenderer::processCudaEventSnapshot: thread=" << QString::number((long long)QThread::currentThread(), 16);
-
+#endif
     // get the associated clustering criteria / cluster name
     QString clusteringName( plot->property( "clusteringName" ).toString() );
     QString clusteringCriteriaName( plot->property( "clusteringCriteriaName" ).toString() );

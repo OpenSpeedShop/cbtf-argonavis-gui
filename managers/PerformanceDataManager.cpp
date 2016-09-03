@@ -109,7 +109,6 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
  */
 PerformanceDataManager::~PerformanceDataManager()
 {
-    qDebug() << "PerformanceDataManager FINISHED";
     delete m_renderer;
 }
 
@@ -274,7 +273,9 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
     if ( index > 0 )
         clusterName = clusterName.left( index );
 #endif
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::processPerformanceData: cluster name: " << clusterName;
+#endif
 
     if ( m_processEvents ) {
         data.visitDataTransfers(
@@ -318,7 +319,9 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView STARTED" << metric;
 #endif
+#if defined(HAS_CONCURRENT_PROCESSING_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView: thread=" << QString::number((long long)QThread::currentThread(), 16);
+#endif
     // Evaluate the first collector's time metric for all functions
     SmartPtr<std::map<Function, std::map<Thread, double> > > individual;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -531,7 +534,9 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
     if ( ! m_tableViewInfo.contains( clusterName ) )
         return;
 
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViews: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
+#endif
 
     // cancel any active processing for this cluster
     m_userChangeMgr.cancel( clusterName );
@@ -552,7 +557,9 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
     if ( ! m_tableViewInfo.contains( clusterName ) )
         return;
 
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
+#endif
 
     MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
 
@@ -599,8 +606,6 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
     synchronizer.waitForFinished();
 #endif
-
-    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: DONE!!";
 }
 
 /**
@@ -654,7 +659,6 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
     foreach( const QString& clusterName, clusterNames ) {
         int numRemoved = m_tableViewInfo.remove( clusterName );
         if ( numRemoved > 0 ) {
-            qDebug() << "PerformanceDataManager::unloadCudaViews: deleted table view info element for clusterName=" << clusterName;
             break;
         }
     }
