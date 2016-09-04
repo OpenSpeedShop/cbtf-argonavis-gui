@@ -49,6 +49,8 @@ OPENSS_PATH = $$OSS_CBTF_ROOT
 include(OpenSS-CLI.pri)
 LIBS += -Wl,-rpath $$OSS_CBTF_ROOT/lib64
 
+# uncomment the following to produce XML dump of database
+DEFINES += HAS_OSSCUDA2XML
 #DEFINES += USE_DISCRETE_SAMPLES
 DEFINES += USE_PERIODIC_SAMPLE_AVG
 DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
@@ -61,7 +63,7 @@ DEFINES += HAS_STRIP_DOMAIN_NAME
 # NOTE: Normally QWidgets cannot be moved to a thread but when used in this context invoking a method executed with QtConcurrent::run
 #       seems to be working.  Need to investigate this approach further.
 DEFINES += HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
-#DEFINES += HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+DEFINES += HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
 #DEFINES += HAS_TIMER_THREAD_DESTROYED_CHECKING
 
 INCLUDEPATH += $$BOOST_ROOT/include $$BOOST_ROOT/include/boost
