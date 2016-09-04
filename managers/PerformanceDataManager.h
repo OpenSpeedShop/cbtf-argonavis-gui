@@ -188,11 +188,13 @@ private:
     bool processPeriodicSample(const ArgoNavis::Base::Time& time_origin,
                                const ArgoNavis::Base::Time& time,
                                const std::vector<uint64_t>& counts,
+                               const QSet< int >& gpuCounterIndexes,
                                const QString& clusterName,
                                const QString& clusteringCriteriaName);
 
     bool processPerformanceData(const ArgoNavis::CUDA::PerformanceData& data,
                                 const ArgoNavis::Base::ThreadName& thread,
+                                const QSet< int >& gpuCounterIndexes,
                                 const QString& clusteringCriteriaName);
 
 private:

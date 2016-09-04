@@ -202,6 +202,7 @@ bool PerformanceDataManager::processKernelExecutionEvent(const Base::Time& time_
  * @param time_origin - the time origin of the experiment
  * @param time - the time of the period sample collection
  * @param counts - the vector of periodic sample counts for the time period
+ * @param gpuCounterIndexes - the list of GPU sample counter indexes
  * @param clusterName - the cluster group name
  * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @return - continue (=true) or not continue (=false) the visitation
@@ -211,6 +212,7 @@ bool PerformanceDataManager::processKernelExecutionEvent(const Base::Time& time_
 bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin,
                                                    const Base::Time& time,
                                                    const std::vector<uint64_t>& counts,
+                                                   const QSet< int >& gpuCounterIndexes,
                                                    const QString& clusterName,
                                                    const QString& clusteringCriteriaName)
 {
@@ -244,7 +246,7 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
         if ( 0 == i ) {
             emit addPeriodicSample( clusteringCriteriaName, clusterName, lastTimeStamp, timeStamp, value );
         }
-        else if ( 1 == i ) {
+        else if ( gpuCounterIndexes.contains( i ) ) {
             emit addPeriodicSample( clusteringCriteriaName, clusterName+" (GPU)", lastTimeStamp, timeStamp, value );
         }
     }
@@ -256,6 +258,7 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
  * @brief PerformanceDataManager::convert_performance_data
  * @param data - the performance data structure to be parsed
  * @param thread - the thread of interest
+ * @param gpuCounterIndexes - the list of GPU sample counter indexes
  * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @return - continue (=true) or not continue (=false) the visitation
  *
@@ -264,6 +267,7 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
  */
 bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData& data,
                                                     const Base::ThreadName& thread,
+                                                    const QSet< int >& gpuCounterIndexes,
                                                     const QString& clusteringCriteriaName)
 {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -300,6 +304,7 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
                 thread, data.interval(),
                 boost::bind( &PerformanceDataManager::processPeriodicSample, instance(),
                              boost::cref(data.interval().begin()), _1, _2,
+                             boost::cref(gpuCounterIndexes),
                              boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
                 );
 
@@ -724,7 +729,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     }
 #endif
 
-    bool hasGpuCounts( m_gpuCounterNames.size() > 0 );
+    bool hasGpuCounts( gpuCounterIndexes.size() > 0 );
     QString clusteringCriteriaName;
     if ( hasCudaCollector )
         clusteringCriteriaName = QStringLiteral( "GPU Compute / Data Transfer Ratio" );
@@ -771,7 +776,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
 
         data.visitThreads( boost::bind(
                                &PerformanceDataManager::processPerformanceData, instance(),
-                               boost::cref(data), _1, boost::cref(clusteringCriteriaName) ) );
+                               boost::cref(data), _1, boost::cref(gpuCounterIndexes), boost::cref(clusteringCriteriaName) ) );
 
         foreach( const QString& clusterName, clusterNames ) {
             emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs );
