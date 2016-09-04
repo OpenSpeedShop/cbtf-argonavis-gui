@@ -50,7 +50,7 @@ include(OpenSS-CLI.pri)
 LIBS += -Wl,-rpath $$OSS_CBTF_ROOT/lib64
 
 # uncomment the following to produce XML dump of database
-DEFINES += HAS_OSSCUDA2XML
+#DEFINES += HAS_OSSCUDA2XML
 #DEFINES += USE_DISCRETE_SAMPLES
 DEFINES += USE_PERIODIC_SAMPLE_AVG
 DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
@@ -97,7 +97,6 @@ SOURCES += \
     managers/UserGraphRangeChangeManager.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
-DEFINES += HAS_OSSCUDA2XML
 SOURCES += \
     util/osscuda2xml.cxx \
 }
