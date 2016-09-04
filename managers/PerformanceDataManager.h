@@ -202,6 +202,7 @@ private:
     QVector<double> m_sampleKeys;
     QMap< int, QVector<double> > m_sampleValues;
     QMap< int, QVector<double> > m_rawValues;
+    QStringList m_gpuCounterNames;
 
     bool m_processEvents;
 

@@ -84,6 +84,9 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     qRegisterMetaType< CUDA::KernelExecution >("CUDA::KernelExecution");
     qRegisterMetaType< QVector< QString > >("QVector< QString >");
 
+    m_gpuCounterNames << QStringLiteral("inst_executed")
+                      << QStringLiteral("flop_count_sp");
+
     if ( ! m_processEvents ) {
         m_renderer = new BackgroundGraphRenderer;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -682,7 +685,6 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     CUDA::PerformanceData data;
     QMap< Base::ThreadName, Thread> threads;
     bool hasCudaCollector( false );
-    bool hasGpuCounts( false );
 
     for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
         std::pair<bool, int> rank = i->getMPIRank();
@@ -703,6 +705,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     }
 
     QVector< QString > sampleCounterNames;
+    QSet< int > gpuCounterIndexes;
 
     for ( std::vector<std::string>::size_type i = 0; i < data.counters().size(); ++i ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -711,8 +714,8 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
         QString sampleCounterName( data.counters()[i].c_str() );
 #endif
         sampleCounterNames << sampleCounterName;
-        if ( sampleCounterName.contains( QStringLiteral("inst_executed") ) )
-            hasGpuCounts = true;
+        if ( m_gpuCounterNames.contains( sampleCounterName ) )
+            gpuCounterIndexes.insert( i );
     }
 
 #if 0
@@ -721,6 +724,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     }
 #endif
 
+    bool hasGpuCounts( m_gpuCounterNames.size() > 0 );
     QString clusteringCriteriaName;
     if ( hasCudaCollector )
         clusteringCriteriaName = QStringLiteral( "GPU Compute / Data Transfer Ratio" );
