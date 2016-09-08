@@ -89,6 +89,13 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 
     if ( ! m_processEvents ) {
         m_renderer = new BackgroundGraphRenderer;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+        m_thread.start();
+        m_renderer->moveToThread( &m_thread );
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+    qDebug() << "PerformanceDataManager::PerformanceDataManager: &m_thread=" << QString::number((long long)&m_thread, 16);
+#endif
+#endif
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( this, &PerformanceDataManager::replotCompleted, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
         connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
@@ -112,6 +119,10 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
  */
 PerformanceDataManager::~PerformanceDataManager()
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+    m_thread.quit();
+    m_thread.wait();
+#endif
     delete m_renderer;
 }
 

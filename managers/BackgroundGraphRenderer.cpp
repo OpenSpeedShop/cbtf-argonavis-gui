@@ -190,7 +190,7 @@ void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clus
     if ( ! m_plot.contains( clusterName ) )
         return;
 
-    QCustomPlot* plot( m_plot.value( clusterName ) );
+    CustomPlot* plot( m_plot.value( clusterName ) );
     if ( plot ) {
         QCPAxisRect* axisRect = plot->axisRect();
         if ( axisRect ) {
