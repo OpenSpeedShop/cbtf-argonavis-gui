@@ -39,9 +39,13 @@ class QStandardItemModel;
 class QSortFilterProxyModel;
 class QVBoxLayout;
 class QStackedLayout;
+class QAction;
 
 
 namespace ArgoNavis { namespace GUI {
+
+
+class ModifyPathSubstitutionsDialog;
 
 
 /*!
@@ -61,6 +65,12 @@ public:
 
     void deleteAllModelsViews();
 
+signals:
+
+    void signalClearSourceView();
+    void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
+    void signalAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
+
 public slots:
 
     void handleInitModel(const QString& metricView, const QStringList& metrics);
@@ -69,6 +79,15 @@ public slots:
 private slots:
 
     void handleMetricViewChanged(const QString &metricView);
+    void showContextMenu(const QVariant& index, const QPoint& globalPos);
+    void handleTableViewItemClicked(const QModelIndex& index);
+    void handleCustomContextMenuRequested(const QPoint& pos);
+
+private:
+
+    void extractFilenameAndLine(const QString& text, QString& filename, int& lineNumber);
+    void processTableViewItemClicked(QTreeView* view, const QModelIndex& index);
+    void processCustomContextMenuRequested(QTreeView* view, const QPoint &pos);
 
 private:
 
@@ -80,6 +99,8 @@ private:
     QMap< QString, QTreeView* > m_views;                    // map metric to view
 
     QStackedLayout* m_viewStack;                            // vertical layout holding current view
+
+    ModifyPathSubstitutionsDialog* m_modifyPathsDialog;
 
 };
 

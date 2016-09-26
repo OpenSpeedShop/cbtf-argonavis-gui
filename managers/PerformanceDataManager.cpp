@@ -386,11 +386,18 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 
         metricData << QVariant::fromValue< double >( value );
         metricData << QVariant::fromValue< double >( percentage );
+        QString locationInfo;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        metricData << QString::fromStdString( i->second.getDemangledName() );
+        locationInfo = QString::fromStdString( i->second.getDemangledName() );
 #else
-        metricData << QString( i->second.getDemangledName().c_str() );
+        locationInfo = QString( i->second.getDemangledName().c_str() );
 #endif
+
+        std::set<Statement> definitions = i->second.getDefinitions();
+        for(std::set<Statement>::const_iterator j = definitions.begin(); j != definitions.end(); ++j)
+           locationInfo += " (" + QString::fromStdString( j->getPath().getDirName() ) + QString::fromStdString( j->getPath().getBaseName() ) + ", " + QString::number( j->getLine() ) + ")";
+
+        metricData << locationInfo;
 
         emit addMetricViewData( metric, metricData );
 
@@ -402,9 +409,9 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 
         std::set<Statement> definitions = i->second.getDefinitions();
         for(std::set<Statement>::const_iterator
-            i = definitions.begin(); i != definitions.end(); ++i)
-            std::cout << " (" << i->getLinkedObject().getPath().getDirName() << i->getLinkedObject().getPath().getBaseName() << ": " << i->getPath().getDirName() << i->getPath().getBaseName()
-                      << ", " << i->getLine() << ")";
+            j = definitions.begin(); j != definitions.end(); ++j)
+            std::cout << " (" << j->getLinkedObject().getPath().getDirName() << j->getLinkedObject().getPath().getBaseName() << ": " << j->getPath().getDirName() << j->getPath().getBaseName()
+                      << ", " << j->getLine() << ")";
 
         std::cout << std::endl;
 #endif

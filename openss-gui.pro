@@ -85,16 +85,19 @@ SOURCES += \
     graphitems/OSSKernelExecutionItem.cpp \
     graphitems/OSSEventItem.cpp \
     graphitems/OSSPeriodicSampleItem.cpp \
+    graphitems/OSSEventsSummaryItem.cpp \
     widgets/TreeItem.cpp \
     widgets/TreeModel.cpp \
     widgets/ExperimentPanel.cpp \
     widgets/PerformanceDataPlotView.cpp \
     widgets/PerformanceDataMetricView.cpp \
+    SourceView/SourceView.cpp \
+    SourceView/SyntaxHighlighter.cpp \
     managers/PerformanceDataManager.cpp \
     managers/BackgroundGraphRendererBackend.cpp \
     managers/BackgroundGraphRenderer.cpp \
-    graphitems/OSSEventsSummaryItem.cpp \
-    managers/UserGraphRangeChangeManager.cpp
+    managers/UserGraphRangeChangeManager.cpp \
+    SourceView/ModifyPathSubstitutionsDialog.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 SOURCES += \
@@ -110,20 +113,24 @@ HEADERS += \
     graphitems/OSSKernelExecutionItem.h \
     graphitems/OSSEventItem.h \
     graphitems/OSSPeriodicSampleItem.h \
+    graphitems/OSSEventsSummaryItem.h \
     widgets/TreeItem.h \
     widgets/TreeModel.h \
     widgets/ExperimentPanel.h \
     widgets/PerformanceDataPlotView.h \
     widgets/PerformanceDataMetricView.h \
+    SourceView/SourceView.h \
+    SourceView/SyntaxHighlighter.h \
     managers/PerformanceDataManager.h \
     managers/BackgroundGraphRendererBackend.h \
     managers/BackgroundGraphRenderer.h \
-    graphitems/OSSEventsSummaryItem.h \
-    managers/UserGraphRangeChangeManager.h
+    managers/UserGraphRangeChangeManager.h \
+    SourceView/ModifyPathSubstitutionsDialog.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \
-    widgets/PerformanceDataMetricView.ui
+    widgets/PerformanceDataMetricView.ui \
+    SourceView/ModifyPathSubstitutionsDialog.ui
 
 RESOURCES += \
     openss-gui.qrc

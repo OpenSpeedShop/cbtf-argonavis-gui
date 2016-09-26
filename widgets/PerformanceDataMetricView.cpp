@@ -26,11 +26,15 @@
 #include "common/openss-gui-config.h"
 
 #include "managers/PerformanceDataManager.h"
+#include "SourceView/ModifyPathSubstitutionsDialog.h"
 
 #include <QStackedLayout>
 #include <QHeaderView>
 #include <QStandardItemModel>
 #include <QSortFilterProxyModel>
+#include <QMenu>
+#include <QAction>
+#include <QFileInfo>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -82,6 +86,16 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
 
     // initially show blank view
     showBlankView();
+
+    // create modify path substitutions dialog
+    m_modifyPathsDialog = new ModifyPathSubstitutionsDialog( this );
+
+    // re-emit 'signalAddPathSubstitution' signal so it can be handled externally
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( m_modifyPathsDialog, &ModifyPathSubstitutionsDialog::signalAddPathSubstitution, this, &PerformanceDataMetricView::signalAddPathSubstitution );
+#else
+    connect( m_modifyPathsDialog, SIGNAL(signalAddPathSubstitution(int,QString,QString)), this, SIGNAL(signalAddPathSubstitution(int,QString,QString)) );
+#endif
 }
 
 /**
@@ -184,6 +198,18 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
 
     if ( Q_NULLPTR == view ) {
         view = new QTreeView;
+        view->setContextMenuPolicy( Qt::CustomContextMenu );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        connect( view, &QTreeView::clicked, [=](const QModelIndex& index) {
+            processTableViewItemClicked( view, index );
+        } );
+        connect( view, &QTreeView::customContextMenuRequested, [=](const QPoint& pos) {
+            processCustomContextMenuRequested( view, pos );
+        } );
+#else
+        connect( view, SIGNAL(clicked(QModelIndex)), this, SLOT(handleTableViewItemClicked(QModelIndex)) );
+        connect( view, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(handleCustomContextMenuRequested(QPoint)) );
+#endif
         newViewCreated = true;
     }
 
@@ -220,6 +246,102 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
 #else
     ui->comboBox_MetricViews->setCurrentIndex( ui->comboBox_MetricViews->count()-1 );
 #endif
+}
+
+/**
+ * @brief PerformanceDataMetricView::processTableViewItemClicked
+ * @param index - model index of item clicked
+ *
+ * Handler invoked when item on Metric Table View clicked.
+ */
+void PerformanceDataMetricView::handleTableViewItemClicked(const QModelIndex& index)
+{
+    QTreeView* view = qobject_cast< QTreeView* >( sender() );
+
+    processTableViewItemClicked( view, index );
+}
+
+/**
+ * @brief PerformanceDataMetricView::processTableViewItemClicked
+ * @param view - pointer to QTreeView instance
+ * @param index - model index of item clicked
+ *
+ * This method is called from signal handler when item on Metric Table View clicked.
+ */
+void PerformanceDataMetricView::processTableViewItemClicked(QTreeView* view, const QModelIndex& index)
+{
+    if ( view ) {
+        QAbstractItemModel* model = view->model();
+        if ( model ) {
+            QString text( model->data( index ).toString() );
+            QString filename;
+            int lineNumber;
+            extractFilenameAndLine( text, filename, lineNumber );
+            if ( filename.isEmpty() || -1 == lineNumber ) {
+                emit signalClearSourceView();
+            }
+            else {
+                emit signalDisplaySourceFileLineNumber( filename, lineNumber );
+            }
+        }
+    }
+}
+
+/**
+ * @brief PerformanceDataMetricView::handleCustomContextMenuRequested
+ * @param pos - point on widget were custom context menu was request
+ *
+ * Handler invoked when custom context menu requested.
+ */
+void PerformanceDataMetricView::handleCustomContextMenuRequested(const QPoint &pos)
+{
+    QTreeView* view = qobject_cast< QTreeView* >( sender() );
+
+    processCustomContextMenuRequested( view, pos );
+}
+
+/**
+ * @brief PerformanceDataMetricView::processCustomContextMenuRequested
+ * @param view - pointer to QTreeView instance
+ * @param pos - point on widget were custom context menu was request
+ *
+ * This method is called from signal handler when custom context menu requested.
+ */
+void PerformanceDataMetricView::processCustomContextMenuRequested(QTreeView* view, const QPoint &pos)
+{
+    if ( view ) {
+        QAbstractItemModel* model = view->model();
+        if ( model ) {
+            QModelIndex index = view->indexAt( pos );
+            showContextMenu( model->data( index ), view->viewport()->mapToGlobal( pos ) );
+        }
+    }
+}
+
+/**
+ * @brief PerformanceDataMetricView::extractFilenameAndLine
+ * @param text - text containing defining location information
+ * @param filename - the filename obtained from the defining location information
+ * @param lineNumber - the line number obtained from the defining location information
+ */
+void PerformanceDataMetricView::extractFilenameAndLine(const QString& text, QString& filename, int& lineNumber)
+{
+    QString definingLocation;
+    lineNumber = -1;
+    int startParenIdx = text.lastIndexOf( '(' );
+    if ( -1 != startParenIdx ) {
+        definingLocation = text.mid( startParenIdx + 1 );
+    }
+    int sepIdx = definingLocation.lastIndexOf( ',' );
+    if ( sepIdx != -1 ) {
+        filename = definingLocation.left( sepIdx );
+        QString lineNumberStr = definingLocation.mid( sepIdx + 1 );
+        int endParenIdx = lineNumberStr.lastIndexOf( ')' );
+        if ( -1 != endParenIdx ) {
+            lineNumberStr.chop( lineNumberStr.length() - endParenIdx );
+            lineNumber = lineNumberStr.toInt();
+        }
+    }
 }
 
 /**
@@ -264,6 +386,32 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &metricVie
     if ( Q_NULLPTR != view ) {
         m_viewStack->setCurrentWidget( view );
     }
+}
+
+/**
+ * @brief PerformanceDataMetricView::showContextMenu
+ * @param data - variant data from table item under which the custom context menu was requested
+ * @param globalPos - the widget position at which the custom context menu was requested
+ *
+ * Prepare and show the context menu.
+ */
+void PerformanceDataMetricView::showContextMenu(const QVariant& data, const QPoint &globalPos)
+{
+    QMenu menu;
+
+    // setup action for modifying path substitutions
+    QAction* action = menu.addAction( tr("&Modify Path Substitutions"), m_modifyPathsDialog, SLOT(exec()) );
+
+    QString filename;
+    int lineNumber;
+
+    extractFilenameAndLine( data.toString(), filename, lineNumber );
+
+    QFileInfo fileInfo( filename );
+
+    action->setData( fileInfo.path() );
+
+    menu.exec( globalPos );
 }
 
 

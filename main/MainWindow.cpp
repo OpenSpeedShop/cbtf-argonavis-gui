@@ -25,6 +25,7 @@
 #include "ui_mainwindow.h"
 
 #include "managers/PerformanceDataManager.h"
+#include "SourceView/SourceView.h"
 
 #include <QFileDialog>
 #include <QMetaMethod>
@@ -71,10 +72,16 @@ MainWindow::MainWindow(QWidget *parent)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::loadComplete, this, &MainWindow::handleLoadComplete );
         connect( dataMgr, &PerformanceDataManager::addExperiment, ui->widget_ExperimentPanel, &ExperimentPanel::handleAddExperiment );
+        connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalClearSourceView, ui->widget_SourceCodeViewer, &SourceView::handleClearSourceView );
+        connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalDisplaySourceFileLineNumber, ui->widget_SourceCodeViewer, &SourceView::handleDisplaySourceFileLineNumber );
+        connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalAddPathSubstitution, ui->widget_SourceCodeViewer, &SourceView::handleAddPathSubstitution );
 #else
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<QString>)),
                  ui->widget_ExperimentPanel, SLOT(handleAddExperiment(QString,QString,QVector<QString>,QVector<QString>)) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalClearSourceView()), ui->widget_SourceCodeViewer, SLOT(handleClearSourceView()) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalDisplaySourceFileLineNumber(QString,int)), ui->widget_SourceCodeViewer, SLOT(handleDisplaySourceFileLineNumber(QString,int)) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalAddPathSubstitution(int,QString,QString)), ui->widget_SourceCodeViewer, SLOT(handleAddPathSubstitution(int,QString,QString)) );
 #endif
     }
 }
@@ -170,6 +177,8 @@ void MainWindow::unloadOpenSsExperiment()
         ui->widget_MetricTableView->deleteAllModelsViews();
 
         ui->widget_ExperimentPanel->handleRemoveExperiment( expName );
+
+        ui->widget_SourceCodeViewer->handleClearSourceView();
 
         ui->menuUnload_OSS_Experiment->removeAction( action );
         ui->menuUnload_OSS_Experiment->setDisabled( true );

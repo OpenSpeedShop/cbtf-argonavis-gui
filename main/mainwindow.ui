@@ -49,7 +49,7 @@
        </property>
        <widget class="ArgoNavis::GUI::PerformanceDataPlotView" name="widget_MetricPlotView" native="true"/>
        <widget class="ArgoNavis::GUI::PerformanceDataMetricView" name="widget_MetricTableView" native="true"/>
-       <widget class="QWidget" name="widget_SourceCodeViewer" native="true"/>
+       <widget class="ArgoNavis::GUI::SourceView" name="widget_SourceCodeViewer" native="true"/>
       </widget>
      </widget>
     </item>
@@ -61,7 +61,7 @@
      <x>0</x>
      <y>0</y>
      <width>796</width>
-     <height>27</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -118,6 +118,12 @@
    <class>ArgoNavis::GUI::PerformanceDataMetricView</class>
    <extends>QWidget</extends>
    <header>widgets/PerformanceDataMetricView.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ArgoNavis::GUI::SourceView</class>
+   <extends>QWidget</extends>
+   <header>SourceView/SourceView.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
