@@ -199,6 +199,7 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
     if ( Q_NULLPTR == view ) {
         view = new QTreeView;
         view->setContextMenuPolicy( Qt::CustomContextMenu );
+        view->setEditTriggers( QAbstractItemView::NoEditTriggers );
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( view, &QTreeView::clicked, [=](const QModelIndex& index) {
             processTableViewItemClicked( view, index );
