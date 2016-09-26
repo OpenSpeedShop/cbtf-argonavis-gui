@@ -29,6 +29,7 @@
 #include <QEvent>
 #include <QPainter>
 #include <QToolTip>
+#include <QFile>
 
 #ifdef QT_DEBUG
 #include <QDebug>
