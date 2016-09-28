@@ -323,6 +323,209 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
 }
 
 /**
+ * @brief PerformanceDataManager::getThreadSet<Function>
+ * @param threads - the set of threads of interest
+ * @return - the set of Function objects from the thread group
+ *
+ * This is a template specialization of getThreadSet template for the Function typename.
+ * The function accesses the thread group object and returns the set of Function objects.
+ */
+template <>
+std::set<Function> PerformanceDataManager::getThreadSet<Function>(const ThreadGroup& threads)
+{
+    return threads.getFunctions();
+}
+
+/**
+ * @brief PerformanceDataManager::getThreadSet<Statement>
+ * @param threads - the set of threads of interest
+ * @return - the set of Statement objects from the thread group
+ *
+ * This is a template specialization of getThreadSet template for the Statement typename.
+ * The function accesses the thread group object and returns the set of Statement objects.
+ */
+template <>
+std::set<Statement> PerformanceDataManager::getThreadSet<Statement>(const ThreadGroup& threads)
+{
+    return threads.getStatements();
+}
+
+/**
+ * @brief PerformanceDataManager::getThreadSet<LinkedObject>
+ * @param threads - the set of threads of interest
+ * @return - the set of LinkedObject objects from the thread group
+ *
+ * This is a template specialization of getThreadSet template for the LinkedObject typename.
+ * The function accesses the thread group object and returns the set of LinkedObject objects.
+ */
+template <>
+std::set<LinkedObject> PerformanceDataManager::getThreadSet<LinkedObject>(const ThreadGroup& threads)
+{
+    return threads.getLinkedObjects();
+}
+
+/**
+ * @brief PerformanceDataManager::getThreadSet<Loop>
+ * @param threads - the set of threads of interest
+ * @return - the set of Loops objects from the thread group
+ *
+ * This is a template specialization of getThreadSet template for the Loops typename.
+ * The function accesses the thread group object and returns the set of Loops objects.
+ */
+template <>
+std::set<Loop> PerformanceDataManager::getThreadSet<Loop>(const ThreadGroup& threads)
+{
+    return threads.getLoops();
+}
+
+/**
+ * @brief getLocationInfo
+ * @param metric - the Function metric object reference
+ * @return - the defining location information form the metric object reference
+ *
+ * This is a template specialization of getLocationInfo template for the Function typename.
+ * The function accesses the Function object and returns the defining location information,
+ */
+template <>
+QString PerformanceDataManager::getLocationInfo(const Function& metric)
+{
+    QString locationInfo;
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    locationInfo = QString::fromStdString( metric.getDemangledName() );
+#else
+    locationInfo = QString( metric.getDemangledName().c_str() );
+#endif
+
+    std::set<Statement> definitions = metric.getDefinitions();
+    for(std::set<Statement>::const_iterator j = definitions.begin(); j != definitions.end(); ++j)
+        locationInfo += " (" + QString::fromStdString( j->getPath().getDirName() ) + QString::fromStdString( j->getPath().getBaseName() ) + ", " + QString::number( j->getLine() ) + ")";
+
+    return locationInfo;
+}
+
+/**
+ * @brief getLocationInfo
+ * @param metric - the LinkedObject metric object reference
+ * @return - the defining location information form the metric object reference
+ *
+ * This is a template specialization of getLocationInfo template for the LinkedObject typename.
+ * The function accesses the LinkedObject object and returns the defining location information,
+ */
+template <>
+QString PerformanceDataManager::getLocationInfo(const LinkedObject& metric)
+{
+    QString locationInfo;
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    locationInfo = QString::fromStdString( metric.getPath() );
+#else
+    locationInfo = QString( metric.getPath().c_str() );
+#endif
+
+    std::set<Statement> definitions = metric.getStatements();
+    for(std::set<Statement>::const_iterator j = definitions.begin(); j != definitions.end(); ++j)
+        locationInfo += " (" + QString::fromStdString( j->getPath().getDirName() ) + QString::fromStdString( j->getPath().getBaseName() ) + ", " + QString::number( j->getLine() ) + ")";
+
+    return locationInfo;
+}
+
+/**
+ * @brief getLocationInfo
+ * @param metric - the Statement metric object reference
+ * @return - the defining location information form the metric object reference
+ *
+ * This is a template specialization of getLocationInfo template for the Statement typename.
+ * The function accesses the Statement object and returns the defining location information,
+ */
+template <>
+QString PerformanceDataManager::getLocationInfo(const Statement& metric)
+{
+    QString locationInfo;
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    locationInfo = QString::fromStdString( metric.getPath() );
+#else
+    locationInfo = QString( metric.getPath().c_str() );
+#endif
+    locationInfo += ", " + QString::number( metric.getLine() );
+
+    return locationInfo;
+}
+
+/**
+ * @brief getLocationInfo
+ * @param metric - the Loop metric object reference
+ * @return - the defining location information form the metric object reference
+ *
+ * This is a template specialization of getLocationInfo template for the Loop typename.
+ * The function accesses the Loop object and returns the defining location information,
+ */
+template <>
+QString PerformanceDataManager::getLocationInfo(const Loop& metric)
+{
+    QString locationInfo;
+
+    std::set<Statement> definitions = metric.getDefinitions();
+    for(std::set<Statement>::const_iterator j = definitions.begin(); j != definitions.end(); ++j)
+       locationInfo += QString::fromStdString( j->getPath().getDirName() ) + QString::fromStdString( j->getPath().getBaseName() ) + ", " + QString::number( j->getLine() );
+
+    return locationInfo;
+}
+
+/**
+ * @brief PerformanceDataManager::getViewName<Function>
+ * @return - the view name appropriate for the metric type
+ *
+ * This is a template specialization of the getViewName template for the Function typename.
+ * The function returns the view name for the Function metric view.
+ */
+template <>
+QString PerformanceDataManager::getViewName<Function>() const
+{
+    return QStringLiteral("Function");
+}
+
+/**
+ * @brief PerformanceDataManager::getViewName<Statement>
+ * @return - the view name appropriate for the metric type
+ *
+ * This is a template specialization of the getViewName template for the Statement typename.
+ * The function returns the view name for the Statement metric view.
+ */
+template <>
+QString PerformanceDataManager::getViewName<Statement>() const
+{
+    return QStringLiteral("Statement");
+}
+
+/**
+ * @brief PerformanceDataManager::getViewName<LinkedObject>
+ * @return - the view name appropriate for the metric type
+ *
+ * This is a template specialization of the getViewName template for the LinkedObject typename.
+ * The function returns the view name for the LinkedObject metric view.
+ */
+template <>
+QString PerformanceDataManager::getViewName<LinkedObject>() const
+{
+    return QStringLiteral("LinkedObject");
+}
+
+/**
+ * @brief PerformanceDataManager::getViewName<Loop>
+ * @return - the view name appropriate for the metric type
+ *
+ * This is a template specialization of the getViewName template for the Loop typename.
+ * The function returns the view name for the Loop metric view.
+ */
+template <>
+QString PerformanceDataManager::getViewName<Loop>() const
+{
+    return QStringLiteral("Loop");
+}
+
+/**
  * @brief PerformanceDataManager::processMetricView
  * @param collector - a copy of the cuda collector
  * @param threads - all threads known by the cuda collector
@@ -333,16 +536,20 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
  * NOTE: must be metrics providing time information.
  */
+template <typename TS>
 void PerformanceDataManager::processMetricView(const Collector collector, const ThreadGroup& threads, const TimeInterval& interval, const QString &metric, const QStringList &metricDesc)
 {
+    const QString viewName = getViewName<TS>();
+
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView STARTED" << metric;
 #endif
 #if defined(HAS_CONCURRENT_PROCESSING_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView: thread=" << QString::number((long long)QThread::currentThread(), 16);
 #endif
+
     // Evaluate the first collector's time metric for all functions
-    SmartPtr<std::map<Function, std::map<Thread, double> > > individual;
+    SmartPtr<std::map<TS, std::map<Thread, double> > > individual;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     std::string metricStr = metric.toStdString();
 #else
@@ -352,16 +559,16 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
                               metricStr,
                               interval,
                               threads,
-                              threads.getFunctions(),
+                              getThreadSet<TS>( threads ),
                               individual );
-    SmartPtr<std::map<Function, double> > data =
+    SmartPtr<std::map<TS, double> > data =
             Queries::Reduction::Apply( individual, Queries::Reduction::Summation );
-    individual = SmartPtr<std::map<Function, std::map<Thread, double> > >();
+    individual = SmartPtr<std::map<TS, std::map<Thread, double> > >();
 
     // Sort the results
-    std::multimap<double, Function> sorted;
+    std::multimap<double, TS> sorted;
     double total( 0.0 );
-    for( std::map<Function, double>::const_iterator i = data->begin(); i != data->end(); ++i ) {
+    for( typename std::map<TS, double>::const_iterator i = data->begin(); i != data->end(); ++i ) {
         sorted.insert(std::make_pair(i->second, i->first));
         total += i->second;
     }
@@ -376,9 +583,9 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
               << std::endl;
 #endif
 
-    emit addMetricView( metric, metricDesc );
+    emit addMetricView( metric, viewName, metricDesc );
 
-    for ( std::multimap<double, Function>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
+    for ( typename std::multimap<double, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
         QVariantList metricData;
 
         double value( i->first * 1000.0 );
@@ -386,36 +593,11 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 
         metricData << QVariant::fromValue< double >( value );
         metricData << QVariant::fromValue< double >( percentage );
-        QString locationInfo;
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        locationInfo = QString::fromStdString( i->second.getDemangledName() );
-#else
-        locationInfo = QString( i->second.getDemangledName().c_str() );
-#endif
+        metricData << getLocationInfo<TS>( i->second );
 
-        std::set<Statement> definitions = i->second.getDefinitions();
-        for(std::set<Statement>::const_iterator j = definitions.begin(); j != definitions.end(); ++j)
-           locationInfo += " (" + QString::fromStdString( j->getPath().getDirName() ) + QString::fromStdString( j->getPath().getBaseName() ) + ", " + QString::number( j->getLine() ) + ")";
-
-        metricData << locationInfo;
-
-        emit addMetricViewData( metric, metricData );
-
-#ifdef HAS_PROCESS_METRIC_VIEW_DEBUG
-        std::cout << std::setw(10) << std::fixed << std::setprecision(3)
-                  << value
-                  << "    "
-                  << i->second.getDemangledName();
-
-        std::set<Statement> definitions = i->second.getDefinitions();
-        for(std::set<Statement>::const_iterator
-            j = definitions.begin(); j != definitions.end(); ++j)
-            std::cout << " (" << j->getLinkedObject().getPath().getDirName() << j->getLinkedObject().getPath().getBaseName() << ": " << j->getPath().getDirName() << j->getPath().getBaseName()
-                      << ", " << j->getLine() << ")";
-
-        std::cout << std::endl;
-#endif
+        emit addMetricViewData( metric, viewName, metricData );
     }
+
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView FINISHED" << metric;
 #endif
@@ -510,6 +692,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
         MetricTableViewInfo info;
         info.metricList = metricList;
+        info.viewList = QStringList() << QStringLiteral("Function") << QStringLiteral("Statement") << QStringLiteral("LinkedObject") << QStringLiteral("Loop");
         info.tableColumnHeaders = metricDescList;
         info.experimentFilename = experimentFilename;
 
@@ -591,7 +774,9 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
 
     // re-initialize metric table view
     foreach ( const QString& metric, info.metricList ) {
-        emit addMetricView( metric, info.tableColumnHeaders );
+        foreach ( const QString& viewName, info.viewList ) {
+            emit addMetricView( metric, viewName, info.tableColumnHeaders );
+        }
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
@@ -663,10 +848,35 @@ void PerformanceDataManager::loadCudaMetricViews(
         metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << functionTitle;
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        futures[metric] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
-        synchronizer.addFuture( futures[ metric ] );
+        QString functionView = metric + QStringLiteral("-Function");
+        futures[ functionView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Function>, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
+        synchronizer.addFuture( futures[ functionView ] );
 #else
-        processMetricView( collector.get(), experiment.getThreads(), metric, metricDesc );
+        processMetricView<Function>( collector.get(), experiment.getThreads(), metric, metricDesc );
+#endif
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        QString statementView = metric + QStringLiteral("-Statement");
+        futures[ statementView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
+        synchronizer.addFuture( futures[ statementView ] );
+#else
+        processMetricView<Statement>( collector.get(), experiment.getThreads(), metric, metricDesc );
+#endif
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        QString linkedObjectView = metric + QStringLiteral("-LinkedObject");
+        futures[ linkedObjectView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
+        synchronizer.addFuture( futures[ linkedObjectView ] );
+#else
+        processMetricView<LinkedObject>( collector.get(), experiment.getThreads(), metric, metricDesc );
+#endif
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        QString loopViewView = metric + QStringLiteral("-Loop");
+        futures[ loopViewView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
+        synchronizer.addFuture( futures[ loopViewView ] );
+#else
+        processMetricView<Loop>( collector.get(), experiment.getThreads(), metric, metricDesc );
 #endif
     }
 }

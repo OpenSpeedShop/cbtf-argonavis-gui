@@ -45,13 +45,18 @@
 #include "boost/optional.hpp"
 
 #include "TimeInterval.hxx"
+#include "AddressRange.hxx"
+#include "Function.hxx"
+#include "LinkedObject.hxx"
+#include "Loop.hxx"
+#include "Statement.hxx"
+#include "Collector.hxx"
 
 #include "UserGraphRangeChangeManager.h"
 
 namespace OpenSpeedShop {
 namespace Framework {
 class Experiment;
-class Collector;
 class ThreadGroup;
 }
 }
@@ -129,9 +134,9 @@ signals:
 
     void addCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
 
-    void addMetricView(const QString& metricView, const QStringList& metrics);
+    void addMetricView(const QString& metricName, const QString& viewName, const QStringList& metrics);
 
-    void addMetricViewData(const QString& metricView, const QVariantList& data);
+    void addMetricViewData(const QString& metricName, const QString& viewName, const QVariantList& data);
 
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
@@ -169,11 +174,21 @@ private:
                              const OpenSpeedShop::Framework::Experiment& experiment,
                              const OpenSpeedShop::Framework::TimeInterval& interval);
 
+    template <typename TS>
     void processMetricView(const OpenSpeedShop::Framework::Collector collector,
                            const OpenSpeedShop::Framework::ThreadGroup& threads,
                            const OpenSpeedShop::Framework::TimeInterval& interval,
                            const QString &metric,
                            const QStringList &metricDesc);
+
+    template <typename TS>
+    std::set<TS> getThreadSet(const OpenSpeedShop::Framework::ThreadGroup& threads) { }
+
+    template <typename TS>
+    QString getLocationInfo(const TS& metric) { Q_UNUSED(metric) return QString(); }
+
+    template <typename TS>
+    QString getViewName() const { return QString(); }
 
     bool processDataTransferEvent(const ArgoNavis::Base::Time& time_origin,
                                   const ArgoNavis::CUDA::DataTransfer& details,
@@ -217,6 +232,7 @@ private:
 
     typedef struct {
         QStringList metricList;
+        QStringList viewList;
         QStringList tableColumnHeaders;
         QString experimentFilename;
     } MetricTableViewInfo;

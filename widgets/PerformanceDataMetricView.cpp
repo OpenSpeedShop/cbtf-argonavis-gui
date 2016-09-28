@@ -72,16 +72,23 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::addMetricView, this, &PerformanceDataMetricView::handleInitModel );
         connect( dataMgr, &PerformanceDataManager::addMetricViewData, this, &PerformanceDataMetricView::handleAddData );
 #else
-        connect( dataMgr, SIGNAL(addMetricView(QString,QStringList)), this, SLOT(handleInitModel(QString,QStringList)) );
-        connect( dataMgr, SIGNAL(addMetricViewData(QString,QVariantList)), this, SLOT(handleAddData(QString,QVariantList)) );
+        connect( dataMgr, SIGNAL(addMetricView(QString,QString,QStringList)), this, SLOT(handleInitModel(QString,QString,QStringList)) );
+        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QVariantList)), this, SLOT(handleAddData(QString,QString,QVariantList)) );
 #endif
     }
 
     // connect signal/slot for metric view selection handling
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    connect( ui->comboBox_MetricViews, &QComboBox::currentTextChanged, this, &PerformanceDataMetricView::handleMetricViewChanged );
+    connect( ui->comboBox_MetricSelection, &QComboBox::currentTextChanged, this, &PerformanceDataMetricView::handleMetricViewChanged );
 #else
-    connect( ui->comboBox_MetricViews, SIGNAL(currentIndexChanged(QString)), this, SLOT(handleMetricViewChanged(QString)) );
+    connect( ui->comboBox_MetricSelection, SIGNAL(currentIndexChanged(QString)), this, SLOT(handleMetricViewChanged(QString)) );
+#endif
+
+    // connect signal/slot for metric view selection handling
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( ui->comboBox_ViewSelection, &QComboBox::currentTextChanged, this, &PerformanceDataMetricView::handleMetricViewChanged );
+#else
+    connect( ui->comboBox_ViewSelection, SIGNAL(currentIndexChanged(QString)), this, SLOT(handleMetricViewChanged(QString)) );
 #endif
 
     // initially show blank view
@@ -150,31 +157,35 @@ void PerformanceDataMetricView::deleteAllModelsViews()
         m_proxyModels.clear();
     }
 
-    ui->comboBox_MetricViews->clear();
+    ui->comboBox_MetricSelection->clear();
+    ui->comboBox_ViewSelection->clear();
 }
 
 /**
  * @brief PerformanceDataMetricView::initModel
- * @param metricView - name of metric view to create
+ * @param metricName - name of metric view for which to add data to model
+ * @param viewName - name of the view for which to add data to model
  * @param metrics - list of metrics for setting column headers
  *
  * Create and initialize the model and view for the new metric view.
  */
-void PerformanceDataMetricView::handleInitModel(const QString &metricView, const QStringList &metrics)
+void PerformanceDataMetricView::handleInitModel(const QString& metricName, const QString& viewName, const QStringList &metrics)
 {
+    const QString metricViewName = metricName + "-" + viewName;
+
     {
         QMutexLocker guard( &m_mutex );
 
-        QSortFilterProxyModel* proxyModel = m_proxyModels.value( metricView, Q_NULLPTR );
+        QSortFilterProxyModel* proxyModel = m_proxyModels.value( metricViewName, Q_NULLPTR );
         if ( proxyModel ) {
             proxyModel->setSourceModel( Q_NULLPTR );
-            m_proxyModels.remove( metricView );
+            m_proxyModels.remove( metricViewName );
             delete proxyModel;
         }
 
-        QStandardItemModel* model = m_models.value( metricView, Q_NULLPTR );
+        QStandardItemModel* model = m_models.value( metricViewName, Q_NULLPTR );
         if ( model ) {
-            m_models.remove( metricView );
+            m_models.remove( metricViewName );
             delete model;
         }
     }
@@ -193,7 +204,7 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
     proxyModel->setSourceModel( model );
     proxyModel->sort( 0, Qt::DescendingOrder );
 
-    QTreeView* view = m_views.value( metricView, Q_NULLPTR );
+    QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
     bool newViewCreated( false );
 
     if ( Q_NULLPTR == view ) {
@@ -226,26 +237,32 @@ void PerformanceDataMetricView::handleInitModel(const QString &metricView, const
            view->resizeColumnToContents( i );
         }
 
-        m_models[ metricView ] = model;
-        m_proxyModels[ metricView ] = proxyModel;
+        m_models[ metricViewName ] = model;
+        m_proxyModels[ metricViewName ] = proxyModel;
 
         if ( newViewCreated ) {
             m_viewStack->addWidget( view );
-            m_views[ metricView ] = view;
+            m_views[ metricViewName ] = view;
         }
     }
 
     // Make sure metric view not already in combobox
-    if ( ui->comboBox_MetricViews->findText( metricView ) == -1 ) {
+    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
         // Add metric view to combobox
-        ui->comboBox_MetricViews->addItem( metricView );
+        ui->comboBox_MetricSelection->addItem( metricName );
+    }
+
+    // Make sure view not already in combobox
+    if ( ui->comboBox_ViewSelection->findText( viewName ) == -1 ) {
+        // Add metric view to combobox
+        ui->comboBox_ViewSelection->addItem( viewName );
     }
 
     // Make the current view
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    ui->comboBox_MetricViews->setCurrentText( metricView );
+    ui->comboBox_MetricSelection->setCurrentText( metricName );
 #else
-    ui->comboBox_MetricViews->setCurrentIndex( ui->comboBox_MetricViews->count()-1 );
+    ui->comboBox_MetricSelection->setCurrentIndex( ui->comboBox_MetricSelection->count()-1 );
 #endif
 }
 
@@ -333,30 +350,36 @@ void PerformanceDataMetricView::extractFilenameAndLine(const QString& text, QStr
     if ( -1 != startParenIdx ) {
         definingLocation = text.mid( startParenIdx + 1 );
     }
+    else {
+        definingLocation = text;
+    }
     int sepIdx = definingLocation.lastIndexOf( ',' );
-    if ( sepIdx != -1 ) {
+    if ( -1 != sepIdx ) {
         filename = definingLocation.left( sepIdx );
         QString lineNumberStr = definingLocation.mid( sepIdx + 1 );
         int endParenIdx = lineNumberStr.lastIndexOf( ')' );
         if ( -1 != endParenIdx ) {
             lineNumberStr.chop( lineNumberStr.length() - endParenIdx );
-            lineNumber = lineNumberStr.toInt();
         }
+        lineNumber = lineNumberStr.toInt();
     }
 }
 
 /**
  * @brief PerformanceDataMetricView::handleAddData
- * @param metricView - name of metric view for which to add data to model
+ * @param metricName - name of metric view for which to add data to model
+ * @param viewName - name of the view for which to add data to model
  * @param data - the data to add to the model
  *
  * Inserts a row into the model of the specified metric view.
  */
-void PerformanceDataMetricView::handleAddData(const QString &metricView, const QVariantList& data)
+void PerformanceDataMetricView::handleAddData(const QString &metricName, const QString& viewName, const QVariantList& data)
 {
+    const QString metricViewName = metricName + "-" + viewName;
+
     QMutexLocker guard( &m_mutex );
 
-    QStandardItemModel* model = m_models.value( metricView );
+    QStandardItemModel* model = m_models.value( metricViewName );
 
     if ( Q_NULLPTR == model )
         return;
@@ -370,18 +393,22 @@ void PerformanceDataMetricView::handleAddData(const QString &metricView, const Q
 
 /**
  * @brief PerformanceDataMetricView::handleMetricViewChanged
- * @param metricView - name of metric view for which to add data to model
+ * @param text - name of metric or view changed
  *
  * Handles user request to switch metric view.
  */
-void PerformanceDataMetricView::handleMetricViewChanged(const QString &metricView)
+void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 {
+    Q_UNUSED(text)
+
     QTreeView* view( Q_NULLPTR );
+
+    const QString metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
 
     {
         QMutexLocker guard( &m_mutex );
 
-        view = m_views.value( metricView, Q_NULLPTR );
+        view = m_views.value( metricViewName, Q_NULLPTR );
     }
 
     if ( Q_NULLPTR != view ) {

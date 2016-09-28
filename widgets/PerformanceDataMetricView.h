@@ -73,12 +73,12 @@ signals:
 
 public slots:
 
-    void handleInitModel(const QString& metricView, const QStringList& metrics);
-    void handleAddData(const QString &metricView, const QVariantList& data);
+    void handleInitModel(const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void handleAddData(const QString &metricName, const QString& viewName, const QVariantList& data);
 
 private slots:
 
-    void handleMetricViewChanged(const QString &metricView);
+    void handleMetricViewChanged(const QString &text);
     void showContextMenu(const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);

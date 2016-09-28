@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>585</width>
+    <height>343</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -40,7 +40,7 @@
      <property name="frameShadow">
       <enum>QFrame::Plain</enum>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,0,1">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,0,1,0,0">
       <item>
        <spacer name="horizontalSpacer_TopSelector_Left">
         <property name="orientation">
@@ -55,14 +55,17 @@
        </spacer>
       </item>
       <item>
-       <widget class="QLabel" name="label_SelectMetricView">
+       <widget class="QLabel" name="label_SelectMetric">
         <property name="text">
-         <string>Select Metric View:</string>
+         <string>Metric:</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox_MetricViews">
+       <widget class="QComboBox" name="comboBox_MetricSelection">
+        <property name="toolTip">
+         <string>Select the metric to view in the table</string>
+        </property>
         <property name="sizeAdjustPolicy">
          <enum>QComboBox::AdjustToContents</enum>
         </property>
@@ -80,6 +83,23 @@
          </size>
         </property>
        </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_SelectView">
+        <property name="text">
+         <string>View:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBox_ViewSelection">
+        <property name="toolTip">
+         <string>Select the metric view type</string>
+        </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QComboBox::AdjustToContents</enum>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
