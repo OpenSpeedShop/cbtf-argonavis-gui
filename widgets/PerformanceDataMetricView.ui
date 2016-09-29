@@ -99,6 +99,26 @@
         <property name="sizeAdjustPolicy">
          <enum>QComboBox::AdjustToContents</enum>
         </property>
+        <item>
+         <property name="text">
+          <string>Function</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Statement</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>LinkedObject</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Loop</string>
+         </property>
+        </item>
        </widget>
       </item>
      </layout>

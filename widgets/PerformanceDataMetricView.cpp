@@ -71,9 +71,11 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::addMetricView, this, &PerformanceDataMetricView::handleInitModel );
         connect( dataMgr, &PerformanceDataManager::addMetricViewData, this, &PerformanceDataMetricView::handleAddData );
+        connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataMetricView::handleRequestMetricViewComplete );
 #else
-        connect( dataMgr, SIGNAL(addMetricView(QString,QString,QStringList)), this, SLOT(handleInitModel(QString,QString,QStringList)) );
-        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QVariantList)), this, SLOT(handleAddData(QString,QString,QVariantList)) );
+        connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QStringList)), this, SLOT(handleInitModel(QString,QString,QString,QStringList)) );
+        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList)), this, SLOT(handleAddData(QString,QString,QString,QVariantList)) );
+        connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString)), this, SLOT(handleRequestMetricViewComplete(QString,QString,QString)) );
 #endif
     }
 
@@ -158,19 +160,27 @@ void PerformanceDataMetricView::deleteAllModelsViews()
     }
 
     ui->comboBox_MetricSelection->clear();
-    ui->comboBox_ViewSelection->clear();
+
+    m_clusterName = QString();
 }
 
 /**
  * @brief PerformanceDataMetricView::initModel
+ * @param clusterName - cluster name associated to the metric view
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param metrics - list of metrics for setting column headers
  *
  * Create and initialize the model and view for the new metric view.
  */
-void PerformanceDataMetricView::handleInitModel(const QString& metricName, const QString& viewName, const QStringList &metrics)
+void PerformanceDataMetricView::handleInitModel(const QString& clusterName, const QString& metricName, const QString& viewName, const QStringList &metrics)
 {
+    if ( m_clusterName.isEmpty() )
+        m_clusterName = clusterName;
+
+    if ( m_clusterName != clusterName )
+        return;
+
     const QString metricViewName = metricName + "-" + viewName;
 
     {
@@ -250,12 +260,6 @@ void PerformanceDataMetricView::handleInitModel(const QString& metricName, const
     if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
         // Add metric view to combobox
         ui->comboBox_MetricSelection->addItem( metricName );
-    }
-
-    // Make sure view not already in combobox
-    if ( ui->comboBox_ViewSelection->findText( viewName ) == -1 ) {
-        // Add metric view to combobox
-        ui->comboBox_ViewSelection->addItem( viewName );
     }
 
     // Make the current view
@@ -367,14 +371,18 @@ void PerformanceDataMetricView::extractFilenameAndLine(const QString& text, QStr
 
 /**
  * @brief PerformanceDataMetricView::handleAddData
+ * @param clusterName - cluster name associated to the metric view
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param data - the data to add to the model
  *
  * Inserts a row into the model of the specified metric view.
  */
-void PerformanceDataMetricView::handleAddData(const QString &metricName, const QString& viewName, const QVariantList& data)
+void PerformanceDataMetricView::handleAddData(const QString& clusterName, const QString &metricName, const QString& viewName, const QVariantList& data)
 {
+    if ( m_clusterName != clusterName )
+        return;
+
     const QString metricViewName = metricName + "-" + viewName;
 
     QMutexLocker guard( &m_mutex );
@@ -401,9 +409,47 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 {
     Q_UNUSED(text)
 
+    if ( ui->comboBox_MetricSelection->currentText().isEmpty() || ui->comboBox_ViewSelection->currentText().isEmpty() )
+        return;
+
     QTreeView* view( Q_NULLPTR );
 
     const QString metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+
+    {
+        QMutexLocker guard( &m_mutex );
+
+        view = m_views.value( metricViewName, Q_NULLPTR );
+    }
+
+    if ( Q_NULLPTR == view ) {
+        // show blank view and the emit signal to have Performance Data Manager process requested metric view
+        showBlankView();
+
+        emit signalRequestMetricView( m_clusterName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+    }
+    else {
+        // display existing metric view
+        m_viewStack->setCurrentWidget( view );
+    }
+}
+
+/**
+ * @brief PerformanceDataMetricView::handleRequestMetricViewComplete
+ * @param clusterName
+ * @param metric
+ * @param view
+ */
+void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &clusterName, const QString &metricName, const QString &viewName)
+{
+    qDebug() << "PerformanceDataMetricView::handleRequestMetricViewComplete: clusterName=" << clusterName << "metricName=" << metricName << "viewName=" << viewName;
+
+    if ( m_clusterName != clusterName || metricName.isEmpty() || viewName.isEmpty() )
+        return;
+
+    QTreeView* view( Q_NULLPTR );
+
+    const QString metricViewName = metricName + "-" + viewName;
 
     {
         QMutexLocker guard( &m_mutex );

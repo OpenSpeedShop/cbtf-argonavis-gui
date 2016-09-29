@@ -67,18 +67,20 @@ public:
 
 signals:
 
+    void signalRequestMetricView(const QString& clusterName, const QString& metricName, const QString& viewName);
     void signalClearSourceView();
     void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
     void signalAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
 
 public slots:
 
-    void handleInitModel(const QString& metricName, const QString& viewName, const QStringList& metrics);
-    void handleAddData(const QString &metricName, const QString& viewName, const QVariantList& data);
+    void handleInitModel(const QString& clusterName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void handleAddData(const QString& clusterName, const QString &metricName, const QString& viewName, const QVariantList& data);
 
 private slots:
 
     void handleMetricViewChanged(const QString &text);
+    void handleRequestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName);
     void showContextMenu(const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);
@@ -93,6 +95,7 @@ private:
 
     Ui::PerformanceDataMetricView *ui;
 
+    QString m_clusterName;                                  // cluster name associated to metric views
     QMutex m_mutex;                                         // mutex for the following QMap objects
     QMap< QString, QStandardItemModel* > m_models;          // map metric to model
     QMap< QString, QSortFilterProxyModel* > m_proxyModels;  // map metric to model

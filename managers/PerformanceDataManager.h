@@ -109,6 +109,8 @@ public slots:
 
     void asyncLoadCudaViews(const QString& filePath);
 
+    void handleRequestMetricView(const QString& clusterName, const QString& metric, const QString& view);
+
 signals:
 
     void addExperiment(const QString& name,
@@ -134,9 +136,9 @@ signals:
 
     void addCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
 
-    void addMetricView(const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void addMetricView(const QString& clusterName, const QString& metricName, const QString& viewName, const QStringList& metrics);
 
-    void addMetricViewData(const QString& metricName, const QString& viewName, const QVariantList& data);
+    void addMetricViewData(const QString& clusterName, const QString& metricName, const QString& viewName, const QVariantList& data);
 
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
@@ -147,6 +149,8 @@ signals:
     void replotCompleted();
 
     void loadComplete();
+
+    void requestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName);
 
 private slots:
 
@@ -169,6 +173,7 @@ private:
                              QMap< QString, QFuture<void> >& futures,
                              #endif
                              const QStringList& metricList,
+                             const QStringList& viewList,
                              QStringList metricDescList,
                              boost::optional<OpenSpeedShop::Framework::Collector>& collector,
                              const OpenSpeedShop::Framework::Experiment& experiment,
@@ -235,6 +240,7 @@ private:
         QStringList viewList;
         QStringList tableColumnHeaders;
         QString experimentFilename;
+        OpenSpeedShop::Framework::TimeInterval interval;
     } MetricTableViewInfo;
 
     QMap< QString, MetricTableViewInfo > m_tableViewInfo;

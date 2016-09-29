@@ -35,6 +35,7 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 
+#include <QApplication>
 #include <QtConcurrentRun>
 #include <QFileInfo>
 #include <QThread>
@@ -166,6 +167,107 @@ void PerformanceDataManager::destroy()
         delete s_instance;
 
     s_instance = Q_NULLPTR;
+}
+
+/**
+ * @brief PerformanceDataManager::handleRequestMetricView
+ * @param clusterName - the name of the cluster associated with the metric view
+ * @param metricName - the name of the metric requested in the metric view
+ * @param viewName - the name of the view requested in the metric view
+ */
+void PerformanceDataManager::handleRequestMetricView(const QString& clusterName, const QString& metricName, const QString& viewName)
+{
+    if ( ! m_tableViewInfo.contains( clusterName ) || metricName.isEmpty() || viewName.isEmpty() )
+        return;
+
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+    qDebug() << "PerformanceDataManager::handleRequestMetricView: clusterName=" << clusterName << "metric=" << metricName << "view=" << viewName;
+#endif
+
+    MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+    QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
+
+    QFutureSynchronizer<void> synchronizer;
+
+    QMap< QString, QFuture<void> > futures;
+#endif
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    Experiment experiment( info.experimentFilename.toStdString() );
+#else
+    Experiment experiment( std::string( info.experimentFilename.toLatin1().data() ) );
+#endif
+
+    CollectorGroup collectors = experiment.getCollectors();
+    boost::optional<Collector> collector;
+
+    for ( CollectorGroup::const_iterator i = collectors.begin(); i != collectors.end(); ++i ) {
+        collector = *i;
+        break;
+    }
+
+    const QString functionTitle( tr("Function (defining location)") );
+
+    QStringList tableColumnHeaders = info.tableColumnHeaders;
+    QStringList metricDesc;
+    TimeInterval interval = info.interval;
+
+    metricDesc << tableColumnHeaders.takeFirst() << tableColumnHeaders.takeFirst() << functionTitle;
+
+    emit addMetricView( clusterName, metricName, viewName, metricDesc );
+
+    if ( ! info.viewList.contains( viewName ) )
+        info.viewList << viewName;
+
+    if ( viewName == QStringLiteral("Function") ) {
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        QString functionView = metricName + QStringLiteral("-Function");
+        futures[ functionView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Function>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
+        synchronizer.addFuture( futures[ functionView ] );
+#else
+        processMetricView<Function>( collector.get(), experiment.getThreads(), metric, metricDesc );
+#endif
+    }
+
+    else if ( viewName == QStringLiteral("Statement") ) {
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        QString statementView = metricName + QStringLiteral("-Statement");
+        futures[ statementView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
+        synchronizer.addFuture( futures[ statementView ] );
+#else
+        processMetricView<Statement>( collector.get(), experiment.getThreads(), metric, metricDesc );
+#endif
+    }
+
+    else if ( viewName == QStringLiteral("LinkedObject") ) {
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        QString linkedObjectView = metricName + QStringLiteral("-LinkedObject");
+        futures[ linkedObjectView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
+        synchronizer.addFuture( futures[ linkedObjectView ] );
+#else
+        processMetricView<LinkedObject>( collector.get(), experiment.getThreads(), metric, metricDesc );
+#endif
+    }
+
+    else if ( viewName == QStringLiteral("Loop") ) {
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        QString loopViewView = metricName + QStringLiteral("-Loop");
+        futures[ loopViewView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
+        synchronizer.addFuture( futures[ loopViewView ] );
+#else
+        processMetricView<Loop>( collector.get(), experiment.getThreads(), metric, metricDesc );
+#endif
+    }
+
+    if ( futures.size() > 0 ) {
+        synchronizer.waitForFinished();
+
+        emit requestMetricViewComplete( clusterName, metricName, viewName);
+
+        QApplication::restoreOverrideCursor();
+    }
 }
 
 /**
@@ -583,7 +685,20 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
               << std::endl;
 #endif
 
-    emit addMetricView( metric, viewName, metricDesc );
+    // get cluster name
+    Thread thread = *(threads.begin());
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    QString clusterName = QString::fromStdString( thread.getHost() );
+#else
+    QString clusterName = QString( thread.getHost().c_str() );
+#endif
+#ifdef HAS_STRIP_DOMAIN_NAME
+    int index = clusterName.indexOf( '.' );
+    if ( index > 0 )
+        clusterName = clusterName.left( index );
+#endif
+
+    emit addMetricView( clusterName, metric, viewName, metricDesc );
 
     for ( typename std::multimap<double, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
         QVariantList metricData;
@@ -595,7 +710,7 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
         metricData << QVariant::fromValue< double >( percentage );
         metricData << getLocationInfo<TS>( i->second );
 
-        emit addMetricViewData( metric, viewName, metricData );
+        emit addMetricViewData( clusterName, metric, viewName, metricData );
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -692,9 +807,10 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
         MetricTableViewInfo info;
         info.metricList = metricList;
-        info.viewList = QStringList() << QStringLiteral("Function") << QStringLiteral("Statement") << QStringLiteral("LinkedObject") << QStringLiteral("Loop");
+        info.viewList = QStringList() << QStringLiteral("Function");
         info.tableColumnHeaders = metricDescList;
         info.experimentFilename = experimentFilename;
+        info.interval = interval;
 
         Thread thread = *(experiment.getThreads().begin());
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -714,7 +830,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
                             #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
                             synchronizer, futures,
                             #endif
-                            metricList, metricDescList, collector, experiment, interval );
+                            metricList, info.viewList, metricDescList, collector, experiment, interval );
 
 #if defined(HAS_OSSCUDA2XML)
         PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
@@ -775,11 +891,13 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
     // re-initialize metric table view
     foreach ( const QString& metric, info.metricList ) {
         foreach ( const QString& viewName, info.viewList ) {
-            emit addMetricView( metric, viewName, info.tableColumnHeaders );
+            emit addMetricView( clusterName, metric, viewName, info.tableColumnHeaders );
         }
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+    QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
+
     QFutureSynchronizer<void> synchronizer;
 
     QMap< QString, QFuture<void> > futures;
@@ -807,15 +925,21 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
     Time lowerTime = timeOrigin + lower * 1000000;
     Time upperTime = timeOrigin + upper * 1000000;
 
+    TimeInterval interval( lowerTime, upperTime );
+
+    info.interval = interval;
+
     // Load update metric view corresponding to currently graph view
     loadCudaMetricViews(
                         #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
                         synchronizer, futures,
                         #endif
-                        info.metricList, info.tableColumnHeaders, collector, experiment, TimeInterval(lowerTime, upperTime) );
+                        info.metricList, info.viewList, info.tableColumnHeaders, collector, experiment, interval );
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
     synchronizer.waitForFinished();
+
+    QApplication::restoreOverrideCursor();
 #endif
 }
 
@@ -835,6 +959,7 @@ void PerformanceDataManager::loadCudaMetricViews(
                                                  QMap< QString, QFuture<void> >& futures,
                                                  #endif
                                                  const QStringList& metricList,
+                                                 const QStringList& viewList,
                                                  QStringList metricDescList,
                                                  boost::optional<Collector>& collector,
                                                  const Experiment& experiment,
@@ -842,42 +967,52 @@ void PerformanceDataManager::loadCudaMetricViews(
 {
     const QString functionTitle( tr("Function (defining location)") );
 
-    foreach ( const QString& metric, metricList ) {
+    foreach ( const QString& metricName, metricList ) {
         QStringList metricDesc;
 
         metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << functionTitle;
 
+        foreach ( const QString& viewName, viewList ) {
+            if ( viewName == QStringLiteral("Function") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        QString functionView = metric + QStringLiteral("-Function");
-        futures[ functionView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Function>, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
-        synchronizer.addFuture( futures[ functionView ] );
+                QString functionView = metricName + QStringLiteral("-Function");
+                futures[ functionView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Function>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
+                synchronizer.addFuture( futures[ functionView ] );
 #else
-        processMetricView<Function>( collector.get(), experiment.getThreads(), metric, metricDesc );
+                processMetricView<Function>( collector.get(), experiment.getThreads(), metric, metricDesc );
 #endif
+            }
 
+            else if ( viewName == QStringLiteral("Statement") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        QString statementView = metric + QStringLiteral("-Statement");
-        futures[ statementView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
-        synchronizer.addFuture( futures[ statementView ] );
+                QString statementView = metricName + QStringLiteral("-Statement");
+                futures[ statementView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
+                synchronizer.addFuture( futures[ statementView ] );
 #else
-        processMetricView<Statement>( collector.get(), experiment.getThreads(), metric, metricDesc );
+                processMetricView<Statement>( collector.get(), experiment.getThreads(), metric, metricDesc );
 #endif
+            }
 
+            else if ( viewName == QStringLiteral("LinkedObject") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        QString linkedObjectView = metric + QStringLiteral("-LinkedObject");
-        futures[ linkedObjectView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
-        synchronizer.addFuture( futures[ linkedObjectView ] );
+                QString linkedObjectView = metricName + QStringLiteral("-LinkedObject");
+                futures[ linkedObjectView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
+                synchronizer.addFuture( futures[ linkedObjectView ] );
 #else
-        processMetricView<LinkedObject>( collector.get(), experiment.getThreads(), metric, metricDesc );
+                processMetricView<LinkedObject>( collector.get(), experiment.getThreads(), metric, metricDesc );
 #endif
+            }
 
+            else if ( viewName == QStringLiteral("Loop") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        QString loopViewView = metric + QStringLiteral("-Loop");
-        futures[ loopViewView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>, collector.get(), experiment.getThreads(), interval, metric, metricDesc );
-        synchronizer.addFuture( futures[ loopViewView ] );
+                QString loopViewView = metricName + QStringLiteral("-Loop");
+                futures[ loopViewView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
+                synchronizer.addFuture( futures[ loopViewView ] );
 #else
-        processMetricView<Loop>( collector.get(), experiment.getThreads(), metric, metricDesc );
+                processMetricView<Loop>( collector.get(), experiment.getThreads(), metric, metricDesc );
 #endif
+            }
+        }
     }
 }
 
