@@ -161,6 +161,8 @@ void PerformanceDataMetricView::deleteAllModelsViews()
 
     ui->comboBox_MetricSelection->clear();
 
+    ui->comboBox_ViewSelection->setCurrentIndex( 0 );
+
     m_clusterName = QString();
 }
 

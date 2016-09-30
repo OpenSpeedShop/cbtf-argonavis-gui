@@ -101,22 +101,22 @@
         </property>
         <item>
          <property name="text">
-          <string>Function</string>
+          <string>Functions</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Statement</string>
+          <string>Statements</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>LinkedObject</string>
+          <string>LinkedObjects</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Loop</string>
+          <string>Loops</string>
          </property>
         </item>
        </widget>
