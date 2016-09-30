@@ -503,7 +503,11 @@ QString PerformanceDataManager::getLocationInfo(const Function& metric)
 
     std::set<Statement> definitions = metric.getDefinitions();
     for(std::set<Statement>::const_iterator j = definitions.begin(); j != definitions.end(); ++j)
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         locationInfo += " (" + QString::fromStdString( j->getPath().getDirName() ) + QString::fromStdString( j->getPath().getBaseName() ) + ", " + QString::number( j->getLine() ) + ")";
+#else
+        locationInfo += " (" + QString( j->getPath().getDirName().c_str() ) + QString( j->getPath().getBaseName().c_str() ) + ", " + QString::number( j->getLine() ) + ")";
+#endif
 
     return locationInfo;
 }
@@ -568,7 +572,11 @@ QString PerformanceDataManager::getLocationInfo(const Loop& metric)
 
     std::set<Statement> definitions = metric.getDefinitions();
     for(std::set<Statement>::const_iterator j = definitions.begin(); j != definitions.end(); ++j)
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
        locationInfo += QString::fromStdString( j->getPath().getDirName() ) + QString::fromStdString( j->getPath().getBaseName() ) + ", " + QString::number( j->getLine() );
+#else
+       locationInfo += QString( j->getPath().getDirName().c_str() ) + QString( j->getPath().getBaseName().c_str() ) + ", " + QString::number( j->getLine() );
+#endif
 
     return locationInfo;
 }
