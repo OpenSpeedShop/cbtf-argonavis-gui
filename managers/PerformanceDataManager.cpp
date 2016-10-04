@@ -711,9 +711,11 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 
         double value( i->first * 1000.0 );
         double percentage( i->first / total * 100.0 );
+        QString valueStr( QString::number( value, 'f', 2 ) );
+        QString percentageStr( QString::number( percentage, 'f', 2 ) );
 
-        metricData << QVariant::fromValue< double >( value );
-        metricData << QVariant::fromValue< double >( percentage );
+        metricData << QVariant::fromValue< double >( valueStr.toDouble() );
+        metricData << QVariant::fromValue< double >( percentageStr.toDouble() );
         metricData << getLocationInfo<TS>( i->second );
 
         emit addMetricViewData( clusterName, metric, viewName, metricData );
