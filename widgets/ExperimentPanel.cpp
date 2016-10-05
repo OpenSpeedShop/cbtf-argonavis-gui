@@ -121,14 +121,19 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
         m_expModel->setData( threadIndex, clusterName, Qt::EditRole );
         ++clusterNum;
 
+        bool isGpuCluster( clusterName.contains( QStringLiteral("GPU") ) );
+
         // add children: experiment sample counters
         int counter = 0;
         foreach( const QString& counterName, sampleCounterNames ) {
-            success = m_expModel->insertRow( counter, threadIndex );
-            Q_ASSERT( success );
-            QModelIndex counterIndex = m_expModel->index( counter, 0, threadIndex );
-            m_expModel->setData( counterIndex, counterName, Qt::EditRole );
-            ++counter;
+            bool isGpuSampleCounter( counterName.contains( QStringLiteral("GPU") ) );
+            if ( isGpuCluster == isGpuSampleCounter ) {
+                success = m_expModel->insertRow( counter, threadIndex );
+                Q_ASSERT( success );
+                QModelIndex counterIndex = m_expModel->index( counter, 0, threadIndex );
+                m_expModel->setData( counterIndex, counterName, Qt::EditRole );
+                ++counter;
+            }
         }
     }
 }

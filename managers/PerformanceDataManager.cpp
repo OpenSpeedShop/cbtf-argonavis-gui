@@ -45,6 +45,7 @@
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
 #include <ArgoNavis/CUDA/DataTransfer.hpp>
 #include <ArgoNavis/CUDA/KernelExecution.hpp>
+#include <ArgoNavis/CUDA/stringify.hpp>
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -84,9 +85,6 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     qRegisterMetaType< CUDA::DataTransfer >("CUDA::DataTransfer");
     qRegisterMetaType< CUDA::KernelExecution >("CUDA::KernelExecution");
     qRegisterMetaType< QVector< QString > >("QVector< QString >");
-
-    m_gpuCounterNames << QStringLiteral("inst_executed")
-                      << QStringLiteral("flop_count_sp");
 
     if ( ! m_processEvents ) {
         m_renderer = new BackgroundGraphRenderer;
@@ -1084,13 +1082,23 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     QSet< int > gpuCounterIndexes;
 
     for ( std::vector<std::string>::size_type i = 0; i < data.counters().size(); ++i ) {
+#if defined(HAS_REAL_SAMPLE_COUNTER_NAME)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         QString sampleCounterName = QString::fromStdString( data.counters()[i] );
 #else
         QString sampleCounterName( data.counters()[i].c_str() );
 #endif
         sampleCounterNames << sampleCounterName;
-        if ( m_gpuCounterNames.contains( sampleCounterName ) )
+#else
+        std::string displayNameStr = ArgoNavis::CUDA::stringify<>( ArgoNavis::CUDA::CounterName( data.counters()[i] ) );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        QString displayName = QString::fromStdString( displayNameStr );
+#else
+        QString displayName( displayNameStr.c_str() );
+#endif
+#endif
+        sampleCounterNames << displayName;
+        if ( displayName.contains( QStringLiteral("GPU") ) )
             gpuCounterIndexes.insert( i );
     }
 
