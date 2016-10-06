@@ -20,6 +20,7 @@ CONFIG(debug, debug|release) {
 }
 CONFIG(release, debug|release) {
     DESTDIR = build/release
+    DEFINES += QT_NO_DEBUG_OUTPUT
 }
 
 OBJECTS_DIR = $$DESTDIR/.obj
