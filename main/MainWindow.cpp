@@ -58,6 +58,8 @@ MainWindow::MainWindow(QWidget *parent)
                 "QSplitter::handle:horizontal { width:  4px; image: url(:/images/hsplitter-handle); background-color: rgba(200, 200, 200, 80); }"
                 );
 
+    ui->scrollArea_MetricPlotView->setBackgroundRole( QPalette::Base );
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( ui->actionLoad_OSS_Experiment, &QAction::triggered, this, &MainWindow::loadOpenSsExperiment );
     connect( ui->actionExit, &QAction::triggered, this, &MainWindow::shutdownApplication );
@@ -76,6 +78,8 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalDisplaySourceFileLineNumber, ui->widget_SourceCodeViewer, &SourceView::handleDisplaySourceFileLineNumber );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalAddPathSubstitution, ui->widget_SourceCodeViewer, &SourceView::handleAddPathSubstitution );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestMetricView, dataMgr, &PerformanceDataManager::handleRequestMetricView );
+        connect( dataMgr, &PerformanceDataManager::addCluster, this, &MainWindow::handleAdjustPlotViewScrollArea );
+        connect( dataMgr, &PerformanceDataManager::removeCluster, this, &MainWindow::handleRemoveCluster );
 #else
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<QString>)),
@@ -84,6 +88,8 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, SIGNAL(signalDisplaySourceFileLineNumber(QString,int)), ui->widget_SourceCodeViewer, SLOT(handleDisplaySourceFileLineNumber(QString,int)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalAddPathSubstitution(int,QString,QString)), ui->widget_SourceCodeViewer, SLOT(handleAddPathSubstitution(int,QString,QString)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestMetricView(QString,QString,QString)), dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
+        connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
+        connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
 #endif
     }
 }
@@ -203,6 +209,53 @@ void MainWindow::handleLoadComplete()
 }
 
 /**
+ * @brief MainWindow::handleAdjustPlotViewScrollArea
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
+ * @param clusterName - the cluster group name
+ *
+ * This method is called as plots are added to the plot view and re-adjusts the fixed height of the
+ * plot view widget so that the widget grows in height appropriately and causes the scroll area to
+ * activate the vertical scroll bar as needed to be able to see all the plots.
+ */
+void MainWindow::handleAdjustPlotViewScrollArea(const QString& clusteringCriteriaName, const QString& clusterName)
+{
+    QString key( clusteringCriteriaName + clusterName );
+
+    m_plotsMap.insert( key );
+
+    int numPlots( m_plotsMap.size() );
+
+    qDebug() << "MainWindow::handleAdjustPlotViewScrollArea: num plots=" << numPlots;
+
+    int plotSize( 150 );
+
+    ui->widget_MetricPlotView->setFixedHeight( numPlots * plotSize );
+}
+
+/**
+ * @brief MainWindow::handleRemoveCluster
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
+ * @param clusterName - the cluster group name
+ *
+ * This method is called as plots are removed from the plot view and reduces the fixed height appropriately
+ * in accordance with the remaining number of plots in the plot view.
+ */
+void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, const QString &clusterName)
+{
+    QString key( clusteringCriteriaName + clusterName );
+
+    m_plotsMap.remove( key );
+
+    int numPlots( m_plotsMap.size() );
+
+    qDebug() << "MainWindow::handleRemoveCluster: num plots=" << numPlots;
+
+    int plotSize( 150 );
+
+    ui->widget_MetricPlotView->setFixedHeight( numPlots * plotSize );
+}
+
+/**
  * @brief MainWindow::shutdownApplication
  *
  * Action handler for terminating the application.
@@ -211,7 +264,6 @@ void MainWindow::shutdownApplication()
 {
     qApp->quit();
 }
-
 
 } // GUI
 } // ArgoNavis

@@ -1034,10 +1034,8 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
     }
 
     foreach( const QString& clusterName, clusterNames ) {
-        int numRemoved = m_tableViewInfo.remove( clusterName );
-        if ( numRemoved > 0 ) {
-            break;
-        }
+        m_tableViewInfo.remove( clusterName );
+        emit removeCluster( clusteringCriteriaName, clusterName );
     }
 }
 

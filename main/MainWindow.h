@@ -25,6 +25,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QSet>
 
 // Forward Declarations
 
@@ -55,11 +56,15 @@ private slots:
     void unloadOpenSsExperiment();
     void handleLoadComplete();
     void addUnloadOpenSsExperimentMenuItem(const QString& filePath);
+    void handleAdjustPlotViewScrollArea(const QString& clusteringCriteriaName, const QString& clusterName);
+    void handleRemoveCluster(const QString& clusteringCriteriaName, const QString& clusterName);
     void shutdownApplication();
 
 private:
 
     Ui::MainWindow *ui;
+
+    QSet< QString > m_plotsMap;  // key = <ClusteringCriteriaName>-<ClusterName>
 
 };
 

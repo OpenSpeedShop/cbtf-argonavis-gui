@@ -141,6 +141,7 @@ signals:
     void addMetricViewData(const QString& clusterName, const QString& metricName, const QString& viewName, const QVariantList& data);
 
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
+    void removeCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
     void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration);
 

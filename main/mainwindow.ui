@@ -6,32 +6,17 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>796</width>
-    <height>510</height>
+    <width>822</width>
+    <height>559</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Open|SpeedShop Experimentation Control and Analysis GUI</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout_Main">
     <item>
      <widget class="QSplitter" name="splitter">
-      <property name="minimumSize">
-       <size>
-        <width>300</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>16777215</height>
-       </size>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::NoFrame</enum>
-      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
@@ -43,11 +28,46 @@
         </sizepolicy>
        </property>
       </widget>
-      <widget class="QSplitter" name="splitter_RightVertical">
+      <widget class="QSplitter" name="splitter_Views">
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
-       <widget class="ArgoNavis::GUI::PerformanceDataPlotView" name="widget_MetricPlotView" native="true"/>
+       <widget class="QScrollArea" name="scrollArea_MetricPlotView">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
+        <property name="verticalScrollBarPolicy">
+         <enum>Qt::ScrollBarAsNeeded</enum>
+        </property>
+        <property name="horizontalScrollBarPolicy">
+         <enum>Qt::ScrollBarAlwaysOff</enum>
+        </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QAbstractScrollArea::AdjustToContents</enum>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
+        <widget class="ArgoNavis::GUI::PerformanceDataPlotView" name="widget_MetricPlotView">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>68</width>
+           <height>158</height>
+          </rect>
+         </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </widget>
        <widget class="ArgoNavis::GUI::PerformanceDataMetricView" name="widget_MetricTableView" native="true"/>
        <widget class="ArgoNavis::GUI::SourceView" name="widget_SourceCodeViewer" native="true"/>
       </widget>
@@ -60,8 +80,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>796</width>
-     <height>19</height>
+     <width>822</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
