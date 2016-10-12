@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>585</width>
-    <height>343</height>
+    <width>764</width>
+    <height>438</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -40,7 +40,28 @@
      <property name="frameShadow">
       <enum>QFrame::Plain</enum>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,0,1,0,0">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0,0,1,0,0">
+      <item>
+       <widget class="QLabel" name="label_SelectMode">
+        <property name="text">
+         <string>Mode:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBox_ModeSelection">
+        <item>
+         <property name="text">
+          <string>Metric</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Details</string>
+         </property>
+        </item>
+       </widget>
+      </item>
       <item>
        <spacer name="horizontalSpacer_TopSelector_Left">
         <property name="orientation">
@@ -99,26 +120,6 @@
         <property name="sizeAdjustPolicy">
          <enum>QComboBox::AdjustToContents</enum>
         </property>
-        <item>
-         <property name="text">
-          <string>Functions</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Statements</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>LinkedObjects</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Loops</string>
-         </property>
-        </item>
        </widget>
       </item>
      </layout>

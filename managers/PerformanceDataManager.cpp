@@ -26,6 +26,8 @@
 #include "common/openss-gui-config.h"
 
 #include "managers/BackgroundGraphRenderer.h"
+#include "CBTF-ArgoNavis-Ext/DataTransferDetails.h"
+#include "CBTF-ArgoNavis-Ext/KernelExecutionDetails.h"
 
 #include <iostream>
 #include <string>
@@ -40,6 +42,7 @@
 #include <QFileInfo>
 #include <QThread>
 #include <QTimer>
+#include <QMap>
 #include <qmath.h>
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
@@ -271,10 +274,92 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
 }
 
 /**
+ * @brief PerformanceDataManager::handleRequestDetailView
+ * @param clusterName - the cluster group name
+ * @param detailName - the detail view name
+ */
+void PerformanceDataManager::handleRequestDetailView(const QString &clusterName, const QString &detailName)
+{
+    if ( ! m_tableViewInfo.contains( clusterName ) || ( detailName != QStringLiteral("Data Transfers") && detailName != QStringLiteral("Kernel Executions") ) )
+        return;
+
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+    qDebug() << "PerformanceDataManager::handleRequestDetailView: clusterName=" << clusterName << "view=" << detailName;
+#endif
+
+    MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    Experiment experiment( info.experimentFilename.toStdString() );
+#else
+    Experiment experiment( std::string( info.experimentFilename.toLatin1().data() ) );
+#endif
+
+    ThreadGroup all_threads = experiment.getThreads();
+    CollectorGroup collectors = experiment.getCollectors();
+
+    boost::optional<Collector> collector;
+    for ( CollectorGroup::const_iterator i = collectors.begin(); i != collectors.end(); ++i ) {
+        if ( "cuda" == (*i).getMetadata().getUniqueId() ) {
+            collector = *i;
+            break;
+        }
+    }
+
+    if ( ! collector )
+        return;
+
+    std::set<int> ranks;
+    CUDA::PerformanceData data;
+    QMap< Base::ThreadName, Thread> threads;
+
+    for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
+        std::pair<bool, int> rank = i->getMPIRank();
+
+        if ( ranks.empty() || ( rank.first && (ranks.find(rank.second) != ranks.end() )) ) {
+            GetCUDAPerformanceData( collector.get(), *i, data );
+
+            threads.insert( ConvertToArgoNavis(*i), *i );
+        }
+    }
+
+    QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
+
+    QFutureSynchronizer<void> synchronizer;
+
+    QStringList tableColumnHeaders;
+
+    if ( detailName == QStringLiteral("Data Transfers") )
+        tableColumnHeaders = ArgoNavis::CUDA::getDataTransferDetailsHeaderList();
+    else
+        tableColumnHeaders = ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList();
+
+    emit addMetricView( clusterName, QStringLiteral("Details"), detailName, tableColumnHeaders );
+
+    Base::TimeInterval interval = ConvertToArgoNavis( info.interval );
+
+    foreach( const ArgoNavis::Base::ThreadName thread, threads.keys() ) {
+        if ( detailName == QStringLiteral("Data Transfers") ) {
+            synchronizer.addFuture( QtConcurrent::run( &data, &CUDA::PerformanceData::visitDataTransfers, thread, interval,
+                                                       boost::bind( &PerformanceDataManager::processDataTransferDetails, this,
+                                                                    boost::cref(clusterName), boost::cref(data.interval().begin()), _1 ) ) );
+        }
+        else {
+            synchronizer.addFuture( QtConcurrent::run( &data, &CUDA::PerformanceData::visitKernelExecutions, thread, interval,
+                                                       boost::bind( &PerformanceDataManager::processKernelExecutionDetails, this,
+                                                                    boost::cref(clusterName), boost::cref(data.interval().begin()), _1 ) ) );
+        }
+    }
+
+    synchronizer.waitForFinished();
+
+    QApplication::restoreOverrideCursor();
+}
+
+/**
  * @brief PerformanceDataManager::processDataTransferEvent
  * @param time_origin - the time origin of the experiment
  * @param details - the details of the data transfer event
- * @param clusterName - the cluster group name
  * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @return - continue (=true) or not continue (=false) the visitation
  *
@@ -420,6 +505,48 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
                              boost::cref(gpuCounterIndexes),
                              boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
                 );
+
+    return true; // continue the visitation
+}
+
+/**
+ * @brief PerformanceDataManager::processDataTransferDetails
+ * @param clusterName - the cluster group name
+ * @param time_origin - the time origin of the experiment
+ * @param details - the CUDA data transfer details
+ * @return - indicates whether visitation should continue (always true)
+ *
+ * Visitation method to process each CUDA data transfer event and provide to CUDA event details view.
+ */
+bool PerformanceDataManager::processDataTransferDetails(const QString &clusterName, const Base::Time &time_origin, const CUDA::DataTransfer &details)
+{
+    const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral("Details");
+    const QString DATA_TRANSFER_DETAILS_VIEW = QStringLiteral("Data Transfers");
+
+    QVariantList detailsData = ArgoNavis::CUDA::getDataTransferDetailsDataList( time_origin, details );
+
+    emit addMetricViewData( clusterName, CUDA_EVENT_DETAILS_METRIC, DATA_TRANSFER_DETAILS_VIEW, detailsData );
+
+    return true; // continue the visitation
+}
+
+/**
+ * @brief PerformanceDataManager::processKernelExecutionDetails
+ * @param clusterName - the cluster group name
+ * @param time_origin - the time origin of the experiment
+ * @param details - the CUDA kernel execution details
+ * @return - indicates whether visitation should continue (always true)
+ *
+ * Visitation method to process each CUDA kernel executiopn event and provide to CUDA event details view.
+ */
+bool PerformanceDataManager::processKernelExecutionDetails(const QString &clusterName, const Base::Time &time_origin, const CUDA::KernelExecution &details)
+{
+    const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral("Details");
+    const QString KERNEL_EXECUTION_DETAILS_VIEW = QStringLiteral("Kernel Executions");
+
+    QVariantList detailsData = ArgoNavis::CUDA::getKernelExecutionDetailsDataList( time_origin, details );
+
+    emit addMetricViewData( clusterName, CUDA_EVENT_DETAILS_METRIC, KERNEL_EXECUTION_DETAILS_VIEW, detailsData );
 
     return true; // continue the visitation
 }
@@ -954,6 +1081,7 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
  * @param synchronizer - the QFutureSynchronizer to add futures
  * @param futures - the future map used when invoking QtConcurrent::run
  * @param metricList - the list of metrics to process and add to metric view
+ * @param viewList - the list of views to process and add to the metric view
  * @param metricDescList - the column headers for the metric view
  * @param collector - the collector object
  * @param experiment - the experiment object

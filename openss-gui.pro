@@ -99,7 +99,9 @@ SOURCES += \
     managers/BackgroundGraphRendererBackend.cpp \
     managers/BackgroundGraphRenderer.cpp \
     managers/UserGraphRangeChangeManager.cpp \
-    SourceView/ModifyPathSubstitutionsDialog.cpp
+    SourceView/ModifyPathSubstitutionsDialog.cpp \
+    CBTF-ArgoNavis-Ext/DataTransferDetails.cpp \
+    CBTF-ArgoNavis-Ext/KernelExecutionDetails.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 SOURCES += \
@@ -127,7 +129,9 @@ HEADERS += \
     managers/BackgroundGraphRendererBackend.h \
     managers/BackgroundGraphRenderer.h \
     managers/UserGraphRangeChangeManager.h \
-    SourceView/ModifyPathSubstitutionsDialog.h
+    SourceView/ModifyPathSubstitutionsDialog.h \
+    CBTF-ArgoNavis-Ext/DataTransferDetails.h \
+    CBTF-ArgoNavis-Ext/KernelExecutionDetails.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

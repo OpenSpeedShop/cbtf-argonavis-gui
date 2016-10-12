@@ -28,6 +28,7 @@
 #include <QTreeView>
 #include <QMutex>
 #include <QMap>
+#include <QStandardItemModel>
 
 // [ Forward Declarations ]
 
@@ -35,7 +36,6 @@ namespace Ui {
 class PerformanceDataMetricView;
 }
 
-class QStandardItemModel;
 class QSortFilterProxyModel;
 class QVBoxLayout;
 class QStackedLayout;
@@ -68,6 +68,7 @@ public:
 signals:
 
     void signalRequestMetricView(const QString& clusterName, const QString& metricName, const QString& viewName);
+    void signalRequestDetailView(const QString& clusterName, const QString& detailName);
     void signalClearSourceView();
     void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
     void signalAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
@@ -79,6 +80,7 @@ public slots:
 
 private slots:
 
+    void handleViewModeChanged(const QString &text);
     void handleMetricViewChanged(const QString &text);
     void handleRequestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName);
     void showContextMenu(const QVariant& index, const QPoint& globalPos);
@@ -102,6 +104,12 @@ private:
     QMap< QString, QTreeView* > m_views;                    // map metric to view
 
     QStackedLayout* m_viewStack;                            // vertical layout holding current view
+
+    typedef enum { DETAILS_MODE, METRIC_MODE } ModeType;
+    ModeType m_mode;
+
+    QStandardItemModel m_metricViewModel;                   // snapshot of view combobox model for metric mode
+    QStandardItemModel m_detailsViewModel;                  // initialized view combobox model for details mode
 
     ModifyPathSubstitutionsDialog* m_modifyPathsDialog;
 

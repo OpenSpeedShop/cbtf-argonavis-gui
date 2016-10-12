@@ -110,6 +110,7 @@ public slots:
     void asyncLoadCudaViews(const QString& filePath);
 
     void handleRequestMetricView(const QString& clusterName, const QString& metric, const QString& view);
+    void handleRequestDetailView(const QString& clusterName, const QString& detailName);
 
 signals:
 
@@ -217,6 +218,12 @@ private:
                                 const ArgoNavis::Base::ThreadName& thread,
                                 const QSet< int >& gpuCounterIndexes,
                                 const QString& clusteringCriteriaName);
+
+    // visitor functions to process CUDA details view
+
+    bool processDataTransferDetails(const QString& clusterName, const Base::Time &time_origin, const CUDA::DataTransfer &details);
+
+    bool processKernelExecutionDetails(const QString& clusterName, const Base::Time &time_origin, const CUDA::KernelExecution &details);
 
 private:
 

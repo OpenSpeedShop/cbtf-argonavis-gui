@@ -65,6 +65,19 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_views[ "none" ] = blankView;
     m_viewStack->addWidget( blankView );
 
+    // initialize model used for view combobox when in details mode
+    m_detailsViewModel.appendRow( new QStandardItem( QStringLiteral("Data Transfers") ) );
+    m_detailsViewModel.appendRow( new QStandardItem( QStringLiteral("Kernel Executions") ) );
+
+    // initialize model used for view combobox when in metric mode
+    m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Functions") ) );
+    m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Statements") ) );
+    m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
+    m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
+
+    // initial mode is metric mode so set view selectiom model to metric view model
+    ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
+
     // connect performance data manager signals to performance data metric view slots
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
@@ -78,6 +91,13 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
         connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString)), this, SLOT(handleRequestMetricViewComplete(QString,QString,QString)) );
 #endif
     }
+
+    // connect signal/slot for mode selection handling
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( ui->comboBox_ModeSelection, &QComboBox::currentTextChanged, this, &PerformanceDataMetricView::handleViewModeChanged );
+#else
+    connect( ui->comboBox_ModeSelection, SIGNAL(currentIndexChanged(QString)), this, SLOT(handleViewModeChanged(QString)) );
+#endif
 
     // connect signal/slot for metric view selection handling
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -158,6 +178,8 @@ void PerformanceDataMetricView::deleteAllModelsViews()
         qDeleteAll( m_proxyModels );
         m_proxyModels.clear();
     }
+
+    ui->comboBox_ModeSelection->setCurrentIndex( 0 );
 
     ui->comboBox_MetricSelection->clear();
 
@@ -259,17 +281,15 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
     }
 
     // Make sure metric view not already in combobox
-    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
+    if ( QStringLiteral("Details") != metricName && ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
         // Add metric view to combobox
         ui->comboBox_MetricSelection->addItem( metricName );
     }
 
-    // Make the current view
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    ui->comboBox_MetricSelection->setCurrentText( metricName );
-#else
-    ui->comboBox_MetricSelection->setCurrentIndex( ui->comboBox_MetricSelection->count()-1 );
-#endif
+    // initialize this as the current view only when the blank view is active
+    if ( m_viewStack->currentWidget() == m_views[ "none" ] ) {
+        m_viewStack->setCurrentWidget( view );
+    }
 }
 
 /**
@@ -402,6 +422,24 @@ void PerformanceDataMetricView::handleAddData(const QString& clusterName, const 
 }
 
 /**
+ * @brief PerformanceDataMetricView::handleViewModeChanged
+ * @param text - the value of the view mode combobox
+ */
+void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
+{
+    if ( QStringLiteral("Details") == text ) {
+        m_mode = DETAILS_MODE;
+        ui->comboBox_ViewSelection->setModel( &m_detailsViewModel );
+        ui->comboBox_MetricSelection->setEnabled( false );
+    }
+    else {
+        m_mode = METRIC_MODE;
+        ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
+        ui->comboBox_MetricSelection->setEnabled( true );
+    }
+}
+
+/**
  * @brief PerformanceDataMetricView::handleMetricViewChanged
  * @param text - name of metric or view changed
  *
@@ -416,7 +454,12 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 
     QTreeView* view( Q_NULLPTR );
 
-    const QString metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+    QString metricViewName;
+
+    if ( DETAILS_MODE == m_mode )
+        metricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
+    else
+        metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
 
     {
         QMutexLocker guard( &m_mutex );
@@ -428,7 +471,10 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         // show blank view and the emit signal to have Performance Data Manager process requested metric view
         showBlankView();
 
-        emit signalRequestMetricView( m_clusterName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        if ( DETAILS_MODE == m_mode )
+            emit signalRequestDetailView( m_clusterName, ui->comboBox_ViewSelection->currentText() );
+        else
+            emit signalRequestMetricView( m_clusterName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
     }
     else {
         // display existing metric view
