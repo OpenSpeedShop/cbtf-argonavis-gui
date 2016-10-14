@@ -234,9 +234,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
         model->setHeaderData( i, Qt::Horizontal, metrics.at( i ) );
     }
 
-    proxyModel->setFilterKeyColumn( 0 );
     proxyModel->setSourceModel( model );
-    proxyModel->sort( 0, Qt::DescendingOrder );
 
     QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
     bool newViewCreated( false );
