@@ -62,13 +62,13 @@ QStringList getDataTransferDetailsHeaderList()
  * This function returns the CUDA details view column data for the data transfers view.
  */
 QVariantList getDataTransferDetailsDataList(const Base::Time &time_origin, const DataTransfer& details)
-{   
+{
     return QVariantList() << QVariant::fromValue( static_cast<uint64_t>( details.time - time_origin )  / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.time_begin - time_origin )  / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.time_end - time_origin )  / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.call_site ) )
                           << QVariant::fromValue( static_cast<uint64_t>( details.device ) )
-                          << QVariant::fromValue( details.size ).toString()
+                          << QString::fromStdString( CUDA::stringify( ByteCount( details.size ) ) )
                           << QString::fromStdString( CUDA::stringify(details.kind ) )
                           << QString::fromStdString( CUDA::stringify(details.source_kind ) )
                           << QString::fromStdString( CUDA::stringify(details.destination_kind ) )
