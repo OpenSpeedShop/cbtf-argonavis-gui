@@ -112,6 +112,9 @@ void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int 
         setDocument( document );
         setCurrentLineNumber( lineNumber );
     }
+    else {
+        handleClearSourceView();
+    }
 }
 
 void SourceView::handleAddPathSubstitution(int index, const QString &oldPath, const QString &newPath)
