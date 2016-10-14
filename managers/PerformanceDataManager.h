@@ -246,6 +246,8 @@ private:
         QStringList metricList;
         QStringList viewList;
         QStringList tableColumnHeaders;
+        QStringList metricViewList;           // [ <metric name> | "Details" ] - [ <View Name> ]
+        QMap< QString, QStringList > metricViewColumnList;    // key = [ <metric name> | "Details" ] - [ <View Name> ]
         QString experimentFilename;
         OpenSpeedShop::Framework::TimeInterval interval;
     } MetricTableViewInfo;

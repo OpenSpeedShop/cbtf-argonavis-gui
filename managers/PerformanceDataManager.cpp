@@ -338,6 +338,12 @@ void PerformanceDataManager::handleRequestDetailView(const QString &clusterName,
 
     Base::TimeInterval interval = ConvertToArgoNavis( info.interval );
 
+    const QString metricViewName = QStringLiteral("Details") + "-" + detailName;
+
+    if ( ! info.metricViewList.contains( metricViewName ) ) {
+        info.metricViewList << metricViewName;
+    }
+
     foreach( const ArgoNavis::Base::ThreadName thread, threads.keys() ) {
         if ( detailName == QStringLiteral("Data Transfers") ) {
             synchronizer.addFuture( QtConcurrent::run( &data, &CUDA::PerformanceData::visitDataTransfers, thread, interval,
@@ -352,6 +358,8 @@ void PerformanceDataManager::handleRequestDetailView(const QString &clusterName,
     }
 
     synchronizer.waitForFinished();
+
+    emit requestMetricViewComplete( clusterName, QStringLiteral("Details"), detailName );
 
     QApplication::restoreOverrideCursor();
 }
@@ -1062,12 +1070,20 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
 
     info.interval = interval;
 
-    // Load update metric view corresponding to currently graph view
+    // Update metric view scorresponding to timeline in graph view
     loadCudaMetricViews(
                         #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
                         synchronizer, futures,
                         #endif
                         info.metricList, info.viewList, info.tableColumnHeaders, collector, experiment, interval );
+
+    // Update detail view scorresponding to timeline in graph view
+    foreach ( const QString& metricViewName, info.metricViewList ) {
+        QStringList tokens = metricViewName.split('-');
+        if ( 2 == tokens.size() && QStringLiteral("Details") == tokens[0] ) {
+            handleRequestDetailView( clusterName, tokens[1] );
+        }
+    }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
     synchronizer.waitForFinished();

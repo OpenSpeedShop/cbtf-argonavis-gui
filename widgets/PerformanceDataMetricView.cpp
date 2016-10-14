@@ -484,9 +484,12 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 
 /**
  * @brief PerformanceDataMetricView::handleRequestMetricViewComplete
- * @param clusterName
- * @param metric
- * @param view
+ * @param clusterName - cluster name associated to the metric view
+ * @param metricName - name of metric view for which to add data to model
+ * @param viewName - name of the view for which to add data to model
+ *
+ * Once a handled request metric or detail view signal ('signalRequestMetricView' or 'signalRequestDetailView') is completed,
+ * this method will insure the currently selected view is shown.
  */
 void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &clusterName, const QString &metricName, const QString &viewName)
 {
@@ -505,7 +508,14 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
         view = m_views.value( metricViewName, Q_NULLPTR );
     }
 
-    if ( Q_NULLPTR != view ) {
+    QString currentMetricViewName;
+
+    if ( DETAILS_MODE == m_mode )
+        currentMetricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
+    else
+        currentMetricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+
+    if ( currentMetricViewName == metricViewName && Q_NULLPTR != view ) {
         m_viewStack->setCurrentWidget( view );
     }
 }
