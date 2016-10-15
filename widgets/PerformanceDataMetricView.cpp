@@ -75,7 +75,10 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
     m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
 
-    // initial mode is metric mode so set view selectiom model to metric view model
+    // initial mode is metric mode
+    m_mode = METRIC_MODE;
+
+    // so set view selectiom model to metric view model
     ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
 
     // connect performance data manager signals to performance data metric view slots
