@@ -233,9 +233,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
     if ( Q_NULLPTR == model || Q_NULLPTR == proxyModel )
         return;
 
-    for ( int i=0; i<metrics.size(); ++i ) {
-        model->setHeaderData( i, Qt::Horizontal, metrics.at( i ) );
-    }
+    model->setHorizontalHeaderLabels( metrics );
 
     proxyModel->setSourceModel( model );
 
@@ -246,6 +244,16 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
         view = new QTreeView;
         view->setContextMenuPolicy( Qt::CustomContextMenu );
         view->setEditTriggers( QAbstractItemView::NoEditTriggers );
+        view->setSortingEnabled( true );
+        // resize header view columns to maximum size required to fit all column contents
+        QHeaderView* headerView = view->header();
+        if ( headerView ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+            headerView->setSectionResizeMode( QHeaderView::ResizeToContents );
+#else
+            headerView->setResizeMode( QHeaderView::ResizeToContents );
+#endif
+        }
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( view, &QTreeView::clicked, [=](const QModelIndex& index) {
             processTableViewItemClicked( view, index );
@@ -267,10 +275,6 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
         QMutexLocker guard( &m_mutex );
 
         view->setModel( proxyModel );
-        view->setSortingEnabled( true );
-        for ( int i=0; i<metrics.size(); ++i ) {
-           view->resizeColumnToContents( i );
-        }
 
         m_models[ metricViewName ] = model;
         m_proxyModels[ metricViewName ] = proxyModel;
