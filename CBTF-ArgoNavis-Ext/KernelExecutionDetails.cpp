@@ -52,18 +52,30 @@ QVariantList getKernelExecutionDetailsDataList(const ArgoNavis::Base::Time &time
                           << QVariant::fromValue( static_cast<uint64_t>( details.time_end - time_origin ) / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.call_site ) )
                           << QVariant::fromValue( static_cast<uint64_t>( details.device ) )
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
                           << QString::fromStdString( CUDA::stringify( FunctionName( details.function ) ) )
+#else
+                          << QString( CUDA::stringify( FunctionName( details.function ) ).c_str() )
+#endif
                           << QVariant::fromValue( static_cast<uint32_t>( details.grid.get<0>() ) )
                           << QVariant::fromValue( static_cast<uint32_t>( details.grid.get<1>() ) )
                           << QVariant::fromValue( static_cast<uint32_t>( details.grid.get<2>() ) )
                           << QVariant::fromValue( static_cast<uint32_t>( details.block.get<0>() ) )
                           << QVariant::fromValue( static_cast<uint32_t>( details.block.get<1>() ) )
                           << QVariant::fromValue( static_cast<uint32_t>( details.block.get<2>() ) )
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
                           << QString::fromStdString( CUDA::stringify( details.cache_preference ) )
                           << QString::fromStdString( CUDA::stringify( ByteCount( details.registers_per_thread ) ) )
                           << QString::fromStdString( CUDA::stringify( ByteCount( details.static_shared_memory ) ) )
                           << QString::fromStdString( CUDA::stringify( ByteCount( details.dynamic_shared_memory ) ) )
                           << QString::fromStdString( CUDA::stringify( ByteCount( details.local_memory ) ) );
+#else
+                          << QString( CUDA::stringify( details.cache_preference ).c_str() )
+                          << QString( CUDA::stringify( ByteCount( details.registers_per_thread ) ).c_str() )
+                          << QString( CUDA::stringify( ByteCount( details.static_shared_memory ) ).c_str() )
+                          << QString( CUDA::stringify( ByteCount( details.dynamic_shared_memory ) ).c_str() )
+                          << QString( CUDA::stringify( ByteCount( details.local_memory ) ).c_str() );
+#endif
 }
 
 

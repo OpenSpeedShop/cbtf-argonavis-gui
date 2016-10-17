@@ -68,10 +68,17 @@ QVariantList getDataTransferDetailsDataList(const Base::Time &time_origin, const
                           << QVariant::fromValue( static_cast<uint64_t>( details.time_end - time_origin )  / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.call_site ) )
                           << QVariant::fromValue( static_cast<uint64_t>( details.device ) )
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
                           << QString::fromStdString( CUDA::stringify( ByteCount( details.size ) ) )
                           << QString::fromStdString( CUDA::stringify(details.kind ) )
                           << QString::fromStdString( CUDA::stringify(details.source_kind ) )
                           << QString::fromStdString( CUDA::stringify(details.destination_kind ) )
+#else
+                          << QString( CUDA::stringify( ByteCount( details.size ) ).c_str() )
+                          << QString( CUDA::stringify(details.kind ).c_str() )
+                          << QString( CUDA::stringify(details.source_kind ).c_str() )
+                          << QString( CUDA::stringify(details.destination_kind ).c_str() )
+#endif
                           << QVariant::fromValue( details.asynchronous ).toString();
 }
 
