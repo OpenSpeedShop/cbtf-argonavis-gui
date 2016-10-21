@@ -265,9 +265,18 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
     }
 
     if ( futures.size() > 0 ) {
+        // Determine full time interval extent of this experiment
+        Extent extent = experiment.getPerformanceDataExtent();
+        Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
+
+        Base::TimeInterval graphInterval = ConvertToArgoNavis( interval );
+
+        double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
+        double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
+
         synchronizer.waitForFinished();
 
-        emit requestMetricViewComplete( clusterName, metricName, viewName);
+        emit requestMetricViewComplete( clusterName, metricName, viewName, lower, upper );
 
         QApplication::restoreOverrideCursor();
     }
@@ -277,6 +286,11 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
  * @brief PerformanceDataManager::handleRequestDetailView
  * @param clusterName - the cluster group name
  * @param detailName - the detail view name
+ *
+ * This method handles a request for a new detail view.  After building the ArgoNavis::CUDA::PerformanceData object for threads of interest,
+ * it will begin processing of the specified CUDA event type by executing the visitor method in a separate thread (via QtConcurrent::run) over
+ * the entire duration of the experiment and waits for the thread to complete.  Once the processing thread has completed the 'requestMetricViewComplete'
+ * signal will be emitted.
  */
 void PerformanceDataManager::handleRequestDetailView(const QString &clusterName, const QString &detailName)
 {
@@ -336,7 +350,7 @@ void PerformanceDataManager::handleRequestDetailView(const QString &clusterName,
 
     emit addMetricView( clusterName, QStringLiteral("Details"), detailName, tableColumnHeaders );
 
-    Base::TimeInterval interval = ConvertToArgoNavis( info.interval );
+    Base::TimeInterval interval = data.interval(); // ConvertToArgoNavis( info.interval );
 
     const QString metricViewName = QStringLiteral("Details") + "-" + detailName;
 
@@ -357,9 +371,14 @@ void PerformanceDataManager::handleRequestDetailView(const QString &clusterName,
         }
     }
 
+    Base::TimeInterval graphInterval = ConvertToArgoNavis( info.interval );
+
+    double lower = ( graphInterval.begin() - data.interval().begin() ) / 1000000.0;
+    double upper = ( graphInterval.end() - data.interval().begin() ) / 1000000.0;
+
     synchronizer.waitForFinished();
 
-    emit requestMetricViewComplete( clusterName, QStringLiteral("Details"), detailName );
+    emit requestMetricViewComplete( clusterName, QStringLiteral("Details"), detailName, lower, upper );
 
     QApplication::restoreOverrideCursor();
 }
@@ -1029,10 +1048,12 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
 
     MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
 
-    // re-initialize metric table view
+    // re-initialize metric table views only not detail views as those do not need to be regenerated
     foreach ( const QString& metric, info.metricList ) {
-        foreach ( const QString& viewName, info.viewList ) {
-            emit addMetricView( clusterName, metric, viewName, info.tableColumnHeaders );
+        if ( QStringLiteral("Details") != metric ) {
+            foreach ( const QString& viewName, info.viewList ) {
+                emit addMetricView( clusterName, metric, viewName, info.tableColumnHeaders );
+            }
         }
     }
 
@@ -1077,11 +1098,11 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
                         #endif
                         info.metricList, info.viewList, info.tableColumnHeaders, collector, experiment, interval );
 
-    // Update detail view scorresponding to timeline in graph view
+    // Emit signal to update detail views corresponding to timeline in graph view
     foreach ( const QString& metricViewName, info.metricViewList ) {
         QStringList tokens = metricViewName.split('-');
         if ( 2 == tokens.size() && QStringLiteral("Details") == tokens[0] ) {
-            handleRequestDetailView( clusterName, tokens[1] );
+            emit metricViewRangeChanged( clusterName, tokens[0], tokens[1], lower, upper );
         }
     }
 

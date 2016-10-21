@@ -25,6 +25,8 @@
 #include "ui_PerformanceDataMetricView.h"
 #include "common/openss-gui-config.h"
 
+#include "ViewSortFilterProxyModel.h"
+
 #include "managers/PerformanceDataManager.h"
 #include "SourceView/ModifyPathSubstitutionsDialog.h"
 
@@ -91,7 +93,7 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
 #else
         connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QStringList)), this, SLOT(handleInitModel(QString,QString,QString,QStringList)) );
         connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList)), this, SLOT(handleAddData(QString,QString,QString,QVariantList)) );
-        connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString)), this, SLOT(handleRequestMetricViewComplete(QString,QString,QString)) );
+        connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,double,double)), this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,double,double)) );
 #endif
     }
 
@@ -228,7 +230,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
     }
 
     QStandardItemModel* model = new QStandardItemModel( 0, metrics.size(), this );
-    QSortFilterProxyModel* proxyModel = new QSortFilterProxyModel;
+    QSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel;
 
     if ( Q_NULLPTR == model || Q_NULLPTR == proxyModel )
         return;
@@ -242,9 +244,12 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
 
     if ( Q_NULLPTR == view ) {
         view = new QTreeView;
+        // set static view properties: has custom context menu, doesn't allow editing, has no root decoration
         view->setContextMenuPolicy( Qt::CustomContextMenu );
         view->setEditTriggers( QAbstractItemView::NoEditTriggers );
-        view->setSortingEnabled( true );
+        view->setRootIsDecorated( false );
+        // initially sorting is disabled and enabled once all data has been added to the metric/detail model
+        view->setSortingEnabled( false );
         // resize header view columns to maximum size required to fit all column contents
         QHeaderView* headerView = view->header();
         if ( headerView ) {
@@ -372,6 +377,8 @@ void PerformanceDataMetricView::processCustomContextMenuRequested(QTreeView* vie
  * @param text - text containing defining location information
  * @param filename - the filename obtained from the defining location information
  * @param lineNumber - the line number obtained from the defining location information
+ *
+ * Extracts the filename and line number from the data in a particular cell of the metric table view.
  */
 void PerformanceDataMetricView::extractFilenameAndLine(const QString& text, QString& filename, int& lineNumber)
 {
@@ -427,8 +434,44 @@ void PerformanceDataMetricView::handleAddData(const QString& clusterName, const 
 }
 
 /**
+ * @brief PerformanceDataMetricView::handleRangeChanged
+ * @param clusterName - cluster name associated to the metric view
+ * @param metricName - name of metric view having a time range change
+ * @param viewName - name of the view having a time range change
+ * @param lower - lower value of range to actually view
+ * @param upper - upper value of range to actually view
+ *
+ * After a details view was requested and the model, proxy model and view are created and initialized, this method will handle changes to the time range
+ * of data shown in the details view as the user changes the graph timeline.
+ */
+void PerformanceDataMetricView::handleRangeChanged(const QString &clusterName, const QString &metricName, const QString &viewName, double lower, double upper)
+{
+    if ( m_clusterName != clusterName )
+        return;
+
+    const QString metricViewName = metricName + "-" + viewName;
+
+    QMutexLocker guard( &m_mutex );
+
+    QSortFilterProxyModel* sortFilterProxyModel = m_proxyModels.value( metricViewName );
+
+    if ( Q_NULLPTR == sortFilterProxyModel )
+        return;
+
+    ViewSortFilterProxyModel* proxyModel = qobject_cast< ViewSortFilterProxyModel* >( sortFilterProxyModel );
+
+    if ( Q_NULLPTR == proxyModel )
+        return;
+
+    proxyModel->setFilterRange( lower, upper );
+}
+
+/**
  * @brief PerformanceDataMetricView::handleViewModeChanged
  * @param text - the value of the view mode combobox
+ *
+ * Handle changes to the view mode.  Sets the appropriate model for the contents of the view selection combobox and
+ * enables/disables use of the metric selection combobox depending on the view mode selected.
  */
 void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
 {
@@ -492,11 +535,13 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
  * @param clusterName - cluster name associated to the metric view
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
+ * @param lower - lower value of range to actually view
+ * @param upper - upper value of range to actually view
  *
  * Once a handled request metric or detail view signal ('signalRequestMetricView' or 'signalRequestDetailView') is completed,
  * this method will insure the currently selected view is shown.
  */
-void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &clusterName, const QString &metricName, const QString &viewName)
+void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &clusterName, const QString &metricName, const QString &viewName, double lower, double upper)
 {
     qDebug() << "PerformanceDataMetricView::handleRequestMetricViewComplete: clusterName=" << clusterName << "metricName=" << metricName << "viewName=" << viewName;
 
@@ -511,7 +556,19 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
         QMutexLocker guard( &m_mutex );
 
         view = m_views.value( metricViewName, Q_NULLPTR );
+
+        if ( Q_NULLPTR == view )
+            return;
+
+        // now sorting can be enabled
+        view->setSortingEnabled( true );
+        if ( QStringLiteral("Details") == metricName )
+            view->sortByColumn( 0, Qt::AscendingOrder );
+        else
+            view->sortByColumn( 0, Qt::DescendingOrder );
     }
+
+    handleRangeChanged( clusterName, metricName, viewName, lower, upper );
 
     QString currentMetricViewName;
 

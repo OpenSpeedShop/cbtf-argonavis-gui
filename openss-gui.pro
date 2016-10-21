@@ -101,7 +101,8 @@ SOURCES += \
     managers/UserGraphRangeChangeManager.cpp \
     SourceView/ModifyPathSubstitutionsDialog.cpp \
     CBTF-ArgoNavis-Ext/DataTransferDetails.cpp \
-    CBTF-ArgoNavis-Ext/KernelExecutionDetails.cpp
+    CBTF-ArgoNavis-Ext/KernelExecutionDetails.cpp \
+    widgets/ViewSortFilterProxyModel.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 SOURCES += \
@@ -131,7 +132,8 @@ HEADERS += \
     managers/UserGraphRangeChangeManager.h \
     SourceView/ModifyPathSubstitutionsDialog.h \
     CBTF-ArgoNavis-Ext/DataTransferDetails.h \
-    CBTF-ArgoNavis-Ext/KernelExecutionDetails.h
+    CBTF-ArgoNavis-Ext/KernelExecutionDetails.h \
+    widgets/ViewSortFilterProxyModel.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

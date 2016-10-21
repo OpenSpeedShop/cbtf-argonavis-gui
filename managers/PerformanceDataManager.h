@@ -148,11 +148,13 @@ signals:
 
     void graphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size);
 
+    void metricViewRangeChanged(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
+
     void replotCompleted();
 
     void loadComplete();
 
-    void requestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName);
+    void requestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
 
 private slots:
 

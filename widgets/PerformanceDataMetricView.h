@@ -77,12 +77,13 @@ public slots:
 
     void handleInitModel(const QString& clusterName, const QString& metricName, const QString& viewName, const QStringList& metrics);
     void handleAddData(const QString& clusterName, const QString &metricName, const QString& viewName, const QVariantList& data);
+    void handleRangeChanged(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
 
 private slots:
 
     void handleViewModeChanged(const QString &text);
     void handleMetricViewChanged(const QString &text);
-    void handleRequestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName);
+    void handleRequestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
     void showContextMenu(const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);
