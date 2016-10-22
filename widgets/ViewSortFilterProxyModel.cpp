@@ -57,8 +57,9 @@ bool ViewSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInde
     if ( QVariant::Double == value1.type() && QVariant::Double == value2.type()  ) {
         double timeValue1 = value1.toDouble();  // "Time Begin" value
         double timeValue2 = value2.toDouble();  // "Time End" value
-        // keep row if either "Time Begin" or "Time End" value within range defined by 'm_lower' .. ' 'm_upper'
-        return ( timeValue1 >= m_lower && timeValue1 <= m_upper || timeValue2 >= m_lower && timeValue2 <= m_upper );
+        // keep row if either "Time Begin" value within range defined by 'm_lower' .. ' 'm_upper' OR
+        // "Time Begin" is before 'm_lower' but "Time End" is equal to or greater than 'm_lower'
+        return ( timeValue1 >= m_lower && timeValue1 <= m_upper || timeValue1 < m_lower && timeValue2 >= m_lower );
     }
 
     return true;

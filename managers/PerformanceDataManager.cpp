@@ -998,7 +998,18 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
             dataMgr->xmlDump( filePath );
 #endif
 
+        Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
+
+        double lower = 0.0;
+        double upper = ( experimentInterval.end() - experimentInterval.begin() ) / 1000000.0;
+
         synchronizer.waitForFinished();
+
+        foreach ( const QString& metricName, metricList) {
+            foreach( const QString& viewName, info.viewList ) {
+                emit requestMetricViewComplete( hostName, metricName, viewName, lower, upper );
+            }
+        }
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -1101,8 +1112,13 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
     // Emit signal to update detail views corresponding to timeline in graph view
     foreach ( const QString& metricViewName, info.metricViewList ) {
         QStringList tokens = metricViewName.split('-');
-        if ( 2 == tokens.size() && QStringLiteral("Details") == tokens[0] ) {
-            emit metricViewRangeChanged( clusterName, tokens[0], tokens[1], lower, upper );
+        if ( 2 == tokens.size() ) {
+            if ( QStringLiteral("Details") == tokens[0] ) {
+                emit metricViewRangeChanged( clusterName, tokens[0], tokens[1], lower, upper );
+            }
+            else {
+                emit requestMetricViewComplete( clusterName, tokens[0], tokens[1], lower, upper );
+            }
         }
     }
 
