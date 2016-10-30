@@ -231,6 +231,11 @@ private:
 
     static QAtomicPointer< PerformanceDataManager > s_instance;
 
+    static QString s_functionTitle;
+    static QString s_minimumTitle;
+    static QString s_maximumTitle;
+    static QString s_meanTitle;
+
     QVector<double> m_sampleKeys;
     QMap< int, QVector<double> > m_sampleValues;
     QMap< int, QVector<double> > m_rawValues;

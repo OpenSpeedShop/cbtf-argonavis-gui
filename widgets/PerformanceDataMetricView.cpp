@@ -250,15 +250,6 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
         view->setRootIsDecorated( false );
         // initially sorting is disabled and enabled once all data has been added to the metric/detail model
         view->setSortingEnabled( false );
-        // resize header view columns to maximum size required to fit all column contents
-        QHeaderView* headerView = view->header();
-        if ( headerView ) {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-            headerView->setSectionResizeMode( QHeaderView::ResizeToContents );
-#else
-            headerView->setResizeMode( QHeaderView::ResizeToContents );
-#endif
-        }
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( view, &QTreeView::clicked, [=](const QModelIndex& index) {
             processTableViewItemClicked( view, index );
@@ -280,6 +271,17 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
         QMutexLocker guard( &m_mutex );
 
         view->setModel( proxyModel );
+
+        // resize header view columns to maximum size required to fit all column contents
+        QHeaderView* headerView = view->header();
+        if ( headerView ) {
+            headerView->setStretchLastSection( true );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+            headerView->setSectionResizeMode( QHeaderView::ResizeToContents );
+#else
+            headerView->setResizeMode( QHeaderView::ResizeToContents );
+#endif
+        }
 
         m_models[ metricViewName ] = model;
         m_proxyModels[ metricViewName ] = proxyModel;

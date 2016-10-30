@@ -70,6 +70,11 @@ Q_DECLARE_METATYPE( ArgoNavis::CUDA::KernelExecution )
 namespace ArgoNavis { namespace GUI {
 
 
+QString PerformanceDataManager::s_functionTitle( tr("Function (defining location)") );
+QString PerformanceDataManager::s_minimumTitle( tr("Minimum (Thread)") );
+QString PerformanceDataManager::s_maximumTitle( tr("Maximum (Thread)") );
+QString PerformanceDataManager::s_meanTitle( tr("Average (Thread)") );
+
 QAtomicPointer< PerformanceDataManager > PerformanceDataManager::s_instance;
 
 
@@ -211,13 +216,11 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
         break;
     }
 
-    const QString functionTitle( tr("Function (defining location)") );
-
     QStringList tableColumnHeaders = info.tableColumnHeaders;
     QStringList metricDesc;
     TimeInterval interval = info.interval;
 
-    metricDesc << tableColumnHeaders.takeFirst() << tableColumnHeaders.takeFirst() << functionTitle;
+    metricDesc << tableColumnHeaders.takeFirst() << tableColumnHeaders.takeFirst() << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
 
     emit addMetricView( clusterName, metricName, viewName, metricDesc );
 
@@ -823,6 +826,12 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
                               individual );
     SmartPtr<std::map<TS, double> > data =
             Queries::Reduction::Apply( individual, Queries::Reduction::Summation );
+    SmartPtr<std::map<TS, double> > dataMin =
+            Queries::Reduction::Apply( individual, Queries::Reduction::Minimum );
+    SmartPtr<std::map<TS, double> > dataMax =
+            Queries::Reduction::Apply( individual, Queries::Reduction::Maximum );
+    SmartPtr<std::map<TS, double> > dataMean =
+            Queries::Reduction::Apply( individual, Queries::Reduction::ArithmeticMean );
     individual = SmartPtr<std::map<TS, std::map<Thread, double> > >();
 
     // Sort the results
@@ -862,13 +871,22 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
         QVariantList metricData;
 
         double value( i->first * 1000.0 );
+        double min( dataMin->at(i->second) * 1000.0 );
+        double max( dataMax->at(i->second) * 1000.0 );
+        double mean( dataMean->at(i->second) * 1000.0 );
         double percentage( i->first / total * 100.0 );
         QString valueStr( QString::number( value, 'f', 6 ) );
+        QString minStr( QString::number( min, 'f', 6 ) );
+        QString maxStr( QString::number( max, 'f', 6 ) );
+        QString meanStr( QString::number( mean, 'f', 6 ) );
         QString percentageStr( QString::number( percentage, 'f', 6 ) );
 
         metricData << QVariant::fromValue< double >( valueStr.toDouble() );
         metricData << QVariant::fromValue< double >( percentageStr.toDouble() );
         metricData << getLocationInfo<TS>( i->second );
+        metricData << QVariant::fromValue< double >( minStr.toDouble() );
+        metricData << QVariant::fromValue< double >( maxStr.toDouble() );
+        metricData << QVariant::fromValue< double >( meanStr.toDouble() );
 
         emit addMetricViewData( clusterName, metric, viewName, metricData );
     }
@@ -1152,12 +1170,10 @@ void PerformanceDataManager::loadCudaMetricViews(
                                                  const Experiment& experiment,
                                                  const TimeInterval& interval)
 {
-    const QString functionTitle( tr("Function (defining location)") );
-
     foreach ( const QString& metricName, metricList ) {
         QStringList metricDesc;
 
-        metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << functionTitle;
+        metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
 
         foreach ( const QString& viewName, viewList ) {
             if ( viewName == QStringLiteral("Functions") ) {
