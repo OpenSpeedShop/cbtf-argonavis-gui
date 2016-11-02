@@ -35,8 +35,10 @@ namespace ArgoNavis { namespace GUI {
  * Create a new tree item in the tree hierarchy having the parent and column data specified.
  */
 TreeItem::TreeItem(const QList<QVariant> &data, TreeItem *parent)
-    : m_itemData( data )
-    , m_parentItem( parent )
+    : QObject( parent )
+    , m_itemData( data )
+    , m_checked( false )
+    , m_checkable( false )
 {
 
 }
@@ -101,8 +103,9 @@ int TreeItem::childCount() const
  */
 int TreeItem::row() const
 {
-    if ( m_parentItem )
-        return m_parentItem->m_childItems.indexOf( const_cast< TreeItem* >( this ) );
+    TreeItem* parentItem = qobject_cast< TreeItem* >( parent() );
+    if ( parentItem )
+        return parentItem->m_childItems.indexOf( const_cast< TreeItem* >( this ) );
 
     return 0;
 }
@@ -136,7 +139,8 @@ QVariant TreeItem::data(int column) const
  */
 TreeItem *TreeItem::parentItem()
 {
-    return m_parentItem;
+    TreeItem* parentItem = qobject_cast< TreeItem* >( parent() );
+    return parentItem;
 }
 
 /**
@@ -146,7 +150,7 @@ TreeItem *TreeItem::parentItem()
  *
  * Set the data for the column at the specified index.
  */
-void TreeItem::setData(int column, QVariant data)
+void TreeItem::setData(int column, const QVariant &data)
 {
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 7, 0))
     if ( column > m_itemData.size() )

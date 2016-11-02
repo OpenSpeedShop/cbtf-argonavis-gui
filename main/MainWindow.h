@@ -27,6 +27,8 @@
 #include <QMainWindow>
 #include <QSet>
 
+#include "common/openss-gui-config.h"
+
 // Forward Declarations
 
 namespace Ui {
@@ -50,6 +52,12 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     virtual ~MainWindow();
 
+    void setExperimentDatabase(const QString& filename);
+
+protected:
+
+    void showEvent(QShowEvent *event) Q_DECL_OVERRIDE;
+
 private slots:
 
     void loadOpenSsExperiment();
@@ -62,7 +70,13 @@ private slots:
 
 private:
 
+    void loadExperimentDatabase(const QString& filepath);
+
+private:
+
     Ui::MainWindow *ui;
+
+    QString m_filename;
 
     QSet< QString > m_plotsMap;  // key = <ClusteringCriteriaName>-<ClusterName>
 

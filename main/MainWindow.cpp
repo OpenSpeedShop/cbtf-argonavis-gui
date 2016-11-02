@@ -110,35 +110,79 @@ MainWindow::~MainWindow()
 }
 
 /**
+ * @brief MainWindow::setExperimentDatabase
+ * @param filename - the experiment database filename (.openss)
+ *
+ * This method is called to
+ */
+void MainWindow::setExperimentDatabase(const QString &filename)
+{
+    QFileInfo fileInfo( filename );
+
+    if ( fileInfo.exists() && Experiment::isAccessible( filename.toStdString().c_str() ) )
+        m_filename = filename;
+    else
+        m_filename = QString();
+}
+
+/**
+ * @brief MainWindow::showEvent
+ * @param event - the show event
+ *
+ * This method overrides the QMainWindow::showEvent implementation to load an experiment
+ * database if one was specified on the command-line when the application was run.
+ */
+void MainWindow::showEvent(QShowEvent *event)
+{
+    Q_UNUSED(event);
+
+    if ( ! m_filename.isEmpty() ) {
+        loadExperimentDatabase( m_filename );
+    }
+}
+
+/**
  * @brief MainWindow::loadOpenSsExperiment
  *
  * Action handler for loading Open|SpeedShop experiments.  Present open file dialog to user so
  * the user can browse the local file system to select the desired Open|SpeedShop experiment
- * (files with .openss extension).  The specified filename is passed to the performance data manager
- * in order to parse the experiment database into local data structures for viewing by the
- * performance data view.  Add the experiment loaded to the unload Open|SpeedShop experiment menu.
+ * (files with .openss extension).  The specified filename is passed to another loadOpenSsExperiment
+ * method to actually load the database into the application.
  */
 void MainWindow::loadOpenSsExperiment()
 {
-    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
-    if ( ! dataMgr )
-        return;
-
     QString filePath = QApplication::applicationDirPath();
     filePath = QFileDialog::getOpenFileName( this, tr("Open File"), filePath, "*.openss" );
     if ( filePath.isEmpty() )
         return;
 
+    loadExperimentDatabase( filePath );
+}
+
+/**
+ * @brief MainWindow::loadOpenSsExperiment
+ * @param filepath - the experiment database to load
+ *
+ * The specified filename is passed to the performance data manager in order to parse the experiment
+ * database into local data structures for viewing by the performance data view.  Add the experiment
+ * loaded to the unload Open|SpeedShop experiment menu.
+ */
+void MainWindow::loadExperimentDatabase(const QString& filepath)
+{
+    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
+    if ( ! dataMgr )
+        return;
+
     QApplication::setOverrideCursor( Qt::WaitCursor );
 
     QByteArray normalizedSignature = QMetaObject::normalizedSignature( "asyncLoadCudaViews(QString)" );
-    int methodIndex = dataMgr ->metaObject()->indexOfMethod( normalizedSignature );
+    int methodIndex = dataMgr->metaObject()->indexOfMethod( normalizedSignature );
     if ( -1 != methodIndex ) {
         QMetaMethod method = dataMgr->metaObject()->method( methodIndex );
-        method.invoke( dataMgr, Qt::QueuedConnection, Q_ARG( QString, filePath ) );
+        method.invoke( dataMgr, Qt::QueuedConnection, Q_ARG( QString, filepath ) );
     }
 
-    addUnloadOpenSsExperimentMenuItem( filePath );
+    addUnloadOpenSsExperimentMenuItem( filepath );
 }
 
 /**

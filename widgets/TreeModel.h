@@ -62,6 +62,8 @@ public:
     virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) Q_DECL_OVERRIDE;
     virtual QHash<int, QByteArray> roleNames() const Q_DECL_OVERRIDE;
 
+    TreeItem* getItem(const QModelIndex& index) const;
+
 private:
 
     TreeItem *rootItem;

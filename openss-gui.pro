@@ -10,6 +10,11 @@ QT += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets concurrent printsupport
 
+DEFINES += APP_MAJOR_VERSION=0
+DEFINES += APP_MINOR_VERSION=1
+DEFINES += APP_SUBMINOR_VERSION=0
+DEFINES += APP_BUILD_VERSION=0000
+
 CONFIG += c++11
 
 TARGET = openss-gui
@@ -69,7 +74,7 @@ DEFINES += HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
 #DEFINES += HAS_TIMER_THREAD_DESTROYED_CHECKING
 
 INCLUDEPATH += $$BOOST_ROOT/include $$BOOST_ROOT/include/boost
-LIBS += -L$$BOOST_ROOT/lib -lboost_system -lboost_thread
+LIBS += -L$$BOOST_ROOT/lib -lboost_system -lboost_thread -lboost_program_options
 # -lboost_date_time -lboost_filesystem -lboost_unit_test_framework -lboost_program_options
 LIBS += -Wl,-rpath $$BOOST_ROOT/lib
 LIBS += -lgomp

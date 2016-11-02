@@ -58,6 +58,7 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
     m_expView.setModel( m_expModel );
 
     m_expView.expandAll();
+    m_expView.setSelectionMode( QAbstractItemView::NoSelection );
     m_expView.setStyleSheet("QTreeView {"
                             "   font: 14px;"
                             "}"
@@ -118,6 +119,9 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
         success = m_expModel->insertRow( clusterNum, critIndex );
         Q_ASSERT( success );
         QModelIndex threadIndex = m_expModel->index( clusterNum, 0, critIndex );
+        TreeItem* item = m_expModel->getItem( threadIndex );
+        item->setCheckable( true );
+        m_expModel->setData( threadIndex, true, Qt::CheckStateRole );
         m_expModel->setData( threadIndex, clusterName, Qt::EditRole );
         ++clusterNum;
 

@@ -24,6 +24,7 @@
 #ifndef TREEITEM_H
 #define TREEITEM_H
 
+#include <QObject>
 #include <QList>
 #include <QVariant>
 
@@ -35,8 +36,12 @@ namespace ArgoNavis { namespace GUI {
  * \brief The TreeItem class
  */
 
-class TreeItem
+class TreeItem : public QObject
 {
+    Q_OBJECT
+    Q_PROPERTY(bool checkable READ isCheckable WRITE setCheckable NOTIFY checkableChanged)
+    Q_PROPERTY(bool checked READ isChecked() WRITE setChecked NOTIFY checkedChanged)
+
 public:
 
     explicit TreeItem(const QList<QVariant> &data, TreeItem *parent = 0);
@@ -51,13 +56,25 @@ public:
     QVariant data(int column) const;
     int row() const;
     TreeItem *parentItem();
-    void setData(int column, QVariant data);
+    void setData(int column, const QVariant& data);
+    // check state setter/getter
+    void setChecked(bool set){ m_checked = set; emit checkedChanged( set ); }
+    bool isChecked() const { return m_checked; }
+    // checkable state setter/getter
+    void setCheckable(bool set) { m_checkable = set; emit checkableChanged( set ); }
+    bool isCheckable() const { return m_checkable; }
+
+signals:
+
+    void checkableChanged(bool value);
+    void checkedChanged(bool value);
 
 private:
 
     QList<TreeItem*> m_childItems;
     QList<QVariant> m_itemData;
-    TreeItem *m_parentItem;
+    bool m_checked;
+    bool m_checkable;
 
 };
 

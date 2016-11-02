@@ -68,12 +68,7 @@ QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent) con
     if ( ! hasIndex(row, column, parent) )
         return QModelIndex();
 
-    TreeItem *parentItem;
-
-    if ( ! parent.isValid() )
-        parentItem = rootItem;
-    else
-        parentItem = static_cast< TreeItem* >( parent.internalPointer() );
+    TreeItem *parentItem = getItem( parent );
 
     TreeItem *childItem = parentItem->child( row );
     if ( childItem )
@@ -118,14 +113,10 @@ QModelIndex TreeModel::parent(const QModelIndex &index) const
  */
 int TreeModel::rowCount(const QModelIndex &parent) const
 {
-    TreeItem *parentItem;
     if ( parent.column() > 0 )
         return 0;
 
-    if ( ! parent.isValid() )
-        parentItem = rootItem;
-    else
-        parentItem = static_cast< TreeItem* >( parent.internalPointer() );
+    TreeItem *parentItem = getItem( parent );
 
     return parentItem->childCount();
 }
@@ -141,10 +132,7 @@ int TreeModel::rowCount(const QModelIndex &parent) const
  */
 int TreeModel::columnCount(const QModelIndex &parent) const
 {
-    if ( parent.isValid() )
-        return static_cast< TreeItem* >( parent.internalPointer() )->columnCount();
-    else
-        return rootItem->columnCount();
+    return getItem( parent )->columnCount();
 }
 
 /**
@@ -160,12 +148,37 @@ int TreeModel::columnCount(const QModelIndex &parent) const
  */
 bool TreeModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    Q_UNUSED( role )
+    TreeItem *item = getItem( index );
+    if ( role == Qt::CheckStateRole ) {
+        bool checked = value.toBool();
+        item->setChecked( checked );
+        emit dataChanged( index, index );
+        // modify children similarily
+        for ( int i=0; i<item->childCount(); i++ ) {
+            QModelIndex childIndex = TreeModel::index( i, 0, index );
+            TreeItem* child = getItem( childIndex );
+            // cause change and emit dataChanged signal only when really changed
+            if ( child && child->isChecked() != checked ) {
+                child->setChecked( checked );
+                emit dataChanged( childIndex, childIndex );
+            }
+        }
+        // modify parent to unchecked if one of it's children changes to unchecked
+        if ( ! checked ) {
+            QModelIndex parentIndex = index.parent();
+            TreeItem *parentItem = getItem( parentIndex );
+            // cause change and emit dataChanged signal only when really changed
+            if ( parentItem && parentItem->isChecked() != checked ) {
+                parentItem->setChecked( checked );
+                emit dataChanged( parentIndex, parentIndex );
+            }
+        }
+        return true;
+    }
 
-    if ( ! index.isValid() )
+    if ( role != Qt::EditRole )
         return false;
 
-    TreeItem* item = static_cast< TreeItem* >( index.internalPointer() );
     item->setData( index.column(), value );
 
     emit dataChanged( index, index );
@@ -194,11 +207,7 @@ bool TreeModel::insertRows(int row, int count, const QModelIndex &parent)
 
     QList< QVariant > data;
 
-    TreeItem* parentItem;
-    if ( ! parent.isValid() )
-        parentItem = rootItem;
-    else
-        parentItem = static_cast< TreeItem* >( parent.internalPointer() );
+    TreeItem* parentItem = getItem( parent );
 
     beginInsertRows( parent, row, row+count-1 );
     for ( int i=0; i<count; ++i ) {
@@ -249,6 +258,22 @@ QHash<int, QByteArray> TreeModel::roleNames() const
     return QAbstractItemModel::roleNames();
 }
 
+/**
+ * @brief TreeModel::getItem
+ * @param index - model index of item
+ * @return the TreeItem instance referenced by index
+ */
+TreeItem *TreeModel::getItem(const QModelIndex &index) const
+{
+    if ( index.isValid() ) {
+        TreeItem* item = static_cast< TreeItem* >( index.internalPointer() );
+        if ( item )
+            return item;
+    }
+
+    return rootItem;
+}
+
 /*!
  * \brief TreeModel::data
  * \param index - the tree item desired
@@ -265,10 +290,17 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
     if ( ! index.isValid() )
         return QVariant();
 
-    if ( role != Qt::DisplayRole )
+    TreeItem *item = static_cast< TreeItem* >( index.internalPointer() );
+
+    if ( ! item )
         return QVariant();
 
-    TreeItem *item = static_cast< TreeItem* >( index.internalPointer() );
+    if ( role == Qt::CheckStateRole && item->isCheckable() && 0 == index.column() ) {
+        return static_cast< int >( item->isChecked() ? Qt::Checked : Qt::Unchecked );
+    }
+
+    if ( role != Qt::DisplayRole && role != Qt::EditRole )
+        return QVariant();
 
     return item->data( index.column() );
 }
@@ -284,10 +316,17 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
  */
 Qt::ItemFlags TreeModel::flags(const QModelIndex &index) const
 {
-    if ( ! index.isValid() )
-        return 0;
+    Qt::ItemFlags flags(0);
 
-    return QAbstractItemModel::flags( index );
+    if ( index.isValid() ) {
+        flags = Qt::ItemIsEditable | QAbstractItemModel::flags(index);
+        TreeItem *item = getItem(index);
+        if ( item && item->isCheckable() ) {
+            flags |= Qt::ItemIsUserCheckable;
+        }
+    }
+
+    return flags;
 }
 
 /*!
