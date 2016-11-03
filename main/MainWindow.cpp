@@ -119,7 +119,7 @@ void MainWindow::setExperimentDatabase(const QString &filename)
 {
     QFileInfo fileInfo( filename );
 
-    if ( fileInfo.exists() && Experiment::isAccessible( filename.toStdString().c_str() ) )
+    if ( fileInfo.exists() && Experiment::isAccessible( filename.toUtf8().data() ) )
         m_filename = filename;
     else
         m_filename = QString();
