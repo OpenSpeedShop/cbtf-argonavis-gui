@@ -68,6 +68,7 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_viewStack->addWidget( blankView );
 
     // initialize model used for view combobox when in details mode
+    m_detailsViewModel.appendRow( new QStandardItem( QStringLiteral("All Events") ) );
     m_detailsViewModel.appendRow( new QStandardItem( QStringLiteral("Data Transfers") ) );
     m_detailsViewModel.appendRow( new QStandardItem( QStringLiteral("Kernel Executions") ) );
 
@@ -77,7 +78,7 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
     m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
 
-    // initial mode is metric mode
+    // initial mode is details mode
     m_mode = METRIC_MODE;
 
     // so set view selectiom model to metric view model
@@ -88,12 +89,20 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     if ( dataMgr ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::addMetricView, this, &PerformanceDataMetricView::handleInitModel );
+        connect( dataMgr, &PerformanceDataManager::addAssociatedMetricView, this, &PerformanceDataMetricView::handleInitModelView );
         connect( dataMgr, &PerformanceDataManager::addMetricViewData, this, &PerformanceDataMetricView::handleAddData );
+//        connect( dataMgr, static_cast<void (PerformanceDataManager::*)(const QString&,const QString&,const QString&,const QVariantList&,const QStringList&)>(&PerformanceDataManager::addMetricViewData),
+//                 this, &PerformanceDataMetricView::handleAddData );
         connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataMetricView::handleRequestMetricViewComplete );
 #else
-        connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QStringList)), this, SLOT(handleInitModel(QString,QString,QString,QStringList)) );
-        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList)), this, SLOT(handleAddData(QString,QString,QString,QVariantList)) );
-        connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,double,double)), this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,double,double)) );
+        connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QStringList)),
+                 this, SLOT(handleInitModel(QString,QString,QString,QStringList)) );
+        connect( dataMgr, SIGNAL(addAssociatedMetricView(QString,QString,QString,QString,QStringList)),
+                 this, SLOT(handleInitModelView(QString,QString,QString,QString,QStringList)) );
+        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList)),
+                 this, SLOT(handleAddData(QString,QString,QString,QVariantList)) );
+        connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,double,double)),
+                 this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,double,double)) );
 #endif
     }
 
@@ -177,7 +186,6 @@ void PerformanceDataMetricView::deleteAllModelsViews()
             }
         }
 
-        qDeleteAll( m_models );
         m_models.clear();
 
         qDeleteAll( m_proxyModels );
@@ -230,7 +238,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
     }
 
     QStandardItemModel* model = new QStandardItemModel( 0, metrics.size(), this );
-    QSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel;
+    ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel;
 
     if ( Q_NULLPTR == model || Q_NULLPTR == proxyModel )
         return;
@@ -301,6 +309,104 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
     // initialize this as the current view only when the blank view is active
     if ( m_viewStack->currentWidget() == m_views[ "none" ] ) {
         m_viewStack->setCurrentWidget( view );
+    }
+}
+
+/**
+ * @brief PerformanceDataMetricView::handleInitModelView
+ * @param clusterName
+ * @param metricName
+ * @param viewName
+ * @param metricViewName
+ * @param metrics
+ */
+void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, const QString &metricName, const QString &viewName, const QString &attachedMetricViewName, const QStringList &metrics)
+{
+    if ( m_clusterName.isEmpty() )
+        m_clusterName = clusterName;
+
+    if ( m_clusterName != clusterName )
+        return;
+
+    const QString metricViewName = metricName + "-" + viewName;
+
+    QStandardItemModel* model( nullptr );
+
+    {
+        QMutexLocker guard( &m_mutex );
+
+        model = m_models.value( attachedMetricViewName, Q_NULLPTR );
+
+        QSortFilterProxyModel* proxyModel = m_proxyModels.value( metricViewName, Q_NULLPTR );
+        if ( proxyModel ) {
+            proxyModel->setSourceModel( Q_NULLPTR );
+            m_proxyModels.remove( metricViewName );
+            delete proxyModel;
+        }
+    }
+
+    const QString type = viewName.left( viewName.length()-1 );    // remove 's' at end
+
+    ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel( type );
+
+    if ( Q_NULLPTR == model || Q_NULLPTR == proxyModel )
+        return;
+
+    proxyModel->setSourceModel( model );
+
+    QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
+    bool newViewCreated( false );
+
+    if ( Q_NULLPTR == view ) {
+        view = new QTreeView;
+        // set static view properties: has custom context menu, doesn't allow editing, has no root decoration
+        view->setContextMenuPolicy( Qt::CustomContextMenu );
+        view->setEditTriggers( QAbstractItemView::NoEditTriggers );
+        view->setRootIsDecorated( false );
+        // initially sorting is disabled and enabled once all data has been added to the metric/detail model
+        view->setSortingEnabled( false );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        connect( view, &QTreeView::clicked, [=](const QModelIndex& index) {
+            processTableViewItemClicked( view, index );
+        } );
+        connect( view, &QTreeView::customContextMenuRequested, [=](const QPoint& pos) {
+            processCustomContextMenuRequested( view, pos );
+        } );
+#else
+        connect( view, SIGNAL(clicked(QModelIndex)), this, SLOT(handleTableViewItemClicked(QModelIndex)) );
+        connect( view, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(handleCustomContextMenuRequested(QPoint)) );
+#endif
+        newViewCreated = true;
+    }
+
+    if ( Q_NULLPTR == view )
+        return;
+
+    {
+        QMutexLocker guard( &m_mutex );
+
+        view->setModel( proxyModel );
+
+        proxyModel->setColumnHeaders( metrics );
+
+        // resize header view columns to maximum size required to fit all column contents
+        QHeaderView* headerView = view->header();
+        if ( headerView ) {
+            headerView->setStretchLastSection( true );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+            headerView->setSectionResizeMode( QHeaderView::ResizeToContents );
+#else
+            headerView->setResizeMode( QHeaderView::ResizeToContents );
+#endif
+        }
+
+        m_models[ metricViewName ] = model;
+        m_proxyModels[ metricViewName ] = proxyModel;
+
+        if ( newViewCreated ) {
+            m_viewStack->addWidget( view );
+            m_views[ metricViewName ] = view;
+        }
     }
 }
 
@@ -411,12 +517,13 @@ void PerformanceDataMetricView::extractFilenameAndLine(const QString& text, QStr
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param data - the data to add to the model
+ * @param columnHeaders - if present provides the names of the columns for each index in the data
  *
  * Inserts a row into the model of the specified metric view.
  */
-void PerformanceDataMetricView::handleAddData(const QString& clusterName, const QString &metricName, const QString& viewName, const QVariantList& data)
+void PerformanceDataMetricView::handleAddData(const QString& clusterName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList &columnHeaders)
 {
-    if ( m_clusterName != clusterName )
+    if ( m_clusterName != clusterName || ( ! columnHeaders.isEmpty() && data.size() != columnHeaders.size() ) )
         return;
 
     const QString metricViewName = metricName + "-" + viewName;
@@ -428,10 +535,32 @@ void PerformanceDataMetricView::handleAddData(const QString& clusterName, const 
     if ( Q_NULLPTR == model )
         return;
 
+    // make a new row for the data
     model->insertRow( 0 );
 
-    for ( int i=0; i<data.size(); ++i ) {
-        model->setData( model->index( 0, i ), data.at( i ) );
+    if ( columnHeaders.isEmpty() ) {
+        // without column headers just insert into the model in sequential order of the data indexes
+        for ( int i=0; i<data.size(); ++i ) {
+            model->setData( model->index( 0, i ), data.at( i ) );
+        }
+    }
+    else {
+        // with column headers need to map the name of the column associated with each data index to
+        // the proper column index in the model
+        QStringList modelColumnHeaders;
+
+        for (int i=0; i<model->columnCount(); ++i) {
+            modelColumnHeaders << model->headerData( i, Qt::Horizontal ).toString();
+        }
+
+        int count = 0;
+        foreach( const QString& name, columnHeaders ) {
+            int index = modelColumnHeaders.indexOf( name );
+            if ( index != -1 ) {
+                model->setData( model->index( 0, index ), data.at( count ) );
+            }
+            ++count;
+        }
     }
 }
 
@@ -565,7 +694,7 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
         // now sorting can be enabled
         view->setSortingEnabled( true );
         if ( QStringLiteral("Details") == metricName )
-            view->sortByColumn( 0, Qt::AscendingOrder );
+            view->sortByColumn( 2, Qt::AscendingOrder );
         else
             view->sortByColumn( 0, Qt::DescendingOrder );
     }

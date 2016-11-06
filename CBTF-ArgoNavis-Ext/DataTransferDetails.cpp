@@ -41,7 +41,8 @@ namespace ArgoNavis { namespace CUDA {
  */
 QStringList getDataTransferDetailsHeaderList()
 {
-    return QStringList() << QStringLiteral("Time")
+    return QStringList() << QStringLiteral("Type")
+                         << QStringLiteral("Time")
                          << QStringLiteral("Time Begin")
                          << QStringLiteral("Time End")
                          << QStringLiteral("Call Site")
@@ -63,7 +64,8 @@ QStringList getDataTransferDetailsHeaderList()
  */
 QVariantList getDataTransferDetailsDataList(const Base::Time &time_origin, const DataTransfer& details)
 {
-    return QVariantList() << QVariant::fromValue( static_cast<uint64_t>( details.time - time_origin )  / 1000000.0 )
+    return QVariantList() << QStringLiteral("Data Transfer")
+                          << QVariant::fromValue( static_cast<uint64_t>( details.time - time_origin )  / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.time_begin - time_origin )  / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.time_end - time_origin )  / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.call_site ) )

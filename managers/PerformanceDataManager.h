@@ -110,7 +110,7 @@ public slots:
     void asyncLoadCudaViews(const QString& filePath);
 
     void handleRequestMetricView(const QString& clusterName, const QString& metric, const QString& view);
-    void handleRequestDetailView(const QString& clusterName, const QString& detailName);
+    void handleProcessDetailViews(const QString& clusterName);
 
 signals:
 
@@ -138,8 +138,9 @@ signals:
     void addCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
 
     void addMetricView(const QString& clusterName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void addAssociatedMetricView(const QString& clusterName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
 
-    void addMetricViewData(const QString& clusterName, const QString& metricName, const QString& viewName, const QVariantList& data);
+    void addMetricViewData(const QString& clusterName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
 
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
     void removeCluster(const QString& clusteringCriteriaName, const QString& clusterName);
@@ -251,10 +252,9 @@ private:
 
     typedef struct {
         QStringList metricList;
-        QStringList viewList;
-        QStringList tableColumnHeaders;
+        QStringList viewList;                 // processed metric views
+        QStringList tableColumnHeaders;       // table column headers for metric views
         QStringList metricViewList;           // [ <metric name> | "Details" ] - [ <View Name> ]
-        QMap< QString, QStringList > metricViewColumnList;    // key = [ <metric name> | "Details" ] - [ <View Name> ]
         QString experimentFilename;
         OpenSpeedShop::Framework::TimeInterval interval;
     } MetricTableViewInfo;

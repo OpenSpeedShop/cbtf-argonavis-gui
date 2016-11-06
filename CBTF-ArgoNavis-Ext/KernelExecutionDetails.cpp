@@ -18,7 +18,8 @@ namespace ArgoNavis { namespace CUDA {
  */
 QStringList getKernelExecutionDetailsHeaderList()
 {
-    return QStringList() << QStringLiteral("Time")
+    return QStringList() << QStringLiteral("Type")
+                         << QStringLiteral("Time")
                          << QStringLiteral("Time Begin")
                          << QStringLiteral("Time End")
                          << QStringLiteral("Call Site")
@@ -47,7 +48,8 @@ QStringList getKernelExecutionDetailsHeaderList()
  */
 QVariantList getKernelExecutionDetailsDataList(const ArgoNavis::Base::Time &time_origin, const KernelExecution &details)
 {
-    return QVariantList() << QVariant::fromValue( static_cast<uint64_t>( details.time - time_origin ) / 1000000.0 )
+    return QVariantList() << QStringLiteral("Kernel Execution")
+                          << QVariant::fromValue( static_cast<uint64_t>( details.time - time_origin ) / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.time_begin - time_origin ) / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.time_end - time_origin ) / 1000000.0 )
                           << QVariant::fromValue( static_cast<uint64_t>( details.call_site ) )
