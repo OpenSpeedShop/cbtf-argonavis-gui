@@ -38,6 +38,9 @@ CBTF_ROOT = $$(CBTF_ROOT)
 OSS_CBTF_ROOT = $$(OSS_CBTF_ROOT)
 BOOST_ROOT = $$(BOOST_ROOT)
 
+target.path = $$(OSS_CBTF_ROOT)/bin
+INSTALLS += target
+
 LIBS += -L$$KRELL_ROOT/lib64
 LIBS += -Wl,-rpath $$KRELL_ROOT/lib64
 LIBS += -lxerces-c-3.1 -lxplat
