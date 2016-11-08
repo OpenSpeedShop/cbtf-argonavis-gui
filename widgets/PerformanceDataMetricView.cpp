@@ -91,8 +91,6 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::addMetricView, this, &PerformanceDataMetricView::handleInitModel );
         connect( dataMgr, &PerformanceDataManager::addAssociatedMetricView, this, &PerformanceDataMetricView::handleInitModelView );
         connect( dataMgr, &PerformanceDataManager::addMetricViewData, this, &PerformanceDataMetricView::handleAddData );
-//        connect( dataMgr, static_cast<void (PerformanceDataManager::*)(const QString&,const QString&,const QString&,const QVariantList&,const QStringList&)>(&PerformanceDataManager::addMetricViewData),
-//                 this, &PerformanceDataMetricView::handleAddData );
         connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataMetricView::handleRequestMetricViewComplete );
 #else
         connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QStringList)),
@@ -202,7 +200,7 @@ void PerformanceDataMetricView::deleteAllModelsViews()
 }
 
 /**
- * @brief PerformanceDataMetricView::initModel
+ * @brief PerformanceDataMetricView::handleInitModel
  * @param clusterName - cluster name associated to the metric view
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
@@ -238,14 +236,24 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
     }
 
     QStandardItemModel* model = new QStandardItemModel( 0, metrics.size(), this );
-    ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel;
 
-    if ( Q_NULLPTR == model || Q_NULLPTR == proxyModel )
+    if ( Q_NULLPTR == model )
         return;
 
     model->setHorizontalHeaderLabels( metrics );
 
+    m_models[ metricViewName ] = model;
+
+    if ( QStringLiteral("Details") == metricName  )
+        return;
+
+    ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel;
+
+    if ( Q_NULLPTR == proxyModel )
+        return;
+
     proxyModel->setSourceModel( model );
+    proxyModel->setColumnHeaders( metrics );
 
     QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
     bool newViewCreated( false );
@@ -291,7 +299,6 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
 #endif
         }
 
-        m_models[ metricViewName ] = model;
         m_proxyModels[ metricViewName ] = proxyModel;
 
         if ( newViewCreated ) {
@@ -301,7 +308,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
     }
 
     // Make sure metric view not already in combobox
-    if ( QStringLiteral("Details") != metricName && ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
+    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
         // Add metric view to combobox
         ui->comboBox_MetricSelection->addItem( metricName );
     }
@@ -314,11 +321,13 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
 
 /**
  * @brief PerformanceDataMetricView::handleInitModelView
- * @param clusterName
- * @param metricName
- * @param viewName
- * @param metricViewName
- * @param metrics
+ * @param clusterName - cluster name associated to the metric view
+ * @param metricName - name of metric view for which to add data to model
+ * @param viewName - name of the view for which to add data to model
+ * @param attachedMetricViewName - name of metric view whose model should also be attached to this new metric view
+ * @param metrics - list of metrics for setting column headers
+ *
+ * Create and initialize the model and view for the new metric view.  Attach the view to the model associated with the attached metric view.
  */
 void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, const QString &metricName, const QString &viewName, const QString &attachedMetricViewName, const QStringList &metrics)
 {
@@ -330,7 +339,7 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, 
 
     const QString metricViewName = metricName + "-" + viewName;
 
-    QStandardItemModel* model( nullptr );
+    QStandardItemModel* model( Q_NULLPTR );
 
     {
         QMutexLocker guard( &m_mutex );
@@ -345,7 +354,7 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, 
         }
     }
 
-    const QString type = viewName.left( viewName.length()-1 );    // remove 's' at end
+    const QString type = ( viewName == "All Events" ) ? "*" : viewName.left( viewName.length()-1 );    // remove 's' at end
 
     ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel( type );
 
@@ -363,8 +372,6 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, 
         view->setContextMenuPolicy( Qt::CustomContextMenu );
         view->setEditTriggers( QAbstractItemView::NoEditTriggers );
         view->setRootIsDecorated( false );
-        // initially sorting is disabled and enabled once all data has been added to the metric/detail model
-        view->setSortingEnabled( false );
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( view, &QTreeView::clicked, [=](const QModelIndex& index) {
             processTableViewItemClicked( view, index );
@@ -383,11 +390,14 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, 
         return;
 
     {
-        QMutexLocker guard( &m_mutex );
-
-        view->setModel( proxyModel );
+        QMutexLocker guard( &m_mutex ); 
 
         proxyModel->setColumnHeaders( metrics );
+
+        // the model is set to the proxy model
+        view->setModel( proxyModel );
+        // initially sorting is disabled and enabled once all data has been added to the metric/detail model
+        view->setSortingEnabled( false );
 
         // resize header view columns to maximum size required to fit all column contents
         QHeaderView* headerView = view->header();
@@ -400,7 +410,6 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, 
 #endif
         }
 
-        m_models[ metricViewName ] = model;
         m_proxyModels[ metricViewName ] = proxyModel;
 
         if ( newViewCreated ) {
@@ -693,8 +702,12 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
 
         // now sorting can be enabled
         view->setSortingEnabled( true );
-        if ( QStringLiteral("Details") == metricName )
-            view->sortByColumn( 2, Qt::AscendingOrder );
+        if ( QStringLiteral("Details") == metricName ) {
+            if ( QStringLiteral("All Events") == viewName )
+                view->sortByColumn( 1, Qt::AscendingOrder );
+            else
+                view->sortByColumn( 2, Qt::AscendingOrder );
+        }
         else
             view->sortByColumn( 0, Qt::DescendingOrder );
     }

@@ -1,6 +1,7 @@
 #include "ViewSortFilterProxyModel.h"
 
 #include <QDateTime>
+#include <QStringList>
 
 #include <limits>
 
@@ -82,11 +83,13 @@ void ViewSortFilterProxyModel::setColumnHeaders(const QStringList &columnHeaders
  */
 bool ViewSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
 {
+    bool result( true );
+
     QModelIndex indexType = sourceModel()->index( source_row, 0, source_parent );       // "Type" index
     QVariant typeVar = sourceModel()->data( indexType );
-    QModelIndex indexTimeBegin = sourceModel()->index( source_row, 1, source_parent );  // "Time Begin" index
+    QModelIndex indexTimeBegin = sourceModel()->index( source_row, 2, source_parent );  // "Time Begin" index
     QVariant timeBeginVar = sourceModel()->data( indexTimeBegin );
-    QModelIndex indexTimeEnd = sourceModel()->index( source_row, 2, source_parent );    // "Time End" index
+    QModelIndex indexTimeEnd = sourceModel()->index( source_row, 3, source_parent );    // "Time End" index
     QVariant timeEndVar = sourceModel()->data( indexTimeEnd );
 
     if ( QVariant::String == typeVar.type() && QVariant::Double == timeBeginVar.type() && QVariant::Double == timeEndVar.type()  ) {
@@ -95,11 +98,11 @@ bool ViewSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInde
         const double timeEnd = timeEndVar.toDouble();      // "Time End" value
         // keep row if either "Time Begin" value within range defined by ['m_lower' .. 'm_upper'] OR
         // "Time Begin" is before 'm_lower' but "Time End" is equal to or greater than 'm_lower'
-        return ( ( m_type == "*" || type == m_type ) &&
-                 ( timeBegin >= m_lower && timeBegin <= m_upper || timeBegin < m_lower && timeEnd >= m_lower ) );
+        result = ( ( m_type == "*" || type == m_type ) &&
+                   ( timeBegin >= m_lower && timeBegin <= m_upper || timeBegin < m_lower && timeEnd >= m_lower ) );
     }
 
-    return true;
+    return result;
 }
 
 /**
@@ -112,7 +115,7 @@ bool ViewSortFilterProxyModel::filterAcceptsColumn(int source_column, const QMod
 {
     Q_UNUSED(source_parent);
 
-    return ( m_type == "*" || ( source_column != 0 &&  m_columns.contains( source_column ) ) );
+    return ( ( m_type == "*" || source_column != 0  ) &&  m_columns.contains( source_column ) );
 }
 
 

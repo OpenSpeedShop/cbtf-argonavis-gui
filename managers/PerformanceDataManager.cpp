@@ -229,55 +229,21 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
     }
 
     QStringList tableColumnHeaders = info.tableColumnHeaders;
-    QStringList metricDesc;
     TimeInterval interval = info.interval;
-
-    metricDesc << tableColumnHeaders.takeFirst() << tableColumnHeaders.takeFirst() << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
-
-    emit addMetricView( clusterName, metricName, viewName, metricDesc );
 
     if ( ! info.viewList.contains( viewName ) )
         info.viewList << viewName;
 
-    if ( viewName == QStringLiteral("Functions") ) {
+    loadCudaMetricViews(
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        QString functionView = metricName + QStringLiteral("-Functions");
-        futures[ functionView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Function>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
-        synchronizer.addFuture( futures[ functionView ] );
-#else
-        processMetricView<Function>( collector.get(), experiment.getThreads(), metric, metricDesc );
+                         synchronizer, futures,
 #endif
-    }
-
-    else if ( viewName == QStringLiteral("Statements") ) {
-#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        QString statementView = metricName + QStringLiteral("-Statements");
-        futures[ statementView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
-        synchronizer.addFuture( futures[ statementView ] );
-#else
-        processMetricView<Statement>( collector.get(), experiment.getThreads(), metric, metricDesc );
-#endif
-    }
-
-    else if ( viewName == QStringLiteral("LinkedObjects") ) {
-#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        QString linkedObjectView = metricName + QStringLiteral("-LinkedObjects");
-        futures[ linkedObjectView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
-        synchronizer.addFuture( futures[ linkedObjectView ] );
-#else
-        processMetricView<LinkedObject>( collector.get(), experiment.getThreads(), metric, metricDesc );
-#endif
-    }
-
-    else if ( viewName == QStringLiteral("Loops") ) {
-#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        QString loopViewView = metricName + QStringLiteral("-Loops");
-        futures[ loopViewView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
-        synchronizer.addFuture( futures[ loopViewView ] );
-#else
-        processMetricView<Loop>( collector.get(), experiment.getThreads(), metric, metricDesc );
-#endif
-    }
+                         QStringList() << metricName,
+                         QStringList() << viewName,
+                         QStringList() << tableColumnHeaders.takeFirst() << tableColumnHeaders.takeFirst() << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle,
+                         collector,
+                         experiment,
+                         interval );
 
     if ( futures.size() > 0 ) {
         // Determine full time interval extent of this experiment
@@ -292,9 +258,9 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
         synchronizer.waitForFinished();
 
         emit requestMetricViewComplete( clusterName, metricName, viewName, lower, upper );
-
-        QApplication::restoreOverrideCursor();
     }
+
+    QApplication::restoreOverrideCursor();
 }
 
 /**
@@ -316,16 +282,18 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusterName
 
     MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
 
-    const QString metricName = QStringLiteral("Details");
-    const QString viewName = ALL_EVENTS_DETAILS_VIEW;
-    const QString metricViewName = QStringLiteral("Details") + "-" + viewName;
+    const QString metricViewName = CUDA_EVENT_DETAILS_METRIC + "-" + ALL_EVENTS_DETAILS_VIEW;
 
+    // the details view should only be setup once
     if ( info.metricViewList.contains( metricViewName ) )
         return;
 
-    for ( auto m : { viewName, KERNEL_EXECUTION_DETAILS_VIEW, DATA_TRANSFER_DETAILS_VIEW } ) {
-        const QString metricViewName = QStringLiteral("Details") + "-" + m;
-        info.metricViewList << metricViewName;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    for ( auto metricName : { ALL_EVENTS_DETAILS_VIEW, KERNEL_EXECUTION_DETAILS_VIEW, DATA_TRANSFER_DETAILS_VIEW } ) {
+#else
+    foreach ( const QString& metricName, QStringList() << ALL_EVENTS_DETAILS_VIEW << KERNEL_EXECUTION_DETAILS_VIEW << DATA_TRANSFER_DETAILS_VIEW ) {
+#endif
+        info.metricViewList << ( CUDA_EVENT_DETAILS_METRIC + "-" + metricName );
     }
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -362,19 +330,28 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusterName
         }
     }
 
-    // Generate the "All Events" table column list which is initialized to the column list of
-    // the "Kernel Executions" with the unique columns from the "Data Transfers" column list
-    // appended to the end.
-    QStringList tableColumnList = ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList();
+    // defines columns of model for both Data Transfer and Kernel Execution events
+    QStringList tableColumnList = ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList();  // intialize with columns for Kernel Execution events
+    // defines columns common to Kernel Execution and Data Transfer events to be used for "All Events" details view
+    QStringList commonColumnList;
+
+    // Generate the "All Events" details view column list with the common columns from the "Data Transfers" and "Kernel Executions" column lists.
+    // Generate the detail view model column list by adding the unique columns from the "Data Transfers" column list appended to the end of the
+    // "Kernel Executions" column list.
     foreach( const QString& columnName, ArgoNavis::CUDA::getDataTransferDetailsHeaderList() ) {
-        if ( ! tableColumnList.contains( columnName ) )
+        if ( tableColumnList.contains( columnName ) )
+            commonColumnList << columnName;
+        else
             tableColumnList << columnName;
     }
 
-    emit addMetricView( clusterName, metricName, viewName, tableColumnList );
+    // for details view emit signal to create just the model
+    emit addMetricView( clusterName, CUDA_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW, tableColumnList );
 
-    emit addAssociatedMetricView( clusterName, metricName, KERNEL_EXECUTION_DETAILS_VIEW, metricViewName, ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList() );
-    emit addAssociatedMetricView( clusterName, metricName, DATA_TRANSFER_DETAILS_VIEW, metricViewName, ArgoNavis::CUDA::getDataTransferDetailsHeaderList() );
+    // build the proxy views and tree views for the three details views: "All Events", "Kernel Executions" and "Data Transfers"
+    emit addAssociatedMetricView( clusterName, CUDA_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW, metricViewName, commonColumnList );
+    emit addAssociatedMetricView( clusterName, CUDA_EVENT_DETAILS_METRIC, KERNEL_EXECUTION_DETAILS_VIEW, metricViewName, ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList() );
+    emit addAssociatedMetricView( clusterName, CUDA_EVENT_DETAILS_METRIC, DATA_TRANSFER_DETAILS_VIEW, metricViewName, ArgoNavis::CUDA::getDataTransferDetailsHeaderList() );
 
     QFutureSynchronizer<void> synchronizer;
 
@@ -401,9 +378,9 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusterName
 
     synchronizer.waitForFinished();
 
-    emit requestMetricViewComplete( clusterName, metricName, viewName, lower, upper );
-    emit requestMetricViewComplete( clusterName, metricName, KERNEL_EXECUTION_DETAILS_VIEW, lower, upper );
-    emit requestMetricViewComplete( clusterName, metricName, DATA_TRANSFER_DETAILS_VIEW, lower, upper );
+    emit requestMetricViewComplete( clusterName, CUDA_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW, lower, upper );
+    emit requestMetricViewComplete( clusterName, CUDA_EVENT_DETAILS_METRIC, KERNEL_EXECUTION_DETAILS_VIEW, lower, upper );
+    emit requestMetricViewComplete( clusterName, CUDA_EVENT_DETAILS_METRIC, DATA_TRANSFER_DETAILS_VIEW, lower, upper );
 }
 
 /**
@@ -1020,10 +997,8 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         const QString functionView = QStringLiteral("Functions");
 
         foreach ( const QString& metricName, metricList ) {
-            emit addMetricView( hostName, metricName, functionView, metricDescList );
+            handleRequestMetricView( hostName, metricName, functionView );
         }
-
-        handleRequestMetricView( hostName, metricList.first(), functionView );
 
         synchronizer.waitForFinished();
     }
@@ -1040,6 +1015,9 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
  * @param clusterName - the cluster name
  * @param lower - the lower value of the interval to process
  * @param upper - the upper value of the interval to process
+ *
+ * Handles graph range change - initiates a timed monitor to actually process the graph range change if user hasn't
+ * continued to update the graph range within a threshold period.
  */
 void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterName, double lower, double upper)
 {
@@ -1053,6 +1031,7 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
     // cancel any active processing for this cluster
     m_userChangeMgr.cancel( clusterName );
 
+    // initiate a new timed monitor for this cluster
     m_userChangeMgr.create( clusterName, lower, upper );
 }
 
@@ -1066,21 +1045,14 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
  */
 void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clusterName, double lower, double upper)
 {
-    if ( ! m_tableViewInfo.contains( clusterName ) )
-        return;
-
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
 #endif
 
-    MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
+    if ( ! m_tableViewInfo.contains( clusterName ) )
+        return;
 
-    // re-initialize metric table views only not detail views as those do not need to be regenerated
-    foreach ( const QString& metric, info.metricList ) {
-        foreach ( const QString& viewName, info.viewList ) {
-            emit addMetricView( clusterName, metric, viewName, info.tableColumnHeaders );
-        }
-    }
+    MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
     QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
@@ -1153,6 +1125,8 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
  * @param collector - the collector object
  * @param experiment - the experiment object
  * @param interval - the interval to process for the metric view
+ *
+ * Process the specified metric views.
  */
 void PerformanceDataManager::loadCudaMetricViews(
                                                  #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
@@ -1219,6 +1193,8 @@ void PerformanceDataManager::loadCudaMetricViews(
  * @brief PerformanceDataManager::unloadCudaViews
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterNames - the list of associated clusters
+ *
+ * Unload all CUDA views for the specified clusters in the clustering criteria.
  */
 void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaName, const QStringList &clusterNames)
 {
