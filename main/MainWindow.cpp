@@ -181,6 +181,10 @@ void MainWindow::loadExperimentDatabase(const QString& filepath)
     }
 
     addUnloadOpenSsExperimentMenuItem( filepath );
+
+#if defined(HAS_OSSCUDA2XML)
+    dataMgr->xmlDump( filepath );
+#endif
 }
 
 /**
