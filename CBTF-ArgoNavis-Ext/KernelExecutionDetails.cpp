@@ -19,9 +19,10 @@ namespace ArgoNavis { namespace CUDA {
 QStringList getKernelExecutionDetailsHeaderList()
 {
     return QStringList() << QStringLiteral("Type")
-                         << QStringLiteral("Time")
-                         << QStringLiteral("Time Begin")
-                         << QStringLiteral("Time End")
+                         << QStringLiteral("Time (ms)")
+                         << QStringLiteral("Time Begin (ms)")
+                         << QStringLiteral("Time End (ms)")
+                         << QStringLiteral("Duration (ms)")
                          << QStringLiteral("Call Site")
                          << QStringLiteral("Device")
                          << QStringLiteral("Function")
@@ -48,10 +49,14 @@ QStringList getKernelExecutionDetailsHeaderList()
  */
 QVariantList getKernelExecutionDetailsDataList(const ArgoNavis::Base::Time &time_origin, const KernelExecution &details)
 {
+    double timeBegin( static_cast<uint64_t>( details.time_begin - time_origin ) / 1000000.0 );
+    double timeEnd( static_cast<uint64_t>( details.time_end - time_origin ) / 1000000.0 );
+    double duration( timeEnd - timeBegin );
     return QVariantList() << QStringLiteral("Kernel Execution")
                           << QVariant::fromValue( static_cast<uint64_t>( details.time - time_origin ) / 1000000.0 )
-                          << QVariant::fromValue( static_cast<uint64_t>( details.time_begin - time_origin ) / 1000000.0 )
-                          << QVariant::fromValue( static_cast<uint64_t>( details.time_end - time_origin ) / 1000000.0 )
+                          << QVariant::fromValue( timeBegin )
+                          << QVariant::fromValue( timeEnd )
+                          << QVariant::fromValue( duration )
                           << QVariant::fromValue( static_cast<uint64_t>( details.call_site ) )
                           << QVariant::fromValue( static_cast<uint64_t>( details.device ) )
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))

@@ -42,12 +42,14 @@ namespace ArgoNavis { namespace CUDA {
 QStringList getDataTransferDetailsHeaderList()
 {
     return QStringList() << QStringLiteral("Type")
-                         << QStringLiteral("Time")
-                         << QStringLiteral("Time Begin")
-                         << QStringLiteral("Time End")
+                         << QStringLiteral("Time (ms)")
+                         << QStringLiteral("Time Begin (ms)")
+                         << QStringLiteral("Time End (ms)")
+                         << QStringLiteral("Duration (ms)")
                          << QStringLiteral("Call Site")
                          << QStringLiteral("Device")
                          << QStringLiteral("Size")
+                         << QStringLiteral("Rate (GB/s)")
                          << QStringLiteral("Kind")
                          << QStringLiteral("Source Kind")
                          << QStringLiteral("Destination Kind")
@@ -64,19 +66,26 @@ QStringList getDataTransferDetailsHeaderList()
  */
 QVariantList getDataTransferDetailsDataList(const Base::Time &time_origin, const DataTransfer& details)
 {
+    double timeBegin( static_cast<uint64_t>( details.time_begin - time_origin ) / 1000000.0 );
+    double timeEnd( static_cast<uint64_t>( details.time_end - time_origin ) / 1000000.0 );
+    double duration( timeEnd - timeBegin );
+    double transferRate( ( details.size / 1000000000.0 ) / ( duration / 1000.0 ) );
     return QVariantList() << QStringLiteral("Data Transfer")
                           << QVariant::fromValue( static_cast<uint64_t>( details.time - time_origin )  / 1000000.0 )
-                          << QVariant::fromValue( static_cast<uint64_t>( details.time_begin - time_origin )  / 1000000.0 )
-                          << QVariant::fromValue( static_cast<uint64_t>( details.time_end - time_origin )  / 1000000.0 )
+                          << QVariant::fromValue( timeBegin )
+                          << QVariant::fromValue( timeEnd )
+                          << QVariant::fromValue( duration )
                           << QVariant::fromValue( static_cast<uint64_t>( details.call_site ) )
                           << QVariant::fromValue( static_cast<uint64_t>( details.device ) )
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
                           << QString::fromStdString( CUDA::stringify( ByteCount( details.size ) ) )
+                          << QVariant::fromValue( transferRate )
                           << QString::fromStdString( CUDA::stringify(details.kind ) )
                           << QString::fromStdString( CUDA::stringify(details.source_kind ) )
                           << QString::fromStdString( CUDA::stringify(details.destination_kind ) )
 #else
                           << QString( CUDA::stringify( ByteCount( details.size ) ).c_str() )
+                          << QVariant::fromValue( transferRate )
                           << QString( CUDA::stringify(details.kind ).c_str() )
                           << QString( CUDA::stringify(details.source_kind ).c_str() )
                           << QString( CUDA::stringify(details.destination_kind ).c_str() )

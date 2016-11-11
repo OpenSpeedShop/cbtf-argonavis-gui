@@ -28,6 +28,7 @@
 #include "managers/BackgroundGraphRenderer.h"
 #include "CBTF-ArgoNavis-Ext/DataTransferDetails.h"
 #include "CBTF-ArgoNavis-Ext/KernelExecutionDetails.h"
+#include "CBTF-ArgoNavis-Ext/ClusterNameBuilder.h"
 
 #include <iostream>
 #include <string>
@@ -495,16 +496,8 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
                                                     const QSet< int >& gpuCounterIndexes,
                                                     const QString& clusteringCriteriaName)
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    QString clusterName = QString::fromStdString( thread.host() );
-#else
-    QString clusterName = QString( thread.host().c_str() );
-#endif
-#ifdef HAS_STRIP_DOMAIN_NAME
-    int index = clusterName.indexOf( '.' );
-    if ( index > 0 )
-        clusterName = clusterName.left( index );
-#endif
+    QString clusterName = ArgoNavis::CUDA::getUniqueClusterName( thread );
+
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::processPerformanceData: cluster name: " << clusterName;
 #endif
@@ -845,16 +838,8 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 
     // get cluster name
     Thread thread = *(threads.begin());
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    QString clusterName = QString::fromStdString( thread.getHost() );
-#else
-    QString clusterName = QString( thread.getHost().c_str() );
-#endif
-#ifdef HAS_STRIP_DOMAIN_NAME
-    int index = clusterName.indexOf( '.' );
-    if ( index > 0 )
-        clusterName = clusterName.left( index );
-#endif
+
+    const QString clusterName = ArgoNavis::CUDA::getUniqueClusterName( thread );
 
     emit addMetricView( clusterName, metric, viewName, metricDesc );
 
@@ -973,16 +958,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
         Thread thread = *(experiment.getThreads().begin());
 
-    #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        QString hostName = QString::fromStdString( thread.getHost() );
-    #else
-        QString hostName = QString( thread.getHost().c_str() );
-    #endif
-    #ifdef HAS_STRIP_DOMAIN_NAME
-        int index = hostName.indexOf( '.' );
-        if ( index > 0 )
-            hostName = hostName.left( index );
-    #endif
+        const QString clusterName = ArgoNavis::CUDA::getUniqueClusterName( thread );
 
         MetricTableViewInfo info;
         info.metricList = metricList;
@@ -990,14 +966,14 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         info.experimentFilename = experimentFilename;
         info.interval = interval;
 
-        m_tableViewInfo[ hostName ] = info;
+        m_tableViewInfo[ clusterName ] = info;
 
-        handleProcessDetailViews( hostName );
+        handleProcessDetailViews( clusterName );
 
         const QString functionView = QStringLiteral("Functions");
 
         foreach ( const QString& metricName, metricList ) {
-            handleRequestMetricView( hostName, metricName, functionView );
+            handleRequestMetricView( clusterName, metricName, functionView );
         }
 
         synchronizer.waitForFinished();
@@ -1292,16 +1268,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     QMap< Base::ThreadName, Thread>::iterator iter( threads.begin() );
     while ( iter != threads.end() ) {
         Thread thread( *iter );
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        QString hostName = QString::fromStdString( thread.getHost() );
-#else
-        QString hostName = QString( thread.getHost().c_str() );
-#endif
-#ifdef HAS_STRIP_DOMAIN_NAME
-        int index = hostName.indexOf( '.' );
-        if ( index > 0 )
-            hostName = hostName.left( index );
-#endif
+        QString hostName = ArgoNavis::CUDA::getUniqueClusterName( thread );
         clusterNames << hostName;
         if ( hasGpuCounts )
             clusterNames << ( hostName + " (GPU)" );

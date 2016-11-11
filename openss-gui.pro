@@ -11,7 +11,7 @@ QT += core gui
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets concurrent printsupport
 
 DEFINES += APP_MAJOR_VERSION=0
-DEFINES += APP_MINOR_VERSION=1
+DEFINES += APP_MINOR_VERSION=8
 DEFINES += APP_SUBMINOR_VERSION=0
 DEFINES += APP_BUILD_VERSION=0000
 
@@ -110,7 +110,8 @@ SOURCES += \
     SourceView/ModifyPathSubstitutionsDialog.cpp \
     CBTF-ArgoNavis-Ext/DataTransferDetails.cpp \
     CBTF-ArgoNavis-Ext/KernelExecutionDetails.cpp \
-    widgets/ViewSortFilterProxyModel.cpp
+    widgets/ViewSortFilterProxyModel.cpp \
+    CBTF-ArgoNavis-Ext/ClusterNameBuilder.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 SOURCES += \
@@ -141,7 +142,8 @@ HEADERS += \
     SourceView/ModifyPathSubstitutionsDialog.h \
     CBTF-ArgoNavis-Ext/DataTransferDetails.h \
     CBTF-ArgoNavis-Ext/KernelExecutionDetails.h \
-    widgets/ViewSortFilterProxyModel.h
+    widgets/ViewSortFilterProxyModel.h \
+    CBTF-ArgoNavis-Ext/ClusterNameBuilder.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

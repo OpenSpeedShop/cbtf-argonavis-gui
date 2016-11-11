@@ -29,6 +29,8 @@
 
 #include "common/openss-gui-config.h"
 
+#include "CBTF-ArgoNavis-Ext/ClusterNameBuilder.h"
+
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 
@@ -129,16 +131,8 @@ void BackgroundGraphRendererBackend::handleProcessCudaEventView()
  */
 bool BackgroundGraphRendererBackend::processThreadCudaEvents(const Base::ThreadName& thread)
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    QString clusterName = QString::fromStdString( thread.host() );
-#else
-    QString clusterName( thread.host().c_str() );
-#endif
-#ifdef HAS_STRIP_DOMAIN_NAME
-    int index = clusterName.indexOf( '.' );
-    if ( index > 0 )
-        clusterName = clusterName.left( index );
-#endif
+    QString clusterName = ArgoNavis::CUDA::getUniqueClusterName( thread );
+
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRendererBackend::processThreadCudaEvents: STARTED: clusterName=" << clusterName <<
                 "thread=" << QString::number((long long)QThread::currentThread(), 16);
