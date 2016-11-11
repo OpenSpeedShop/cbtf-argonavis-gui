@@ -77,7 +77,7 @@ public slots:
 
     void handleInitModel(const QString& clusterName, const QString& metricName, const QString& viewName, const QStringList& metrics);
     void handleInitModelView(const QString& clusterName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
-    void handleAddData(const QString& clusterName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
+    void handleAddData(const QString& clusterName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders);
     void handleRangeChanged(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
 
 private slots:

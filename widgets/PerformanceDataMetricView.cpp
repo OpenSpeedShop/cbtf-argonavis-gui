@@ -97,8 +97,8 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
                  this, SLOT(handleInitModel(QString,QString,QString,QStringList)) );
         connect( dataMgr, SIGNAL(addAssociatedMetricView(QString,QString,QString,QString,QStringList)),
                  this, SLOT(handleInitModelView(QString,QString,QString,QString,QStringList)) );
-        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList)),
-                 this, SLOT(handleAddData(QString,QString,QString,QVariantList)) );
+        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList,QStringList)),
+                 this, SLOT(handleAddData(QString,QString,QString,QVariantList,QStringList)) );
         connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,double,double)),
                  this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,double,double)) );
 #endif
