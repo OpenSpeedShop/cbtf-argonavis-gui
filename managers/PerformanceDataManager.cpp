@@ -92,7 +92,6 @@ QAtomicPointer< PerformanceDataManager > PerformanceDataManager::s_instance;
  */
 PerformanceDataManager::PerformanceDataManager(QObject *parent)
     : QObject( parent )
-    , m_processEvents( false )
     , m_renderer( Q_NULLPTR )
 {
     qRegisterMetaType< Base::Time >("Base::Time");
@@ -100,29 +99,27 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     qRegisterMetaType< CUDA::KernelExecution >("CUDA::KernelExecution");
     qRegisterMetaType< QVector< QString > >("QVector< QString >");
 
-    if ( ! m_processEvents ) {
-        m_renderer = new BackgroundGraphRenderer;
+    m_renderer = new BackgroundGraphRenderer;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
-        m_thread.start();
-        m_renderer->moveToThread( &m_thread );
+    m_thread.start();
+    m_renderer->moveToThread( &m_thread );
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::PerformanceDataManager: &m_thread=" << QString::number((long long)&m_thread, 16);
 #endif
 #endif
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        connect( this, &PerformanceDataManager::replotCompleted, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
-        connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
-        connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
-        connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
-        connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeout, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
+    connect( this, &PerformanceDataManager::replotCompleted, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
+    connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
+    connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
+    connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
+    connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeout, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
 #else
-        connect( this, SIGNAL(replotCompleted()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
-        connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,double,double,QSize)) );
-        connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,double,double)) );
-        connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
-        connect( &m_userChangeMgr, SIGNAL(timeout(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
+    connect( this, SIGNAL(replotCompleted()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
+    connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,double,double,QSize)) );
+    connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,double,double)) );
+    connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
+    connect( &m_userChangeMgr, SIGNAL(timeout(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
 #endif
-    }
 }
 
 /**
@@ -469,11 +466,16 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
         m_sampleValues[i] << value;
         m_rawValues[i] << counts[i];
 
-        if ( 0 == i ) {
-            emit addPeriodicSample( clusteringCriteriaName, clusterName, lastTimeStamp, timeStamp, value );
-        }
-        else if ( gpuCounterIndexes.contains( i ) ) {
-            emit addPeriodicSample( clusteringCriteriaName, clusterName+" (GPU)", lastTimeStamp, timeStamp, value );
+        if ( value > 0 && timeStamp > lastTimeStamp ) {
+            // only add non-zero periodic sample bins
+            if ( gpuCounterIndexes.contains( i ) ) {
+                // add periodic sample bin to corresponding GPU cluster
+                emit addPeriodicSample( clusteringCriteriaName, clusterName+" (GPU)", lastTimeStamp, timeStamp, value );
+            }
+            else {
+                // add periodic sample bin to corresponding CPU cluster
+                emit addPeriodicSample( clusteringCriteriaName, clusterName, lastTimeStamp, timeStamp, value );
+            }
         }
     }
 
@@ -501,22 +503,6 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::processPerformanceData: cluster name: " << clusterName;
 #endif
-
-    if ( m_processEvents ) {
-        data.visitDataTransfers(
-                    thread, data.interval(),
-                    boost::bind( &PerformanceDataManager::processDataTransferEvent, instance(),
-                                 boost::cref(data.interval().begin()), _1,
-                                 boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
-                    );
-
-        data.visitKernelExecutions(
-                    thread, data.interval(),
-                    boost::bind( &PerformanceDataManager::processKernelExecutionEvent, instance(),
-                                 boost::cref(data.interval().begin()), _1,
-                                 boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
-                    );
-    }
 
     data.visitPeriodicSamples(
                 thread, data.interval(),
@@ -561,6 +547,69 @@ bool PerformanceDataManager::processKernelExecutionDetails(const QString &cluste
     QVariantList detailsData = ArgoNavis::CUDA::getKernelExecutionDetailsDataList( time_origin, details );
 
     emit addMetricViewData( clusterName, CUDA_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW, detailsData, ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList() );
+
+    return true; // continue the visitation
+}
+
+/**
+ * @brief PerformanceDataManager::hasDataTransferEvents
+ * @param flag - the flag for corresponding thread to indicate whether the thread has data transfer events
+ * @return - continue (=true) or not continue (=false) the visitation
+ *
+ * If the visitation reaches this just once then the flag will be set true.
+ */
+bool PerformanceDataManager::hasDataTransferEvents(const CUDA::DataTransfer& details,
+                                                   bool& flag)
+{
+    Q_UNUSED( details );
+
+    flag = true;
+
+    return false; // only visit once
+}
+
+/**
+ * @brief PerformanceDataManager::hasKernelExecutionEvent
+ * @param details - the details of the kernel execution event
+ * @param flag - the flag for corresponding thread to indicate whether the thread has kernel execution events
+ * @return - continue (=true) or not continue (=false) the visitation
+ *
+ * If the visitation reaches this just once then the flag will be set true.
+ */
+bool PerformanceDataManager::hasKernelExecutionEvents(const CUDA::KernelExecution& details,
+                                                      bool& flag)
+{
+    Q_UNUSED( details );
+
+    flag = true;
+
+    return false; // only visit once
+}
+
+/**
+ * @brief PerformanceDataManager::hasCudaEvents
+ * @param data - the performance data structure to be parsed
+ * @param thread - the thread of interest
+ * @param flag - a mapping of thread names to boolean to indicate whether threads have any CUDA events
+ * @return - continue (=true) or not continue (=false) the visitation
+ */
+bool PerformanceDataManager::hasCudaEvents(const CUDA::PerformanceData &data,
+                                           const Base::ThreadName &thread,
+                                           QMap< Base::ThreadName, bool >& flags)
+{
+    bool& flag = flags[thread];
+
+    data.visitDataTransfers(
+                thread, data.interval(),
+                boost::bind( &PerformanceDataManager::hasDataTransferEvents, instance(), _1, boost::ref(flag) )
+                );
+
+    if ( ! flag ) {
+        data.visitKernelExecutions(
+                    thread, data.interval(),
+                    boost::bind( &PerformanceDataManager::hasKernelExecutionEvents, instance(), _1, boost::ref(flag) )
+                    );
+    }
 
     return true; // continue the visitation
 }
@@ -1185,6 +1234,37 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
 }
 
 /**
+ * @brief PerformanceDataManager::getPerformanceData
+ * @param collector
+ * @param all_threads
+ * @param threadSet
+ * @param threads
+ * @param data
+ * @return
+ */
+bool PerformanceDataManager::getPerformanceData(const Collector& collector,
+                                                const ThreadGroup& all_threads,
+                                                const QMap< Base::ThreadName, bool >& threadSet,
+                                                QMap< Base::ThreadName, Thread>& threads,
+                                                CUDA::PerformanceData& data)
+{
+    bool hasCudaCollector( false );
+
+    for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
+        Base::ThreadName thread = ConvertToArgoNavis(*i);
+        if ( threadSet.value( thread, false ) ) {
+            if ( "cuda" == collector.getMetadata().getUniqueId() ) {
+                GetCUDAPerformanceData( collector, *i, data );
+                hasCudaCollector = true;
+            }
+            threads.insert( thread, *i );
+        }
+    }
+
+    return hasCudaCollector;
+}
+
+/**
  * @brief PerformanceDataManager::loadCudaView
  * @param experimentName - experiment database filename
  * @param collector - a reference to the cuda collector
@@ -1198,10 +1278,11 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     qDebug() << "PerformanceDataManager::loadCudaView STARTED!!";
 #endif
 
-    std::set<int> ranks;
     CUDA::PerformanceData data;
     QMap< Base::ThreadName, Thread> threads;
     bool hasCudaCollector( false );
+#if 0
+    std::set<int> ranks;
 
     for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
         std::pair<bool, int> rank = i->getMPIRank();
@@ -1214,6 +1295,31 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
             threads.insert( ConvertToArgoNavis(*i), *i );
         }
     }
+#endif
+
+    QMap< Base::ThreadName, bool > flags;
+
+    // initialize all thread flags to true in order to add all threads to PerformanceData object instance
+    for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
+        flags.insert( ConvertToArgoNavis(*i), true );
+    }
+
+    hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
+
+    // reset all thread flags to false
+    QMutableMapIterator< Base::ThreadName, bool > mapiter( flags );
+    while( mapiter.hasNext() ) {
+        mapiter.next();
+        mapiter.value() = false;
+    }
+
+    data.visitThreads( boost::bind( &PerformanceDataManager::hasCudaEvents, instance(), boost::cref(data), _1, boost::ref(flags) ) );
+
+#if 0
+    data = CUDA::PerformanceData();
+
+    hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
+#endif
 
     double durationMs( 0.0 );
     if ( ! data.interval().empty() ) {
@@ -1251,7 +1357,6 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     }
 #endif
 
-    bool hasGpuCounts( gpuCounterIndexes.size() > 0 );
     QString clusteringCriteriaName;
     if ( hasCudaCollector )
         clusteringCriteriaName = QStringLiteral( "GPU Compute / Data Transfer Ratio" );
@@ -1269,9 +1374,12 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     while ( iter != threads.end() ) {
         Thread thread( *iter );
         QString hostName = ArgoNavis::CUDA::getUniqueClusterName( thread );
-        clusterNames << hostName;
-        if ( hasGpuCounts )
+        // Due to 4 Oct 2016 change by Bill to move CUPTI metrics and events collection to a separate thread, there are two threads having the same hostname.
+        // Determine the GPU thread from the thread set generated earlier
+        if ( flags.value( iter.key(), false ) )
             clusterNames << ( hostName + " (GPU)" );
+        else
+            clusterNames << hostName;
         ++iter;
     }
 #endif
@@ -1279,9 +1387,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, sampleCounterNames );
 
     if ( hasCudaCollector ) {
-        if ( ! m_processEvents ) {
-            m_renderer->setPerformanceData( clusteringCriteriaName, clusterNames, data );
-        }
+        m_renderer->setPerformanceData( clusteringCriteriaName, clusterNames, data );
 
         foreach( const QString& clusterName, clusterNames ) {
             emit addCluster( clusteringCriteriaName, clusterName );

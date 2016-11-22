@@ -168,6 +168,12 @@ private:
     explicit PerformanceDataManager(QObject* parent = 0);
     virtual ~PerformanceDataManager();
 
+    bool getPerformanceData(const OpenSpeedShop::Framework::Collector& collector,
+                            const OpenSpeedShop::Framework::ThreadGroup& all_threads,
+                            const QMap< Base::ThreadName, bool >& threadSet,
+                            QMap< Base::ThreadName, OpenSpeedShop::Framework::Thread>& threads,
+                            CUDA::PerformanceData& data);
+
     void loadCudaView(const QString& experimentName,
                       const OpenSpeedShop::Framework::Collector& collector,
                       const OpenSpeedShop::Framework::ThreadGroup& all_threads);
@@ -228,6 +234,18 @@ private:
 
     bool processKernelExecutionDetails(const QString& clusterName, const Base::Time &time_origin, const CUDA::KernelExecution &details);
 
+    // visitor functions to determine whether thread has CUDA events
+
+    bool hasDataTransferEvents(const CUDA::DataTransfer& details,
+                               bool& flag);
+
+    bool hasKernelExecutionEvents(const CUDA::KernelExecution& details,
+                                  bool& flag);
+
+    bool hasCudaEvents(const ArgoNavis::CUDA::PerformanceData& data,
+                       const ArgoNavis::Base::ThreadName& thread,
+                       QMap< Base::ThreadName, bool >& flags);
+
 private:
 
     static QAtomicPointer< PerformanceDataManager > s_instance;
@@ -240,8 +258,6 @@ private:
     QVector<double> m_sampleKeys;
     QMap< int, QVector<double> > m_sampleValues;
     QMap< int, QVector<double> > m_rawValues;
-
-    bool m_processEvents;
 
     BackgroundGraphRenderer* m_renderer;
 
