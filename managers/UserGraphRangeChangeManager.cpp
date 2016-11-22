@@ -28,7 +28,7 @@
 #include <QVariant>
 #include <QDebug>
 
-#define GRAPH_RANGE_CHANGE_DELAY_TO_CUDA_EVENT_PROCESSING 500
+#define GRAPH_RANGE_CHANGE_DELAY_TO_CUDA_EVENT_PROCESSING 800
 
 
 namespace ArgoNavis { namespace GUI {
