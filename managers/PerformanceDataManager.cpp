@@ -1235,12 +1235,14 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
 
 /**
  * @brief PerformanceDataManager::getPerformanceData
- * @param collector
- * @param all_threads
- * @param threadSet
- * @param threads
- * @param data
- * @return
+ * @param collector - the collector object
+ * @param all_threads - all threads known by the cuda collector
+ * @param threadSet - indicates whether a given thread name should be considered (=true) or not (=false)
+ * @param threads - the set of threads desired
+ * @param data - the CUDA performance data object built from the the set of threads desired
+ * @return - whether the collector is a CUDA collector
+ *
+ * This routine loads the specified set of thread performance data into the CUDA performance data object.
  */
 bool PerformanceDataManager::getPerformanceData(const Collector& collector,
                                                 const ThreadGroup& all_threads,
@@ -1248,14 +1250,13 @@ bool PerformanceDataManager::getPerformanceData(const Collector& collector,
                                                 QMap< Base::ThreadName, Thread>& threads,
                                                 CUDA::PerformanceData& data)
 {
-    bool hasCudaCollector( false );
+    bool hasCudaCollector( "cuda" == collector.getMetadata().getUniqueId() );
 
     for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
         Base::ThreadName thread = ConvertToArgoNavis(*i);
         if ( threadSet.value( thread, false ) ) {
-            if ( "cuda" == collector.getMetadata().getUniqueId() ) {
+            if ( hasCudaCollector ) {
                 GetCUDAPerformanceData( collector, *i, data );
-                hasCudaCollector = true;
             }
             threads.insert( thread, *i );
         }
@@ -1278,31 +1279,16 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     qDebug() << "PerformanceDataManager::loadCudaView STARTED!!";
 #endif
 
-    CUDA::PerformanceData data;
-    QMap< Base::ThreadName, Thread> threads;
-    bool hasCudaCollector( false );
-#if 0
-    std::set<int> ranks;
-
-    for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
-        std::pair<bool, int> rank = i->getMPIRank();
-
-        if ( ranks.empty() || ( rank.first && (ranks.find(rank.second) != ranks.end() )) ) {
-            if ( "cuda" == collector.getMetadata().getUniqueId() ) {
-                GetCUDAPerformanceData( collector, *i, data );
-                hasCudaCollector = true;
-            }
-            threads.insert( ConvertToArgoNavis(*i), *i );
-        }
-    }
-#endif
-
     QMap< Base::ThreadName, bool > flags;
 
     // initialize all thread flags to true in order to add all threads to PerformanceData object instance
     for (ThreadGroup::const_iterator i = all_threads.begin(); i != all_threads.end(); ++i) {
         flags.insert( ConvertToArgoNavis(*i), true );
     }
+
+    CUDA::PerformanceData data;
+    QMap< Base::ThreadName, Thread> threads;
+    bool hasCudaCollector( false );
 
     hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
 
@@ -1314,12 +1300,6 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     }
 
     data.visitThreads( boost::bind( &PerformanceDataManager::hasCudaEvents, instance(), boost::cref(data), _1, boost::ref(flags) ) );
-
-#if 0
-    data = CUDA::PerformanceData();
-
-    hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
-#endif
 
     double durationMs( 0.0 );
     if ( ! data.interval().empty() ) {

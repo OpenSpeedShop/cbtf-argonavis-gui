@@ -88,19 +88,19 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        connect( dataMgr, &PerformanceDataManager::addMetricView, this, &PerformanceDataMetricView::handleInitModel );
-        connect( dataMgr, &PerformanceDataManager::addAssociatedMetricView, this, &PerformanceDataMetricView::handleInitModelView );
-        connect( dataMgr, &PerformanceDataManager::addMetricViewData, this, &PerformanceDataMetricView::handleAddData );
-        connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataMetricView::handleRequestMetricViewComplete );
+        connect( dataMgr, &PerformanceDataManager::addMetricView, this, &PerformanceDataMetricView::handleInitModel, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addAssociatedMetricView, this, &PerformanceDataMetricView::handleInitModelView, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addMetricViewData, this, &PerformanceDataMetricView::handleAddData, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataMetricView::handleRequestMetricViewComplete, Qt::QueuedConnection );
 #else
         connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QStringList)),
-                 this, SLOT(handleInitModel(QString,QString,QString,QStringList)) );
+                 this, SLOT(handleInitModel(QString,QString,QString,QStringList)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addAssociatedMetricView(QString,QString,QString,QString,QStringList)),
-                 this, SLOT(handleInitModelView(QString,QString,QString,QString,QStringList)) );
+                 this, SLOT(handleInitModelView(QString,QString,QString,QString,QStringList)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList,QStringList)),
-                 this, SLOT(handleAddData(QString,QString,QString,QVariantList,QStringList)) );
+                 this, SLOT(handleAddData(QString,QString,QString,QVariantList,QStringList)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,double,double)),
-                 this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,double,double)) );
+                 this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,double,double)), Qt::QueuedConnection );
 #endif
     }
 
