@@ -67,6 +67,9 @@ private slots:
     void handleAdjustPlotViewScrollArea(const QString& clusteringCriteriaName, const QString& clusterName);
     void handleRemoveCluster(const QString& clusteringCriteriaName, const QString& clusterName);
     void shutdownApplication();
+    void handleViewQuickStartGuide();
+    void handleViewReferenceGuide();
+    void handleAbout();
 
 private:
 

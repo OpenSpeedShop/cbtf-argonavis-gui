@@ -27,6 +27,9 @@
 #include "managers/PerformanceDataManager.h"
 #include "SourceView/SourceView.h"
 
+#include "common/config.h"   // auto-generated config header
+
+#include <QDesktopServices>
 #include <QFileDialog>
 #include <QMetaMethod>
 #include <QMessageBox>
@@ -34,6 +37,10 @@
 
 
 namespace ArgoNavis { namespace GUI {
+
+
+const QString OSS_QUICK_START_GUIDE_FILEPATH = QString("%1/share/doc/packages/OpenSpeedShop/doc/users_guide/OpenSpeedShop_Quick_Start_Guide.pdf").arg(OSS_CBTF_ROOT);
+const QString OSS_REFERENCE_GUIDE_FILEPATH = QString("%1/share/doc/packages/OpenSpeedShop/doc/users_guide/OpenSpeedShop_Reference_Guide.pdf").arg(OSS_CBTF_ROOT);
 
 
 /**
@@ -63,9 +70,15 @@ MainWindow::MainWindow(QWidget *parent)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( ui->actionLoad_OSS_Experiment, &QAction::triggered, this, &MainWindow::loadOpenSsExperiment );
     connect( ui->actionExit, &QAction::triggered, this, &MainWindow::shutdownApplication );
+    connect( ui->actionView_Open_SpeedShop_Quick_Start_Guide, &QAction::triggered, this, &MainWindow::handleViewQuickStartGuide );
+    connect( ui->actionView_Open_SpeedShop_Reference_Guide, &QAction::triggered, this, &MainWindow::handleViewReferenceGuide );
+    connect( ui->actionAbout, &QAction::triggered, this, &MainWindow::handleAbout );
 #else
     connect( ui->actionLoad_OSS_Experiment, SIGNAL(triggered(bool)), this, SLOT(loadOpenSsExperiment()) );
     connect( ui->actionExit, SIGNAL(triggered(bool)), this, SLOT(shutdownApplication()) );
+    connect( ui->actionView_Open_SpeedShop_Quick_Start_Guide, SIGNAL(triggered(bool)), this, SLOT(handleViewQuickStartGuide()) );
+    connect( ui->actionView_Open_SpeedShop_Reference_Guide, SIGNAL(triggered(bool)), this, SLOT(handleViewReferenceGuide()) );
+    connect( ui->actionAbout, SIGNAL(triggered(bool)), this, SLOT(handleAbout()) );
 #endif
 
     // connect performance data manager signals to experiment panel slots
@@ -94,6 +107,18 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
 #endif
+    }
+
+    // Verify that Open|SpeedShop Quick Start Guide exists; otherwise disable the Help menu item for viewing it
+    QFileInfo fileInfo1( OSS_QUICK_START_GUIDE_FILEPATH );
+    if ( ! fileInfo1.exists() ) {
+        ui->actionView_Open_SpeedShop_Reference_Guide->setEnabled( false );
+    }
+
+    // Verify that Open|SpeedShop Reference Guide exists; otherwise disable the Help menu item for viewing it
+    QFileInfo fileInfo2( OSS_REFERENCE_GUIDE_FILEPATH );
+    if ( ! fileInfo2.exists() ) {
+        ui->actionView_Open_SpeedShop_Quick_Start_Guide->setEnabled( false );
     }
 }
 
@@ -314,6 +339,57 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
 void MainWindow::shutdownApplication()
 {
     qApp->quit();
+}
+
+/**
+ * @brief MainWindow::handleViewQuickStartGuide
+ *
+ * Uses Qt QDesktopServices::openUrl to open the application associated with the file type
+ * for the Open|SpeedShop Quick Start Guide document.  The file type is expected to be PDF.
+ */
+void MainWindow::handleViewQuickStartGuide()
+{
+    QDesktopServices::openUrl( QUrl("file://" + OSS_QUICK_START_GUIDE_FILEPATH ) );
+}
+
+/**
+ * @brief MainWindow::handleViewReferenceGuide
+ *
+ * Uses Qt QDesktopServices::openUrl to open the application associated with the file type
+ * for the Open|SpeedShop Reference Guide document.  The file type is expected to be PDF.
+ */
+void MainWindow::handleViewReferenceGuide()
+{
+    QDesktopServices::openUrl( QUrl("file://" + OSS_REFERENCE_GUIDE_FILEPATH ) );
+}
+
+/**
+ * @brief MainWindow::handleAbout
+ *
+ * Opens a dialog that displays information about the Open|SpeedShop GUI.
+ */
+void MainWindow::handleAbout()
+{
+    QMessageBox msgBox( QMessageBox::Information,
+                        tr("About Open|SpeedShop GUI"),
+                        tr("<html>"
+                           "    <style type=\"text/css\">"
+                           "        .text1 { font-size: 24pt; font-family: Verdana; color: #efefef; }"
+                           "        .text2 { font-size: 16pt; font-family: Arial; color: #efefef; }"
+                           "        .text3 { font-size: 12pt; font-family: Fixed; color: #efefef; }"
+                           "    </style>"
+                           "    <div class=\"text1\"><p align=\"center\">The <font color=\"#40a0ae\">Open</font><font color=\"#404040\">|</font><font color=\"#0030d8\">SpeedShop</font> GUI</p></div>"
+                           "    <div class=\"text2\"><p align=\"center\">Version: %1.%2.%3</p></div>"
+                           "    <div class=\"text2\"><p align=\"center\">Developed by Gregory L Schultz</p></div>"
+                           "    <div class=\"text3\"><p align=\"center\">See <a href=\"http://www.openspeedshop.org\">http://www.openspeedshop.org</a> for more information on Open|SpeedShop</p></div>"
+                           "</html>").arg(APP_MAJOR_VERSION).arg(APP_MINOR_VERSION).arg(APP_SUBMINOR_VERSION) );
+
+    QPalette palette;
+    palette.setBrush( QPalette::Background, QBrush( qRgb(100,100,100) ) );
+    msgBox.setPalette( palette );
+    msgBox.setIcon( QMessageBox::NoIcon );
+
+    msgBox.exec();
 }
 
 } // GUI

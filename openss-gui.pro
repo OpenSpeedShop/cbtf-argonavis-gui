@@ -12,7 +12,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets concurrent printsupport
 
 DEFINES += APP_MAJOR_VERSION=0
 DEFINES += APP_MINOR_VERSION=8
-DEFINES += APP_SUBMINOR_VERSION=0
+DEFINES += APP_SUBMINOR_VERSION=1
 DEFINES += APP_BUILD_VERSION=0000
 
 CONFIG += c++11
@@ -37,6 +37,15 @@ KRELL_ROOT = $$(KRELL_ROOT)
 CBTF_ROOT = $$(CBTF_ROOT)
 OSS_CBTF_ROOT = $$(OSS_CBTF_ROOT)
 BOOST_ROOT = $$(BOOST_ROOT)
+
+CONFIG_H = $$quote(common/config.h)
+
+config.target = $$CONFIG_H
+config.commands = $$system("sh ./generate-config.sh $$OSS_CBTF_ROOT $$CONFIG_H")
+
+QMAKE_EXTRA_TARGETS += $$CONFIG_H
+
+PRE_TARGETDEPS += $$CONFIG_H
 
 target.path = $$(OSS_CBTF_ROOT)/bin
 INSTALLS += target
