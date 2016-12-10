@@ -232,13 +232,18 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
     if ( ! info.viewList.contains( viewName ) )
         info.viewList << viewName;
 
+    QStringList columnTitles;
+    columnTitles << tableColumnHeaders.takeFirst();
+    columnTitles << tableColumnHeaders.takeFirst();
+    columnTitles << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
+
     loadCudaMetricViews(
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
                          synchronizer, futures,
 #endif
                          QStringList() << metricName,
                          QStringList() << viewName,
-                         QStringList() << tableColumnHeaders.takeFirst() << tableColumnHeaders.takeFirst() << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle,
+                         columnTitles,
                          collector,
                          experiment,
                          interval );
