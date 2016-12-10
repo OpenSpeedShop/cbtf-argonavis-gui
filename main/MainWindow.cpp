@@ -30,6 +30,7 @@
 #include "common/config.h"   // auto-generated config header
 
 #include <QDesktopServices>
+#include <QUrl>
 #include <QFileDialog>
 #include <QMetaMethod>
 #include <QMessageBox>
