@@ -75,9 +75,9 @@ int main(int argc, char *argv[])
     const QString usageOutputStr = QCoreApplication::translate( "main",
                                                                 QString("Usage: %1 [options]\n%2\n\n"
                                                                         "Options:\n"
-                                                                        " -h, --help     %3\n"
-                                                                        " -v, --version  %4\n"
-                                                                        " -f <file>      %5\n"
+                                                                        " -h, --help\t%3\n"
+                                                                        " -v, --version\t%4\n"
+                                                                        " -f, --file <file>\t%5\n"
                                                                         ).arg(argv[0]).arg(descriptionStr).arg(helpDescriptionStr).arg(versionDescriptionStr).arg(fileDescriptionStr).toUtf8().data() );
 
     boost::program_options::options_description kNonPositionalOptions( descriptionStr.toUtf8().data() );
@@ -88,23 +88,25 @@ int main(int argc, char *argv[])
 
     boost::program_options::variables_map values;
 
-    try {
-        boost::program_options::store( boost::program_options::command_line_parser( argc, argv ).options( kNonPositionalOptions ).run(), values );
-        boost::program_options::notify( values );
-    }
-    catch (const std::exception& error) {
-        std::cout << usageOutputStr.toUtf8().data();
-        return 0;
-    }
+    if ( argc > 1 ) {
+        try {
+            boost::program_options::store( boost::program_options::command_line_parser( argc, argv ).options( kNonPositionalOptions ).run(), values );
+            boost::program_options::notify( values );
+        }
+        catch (const std::exception& error) {
+            //std::cout << usageOutputStr.toUtf8().data();
+            //return 0;
+        }
 
-    if ( values.count("version") > 0 ) {
-        std::cout << versionOptionOutputStr.toUtf8().data() << std::endl;
-        return 0;
-    }
+        if ( values.count("version") > 0 ) {
+            std::cout << versionOptionOutputStr.toUtf8().data() << std::endl;
+            return 0;
+        }
 
-    if ( values.count("help") > 0 ) {
-        std::cout << usageOutputStr.toUtf8().data();
-        return 0;
+        if ( values.count("help") > 0 ) {
+            std::cout << usageOutputStr.toUtf8().data();
+            return 0;
+        }
     }
 #endif
 
@@ -115,7 +117,7 @@ int main(int argc, char *argv[])
         filenameStr = parser.value( fileOption );
     }
 #else
-    if ( values.count("file") != 0 ) {
+    if ( values.count("file") > 0 ) {
         const std::string filename = values["file"].as<std::string>();
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 2, 0))
         filenameStr = QString::fromStdString( filename );

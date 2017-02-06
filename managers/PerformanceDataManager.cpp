@@ -26,11 +26,15 @@
 #include "common/openss-gui-config.h"
 
 #include "managers/BackgroundGraphRenderer.h"
+#include "managers/CalltreeGraphManager.h"
 #include "CBTF-ArgoNavis-Ext/DataTransferDetails.h"
 #include "CBTF-ArgoNavis-Ext/KernelExecutionDetails.h"
 #include "CBTF-ArgoNavis-Ext/ClusterNameBuilder.h"
 
+#include <algorithm>
+#include <utility>
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <map>
 #include <vector>
@@ -50,6 +54,8 @@
 #include <ArgoNavis/CUDA/DataTransfer.hpp>
 #include <ArgoNavis/CUDA/KernelExecution.hpp>
 #include <ArgoNavis/CUDA/stringify.hpp>
+
+#include "collectors/usertime/UserTimeDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -938,6 +944,38 @@ void PerformanceDataManager::asyncLoadCudaViews(const QString& filePath)
     qDebug() << "PerformanceDataManager::asyncLoadCudaViews: filePath=" << filePath;
 #endif
     QtConcurrent::run( this, &PerformanceDataManager::loadCudaViews, filePath );
+
+    Experiment experiment( filePath.toStdString() );
+#if 0
+    ShowUserTimeDetailOrig( experiment, "exclusive_detail" );
+#else
+    const Collector collector = *experiment.getCollectors().begin();
+    const TimeInterval interval( Time::TheBeginning(), Time::TheEnd() );
+    const ThreadGroup threadGroup( experiment.getThreads() );
+    const std::set< Function > functions( threadGroup.getFunctions() );
+
+    TDETAILS exclusive_details;
+
+    ShowDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "exclusive_detail", exclusive_details );
+
+#if 1
+    std::cout << "Reduced exclusive details (by function name):" << std::endl;
+    for (const details_data_t& d : exclusive_details) {
+        std::cout << "\t" << std::left << std::setw(20) << std::fixed << std::setprecision(6) << std::get<1>(d) << std::setw(20) << std::get<0>(d) << std::setw(20) << std::get<2>(d).getName() << std::endl;
+    }
+#endif
+
+    TDETAILS inclusive_details;
+
+    ShowDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "inclusive_detail", inclusive_details );
+
+#if 1
+    std::cout << "Reduced inclusive details (by function name):" << std::endl;
+    for (const details_data_t& d : inclusive_details) {
+        std::cout << "\t" << std::left << std::setw(20) << std::fixed << std::setprecision(6) << std::get<1>(d) << std::setw(20) << std::get<0>(d) << std::setw(20) << std::get<2>(d).getName() << std::endl;
+    }
+#endif
+#endif
 }
 
 /**
@@ -1051,7 +1089,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
  */
 void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterName, double lower, double upper)
 {
-    if ( ! m_tableViewInfo.contains( clusterName ) )
+    if ( ! m_tableViewInfo.contains( clusterName ) || lower >= upper )
         return;
 
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
@@ -1417,6 +1455,405 @@ void PerformanceDataManager::xmlDump(const QString &filePath)
 }
 #endif
 
+//SmartPtr<std::map<Function,
+//                  std::map<Framework::StackTrace,
+//                           TDETAIL > > > raw_items;
+
+template <typename TS>
+void Get_Subextents_To_Object (
+        const Framework::ThreadGroup& tgrp,
+        TS& object,
+        Framework::ExtentGroup& subextents)
+{
+    for (ThreadGroup::iterator ti = tgrp.begin(); ti != tgrp.end(); ti++) {
+        ExtentGroup newExtents = object.getExtentIn (*ti);
+        for (ExtentGroup::iterator ei = newExtents.begin(); ei != newExtents.end(); ei++) {
+            subextents.push_back(*ei);
+        }
+    }
+}
+
+template <typename TS>
+void Get_Subextents_To_Object_Map (
+        const Framework::ThreadGroup& tgrp,
+        TS& object,
+        std::map<Framework::Thread, Framework::ExtentGroup>& subextents_map)
+{
+    for (ThreadGroup::iterator ti = tgrp.begin(); ti != tgrp.end(); ti++) {
+        ExtentGroup newExtents = object.getExtentIn (*ti);
+        Framework::ExtentGroup subextents;
+
+        for (ExtentGroup::iterator ei = newExtents.begin(); ei != newExtents.end(); ei++) {
+            subextents.push_back(*ei);
+        }
+
+        subextents_map[*ti] = subextents;
+    }
+}
+
+inline int64_t stack_contains_N_calls(const Framework::StackTrace& st, Framework::ExtentGroup& subextents)
+{
+    int64_t num_calls = 0;
+
+    Time t = st.getTime();
+
+    for ( ExtentGroup::iterator ei = subextents.begin(); ei != subextents.end(); ei++ ) {
+        Extent check( *ei );
+        if ( ! check.isEmpty() ) {
+            TimeInterval time = check.getTimeInterval();
+            AddressRange addr = check.getAddressRange();
+
+            for ( std::size_t sti = 0; sti < st.size(); sti++ ) {
+                const Address& a = st[sti];
+
+                if ( time.doesContain(t) && addr.doesContain(a) ) {
+                    num_calls++;
+                }
+            }
+        }
+    }
+
+    return num_calls;
+}
+
+#if 1
+typedef std::map< Function, double > detail_time_t;
+typedef std::map< Function, uint64_t > detail_count_t;
+
+void sum_detail_values(const UserTimeDetail& primary, int64_t num_calls, uint64_t& detail_count, double& detail_time)
+{
+    detail_time += ( primary.dm_time / num_calls );
+    detail_count += primary.dm_count;
+}
+
+void PerformanceDataManager::ShowUserTimeDetailOrig(const Experiment& experiment, const QString& metric)
+{
+    Collector collector = *experiment.getCollectors().begin();
+    std::cout << "metric = " << metric.toStdString() << " Collector unique id =" << collector.getMetadata().getUniqueId() << std::endl;
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    using UserTimeDetail = OpenSpeedShop::Framework::UserTimeDetail;
+#else
+    typedef OpenSpeedShop::Framework::UserTimeDetail UserTimeDetail;
+#endif
+
+    SmartPtr< std::map< Function,
+                std::map< Framework::Thread,
+                    std::map< Framework::StackTrace, UserTimeDetail > > > > raw_items;
+
+    Framework::ThreadGroup threadGroup = experiment.getThreads();
+
+    Queries::GetMetricValues( collector, metric.toStdString(),
+                              TimeInterval( Time::TheBeginning(), Time::TheEnd() ),
+                              threadGroup,
+                              threadGroup.getFunctions(),
+                              raw_items );
+
+    SmartPtr< std::map<Function, std::map<Framework::StackTrace, UserTimeDetail > > > data =
+            Queries::Reduction::Apply( raw_items, Queries::Reduction::Summation );
+
+    detail_count_t inclusive_count_detail;
+    detail_time_t  inclusive_time_detail;
+    detail_count_t exclusive_count_detail;
+    detail_time_t  exclusive_time_detail;
+
+    std::map< Function, std::map< Framework::StackTrace, UserTimeDetail> >::iterator iter( data->begin() );
+
+    while ( iter != data->end() ) {
+        const Framework::Function& function( iter->first );
+        const std::string functionName = function.getMangledName();
+        std::cout << "Function: " << functionName << std::endl;
+        Framework::ExtentGroup subextents;
+        Get_Subextents_To_Object( threadGroup, function, subextents );
+        std::map< Framework::StackTrace, UserTimeDetail >& tracemap( iter->second );
+        std::map< Framework::StackTrace, UserTimeDetail >::iterator siter( tracemap.begin() );
+        std::set< Framework::StackTrace > StackTraces_Processed;
+        while ( siter != tracemap.end() ) {
+            const Framework::StackTrace& stacktrace( siter->first );
+            std::pair< std::set< Framework::StackTrace >::iterator, bool > ret = StackTraces_Processed.insert( stacktrace );
+            if ( ! ret.second ) {
+                std::cout << "STACK TRACE ALREADY PROCESSED - SKIP THIS ONE!!" << std::endl;
+                continue;
+            }
+            for ( std::size_t idx=0; idx<stacktrace.size(); idx++ ) {
+                Framework::Address address( stacktrace[idx] );
+                std::pair< bool, Framework::Function > this_function = stacktrace.getFunctionAt(idx);
+                if ( this_function.first ) {
+                    std::cout << '\t' << idx << ": function: " << this_function.second.getDemangledName() << " address: " << address;
+                    std::set< Framework::Statement > this_statement = stacktrace.getStatementsAt(idx);
+                    Q_ASSERT( this_statement.size() <= 1 );
+                    std::set< Framework::Statement >::iterator sit( this_statement.begin() );
+                    if ( sit != this_statement.end() ) {
+                        std::cout << " statement: " << (*sit).getPath() << "," << (*sit).getLine();
+                    }
+                    std::cout << std::endl;
+                }
+            }
+            const UserTimeDetail& detail( siter->second );
+            std::cout << "\tcount: " << detail.dm_count << " time: " << detail.dm_time << std::endl;
+            int64_t num_calls = stack_contains_N_calls( stacktrace, subextents );
+            sum_detail_values( detail, num_calls, inclusive_count_detail[function], inclusive_time_detail[function] );
+            sum_detail_values( detail, num_calls, exclusive_count_detail[function], exclusive_time_detail[function] );
+            siter++;
+        }
+        iter++;
+    }
+}
+#endif
+
+template <int N, typename BinaryPredicate, typename ForwardIterator>
+void sortByFixedComponent (ForwardIterator first, ForwardIterator last) {
+    std::sort (first, last, [](const typename ForwardIterator::value_type& x, const typename ForwardIterator::value_type& y)->bool {
+        return BinaryPredicate()(std::get<N>(x), std::get<N>(y));
+    });
+}
+
+struct ltST {
+    bool operator() (Framework::StackTrace stl, Framework::StackTrace str) {
+        if (stl.getTime() < str.getTime()) { return true; }
+        if (stl.getTime() > str.getTime()) { return false; }
+
+        if (stl.getThread() < str.getThread()) { return true; }
+        if (stl.getThread() > str.getThread()) { return false; }
+
+        return stl < str;
+    }
+};
+
+#if 0
+template <typename TDETAIL>
+void PerformanceDataManager::ShowDetail(
+        const Framework::Collector& collector,
+        const Framework::ThreadGroup& threadGroup,
+        const Framework::TimeInterval& interval,
+        const std::set< Framework::Function >& functions,
+        const QString& metric,
+        TDETAILS& reduced_details)
+{
+    SmartPtr< std::map< Function,
+                std::map< Framework::Thread,
+                    std::map< Framework::StackTrace, TDETAIL > > > > raw_items;
+
+    Queries::GetMetricValues( collector, metric.toStdString(), interval, threadGroup, functions,  // input - metric search criteria
+                              raw_items );                                                        // output - raw metric values
+
+    SmartPtr< std::map<Function, std::map<Framework::StackTrace, TDETAIL > > > data =
+            Queries::Reduction::Apply( raw_items, Queries::Reduction::Summation );
+
+    for ( typename std::map< Function, std::map< Framework::StackTrace, TDETAIL > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
+        const Framework::Function& function( iter->first );
+        std::map< Framework::StackTrace, TDETAIL >& tracemap( iter->second );
+
+        std::map< Framework::Thread, Framework::ExtentGroup > subextents_map;
+        Get_Subextents_To_Object_Map( threadGroup, function, subextents_map );
+
+        std::set< Framework::StackTrace, ltST > StackTraces_Processed;
+
+        int sum_count(0);
+        double sum_time(0.0);
+
+        for ( typename std::map< Framework::StackTrace, TDETAIL >::iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
+            const Framework::StackTrace& stacktrace( siter->first );
+
+            std::pair< std::set< Framework::StackTrace >::iterator, bool > ret = StackTraces_Processed.insert( stacktrace );
+            if ( ! ret.second )
+                continue;
+
+            const TDETAIL& detail( siter->second );
+
+            /* Find the extents associated with the stack trace's thread. */
+            std::map< Framework::Thread, Framework::ExtentGroup >::iterator tei = subextents_map.find( stacktrace.getThread() );
+            Framework::ExtentGroup subExtents;
+            if (tei != subextents_map.end()) {
+                subExtents = (*tei).second;
+            }
+
+            int64_t num_calls = ( subExtents.begin() == subExtents.end() ) ? 1 : stack_contains_N_calls( stacktrace, subExtents );
+
+            sum_count += detail.dm_count;
+            sum_time += detail.dm_time / num_calls;
+        }
+
+        reduced_details.push_back( std::make_tuple( sum_count, sum_time, function ) );
+    }
+
+    sortByFixedComponent<1, std::greater<std::tuple_element<1,details_data_t>::type>> (reduced_details.begin(), reduced_details.end());
+}
+#else
+void PerformanceDataManager::detail_reduction(
+        const std::set< std::tuple< std::set< Function >, Function > >& caller_function_list,
+        TALLDETAILS& all_details,
+        TDETAILS& reduced_details)
+{
+    TALLDETAILS::iterator siter = all_details.begin();
+
+    for ( std::set< std::tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++) {
+        const std::tuple< std::set< Function >, Function > elem( *fit );
+        Function function = std::get<1>(elem);
+        std::string functionName( function.getName() );
+        std::string linkedObjectName( function.getLinkedObject().getPath() );
+        std::string callingFunctionName;
+        std::string callingLinkedObjectName;
+        std::set< Function > caller = std::get<0>(elem);
+        if ( ! caller.empty() ) {
+            const Function callingFunction( *(caller.cbegin()) );
+            callingFunctionName = callingFunction.getName();
+            callingLinkedObjectName = callingFunction.getLinkedObject().getPath();
+        }
+        std::cout << callingFunctionName << " --> " << functionName << std::endl;
+        TALLDETAILS::iterator eiter = std::partition( siter, all_details.end(),
+                                                      [&](const all_details_data_t& d) {
+                                                          const Function& func( std::get<2>(d) );
+                                                          const std::set< Function >& callingFunction( std::get<3>(d) );
+                                                          std::string cfuncName;
+                                                          std::string cfuncLinkedObjectName;
+                                                          if ( ! callingFunction.empty() ) {
+                                                              const Function cfunc( *(callingFunction.cbegin()) );
+                                                              cfuncName = cfunc.getName();
+                                                              cfuncLinkedObjectName = cfunc.getLinkedObject().getPath();
+                                                          }
+                                                          return func.getName() == functionName && func.getLinkedObject().getPath() == linkedObjectName &&
+                                                                 callingFunctionName == cfuncName && callingLinkedObjectName == cfuncLinkedObjectName;
+                                                      } );
+        if ( siter == all_details.end() )
+            break;
+        int sum_count(0);
+        double sum_time(0.0);
+        for ( TALLDETAILS::iterator it = siter; it != eiter; it++ ) {
+            all_details_data_t d( *it );
+            sum_count += std::get<0>(d);
+            sum_time += std::get<1>(d);
+        }
+        reduced_details.push_back( std::make_tuple( sum_count, sum_time, function ) );
+        siter = eiter;
+    }
+
+    sortByFixedComponent<1, std::greater<std::tuple_element<1,details_data_t>::type>> (reduced_details.begin(), reduced_details.end());
+}
+
+void PerformanceDataManager::generate_calltree_graph(
+        const std::set< Framework::Function >& functions,
+        const std::set< std::tuple< std::set< Function >, Function > >& caller_function_list,
+        std::vector<double>& call_depths,
+        std::ostream& os)
+{
+    CalltreeGraphManager graphManager;
+
+    std::map< Function, CalltreeGraphManager::handle_t > handleMap;
+
+    foreach ( const Framework::Function& function, functions ) {
+        std::string functionName( function.getName() );
+        std::string sourceFilename;
+        uint32_t lineNumber(0);
+        std::string linkedObjectName( function.getLinkedObject().getPath() );
+        CalltreeGraphManager::handle_t handle = graphManager.addFunctionNode( functionName, sourceFilename, lineNumber, linkedObjectName );
+
+        handleMap[ function ] = handle;
+    }
+
+    for ( std::set< std::tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++) {
+        const std::tuple< std::set< Function >, Function > elem( *fit );
+        std::set< Function > caller = std::get<0>(elem);
+        if ( caller.empty() ) continue;
+        const Function callingFunction( *(caller.cbegin()) );
+        Function function = std::get<1>(elem);
+        if ( handleMap.find( callingFunction ) != handleMap.end() && handleMap.find( function ) != handleMap.end() ) {
+            const CalltreeGraphManager::handle_t& caller_handle = handleMap.at( callingFunction );
+            const CalltreeGraphManager::handle_t& handle = handleMap.at( function );
+            graphManager.addCallEdge( caller_handle, handle );
+        }
+    }
+
+    graphManager.write_graphviz( os );
+
+    graphManager.iterate_over_edges();
+
+    graphManager.determine_call_depths( call_depths );
+}
+
+template <typename TDETAIL>
+void PerformanceDataManager::ShowDetail(
+        const Framework::Collector& collector,
+        const Framework::ThreadGroup& threadGroup,
+        const Framework::TimeInterval& interval,
+        const std::set< Framework::Function >& functions,
+        const QString& metric,
+        TDETAILS& reduced_details)
+{
+    SmartPtr< std::map< Function,
+                std::map< Framework::Thread,
+                    std::map< Framework::StackTrace, TDETAIL > > > > raw_items;
+
+    Queries::GetMetricValues( collector, metric.toStdString(), interval, threadGroup, functions,  // input - metric search criteria
+                              raw_items );                                                        // output - raw metric values
+
+    SmartPtr< std::map<Function, std::map<Framework::StackTrace, TDETAIL > > > data =
+            Queries::Reduction::Apply( raw_items, Queries::Reduction::Summation );
+
+    TALLDETAILS all_details;
+    std::set< std::tuple< std::set< Function >, Function > > caller_function_list;
+
+    for ( typename std::map< Function, std::map< Framework::StackTrace, TDETAIL > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
+        const Framework::Function& function( iter->first );
+        std::map< Framework::StackTrace, TDETAIL >& tracemap( iter->second );
+
+        std::map< Framework::Thread, Framework::ExtentGroup > subextents_map;
+        Get_Subextents_To_Object_Map( threadGroup, function, subextents_map );
+
+        std::set< Framework::StackTrace, ltST > StackTraces_Processed;
+
+        for ( typename std::map< Framework::StackTrace, TDETAIL >::iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
+            const Framework::StackTrace& stacktrace( siter->first );
+
+            std::pair< std::set< Framework::StackTrace >::iterator, bool > ret = StackTraces_Processed.insert( stacktrace );
+            if ( ! ret.second )
+                continue;
+
+            /* Find the extents associated with the stack trace's thread. */
+            std::map< Framework::Thread, Framework::ExtentGroup >::iterator tei = subextents_map.find( stacktrace.getThread() );
+            Framework::ExtentGroup subExtents;
+            if (tei != subextents_map.end()) {
+                subExtents = (*tei).second;
+            }
+
+            int64_t num_calls = ( subExtents.begin() == subExtents.end() ) ? 1 : stack_contains_N_calls( stacktrace, subExtents );
+
+            const TDETAIL& detail( siter->second );
+
+            int index;
+            for ( index=0; index<stacktrace.size(); index++ ) {
+                std::pair< bool, Function > result = stacktrace.getFunctionAt( index );
+                if ( result.first && result.second == function )
+                    break;
+            }
+
+            std::set< Function > caller;
+
+            if ( index < stacktrace.size()-1 ) {
+                std::pair< bool, Function > result = stacktrace.getFunctionAt( index+1 );
+                if ( result.first )
+                    caller.insert( result.second );
+            }
+
+            all_details.push_back( std::make_tuple( detail.dm_count, detail.dm_time / num_calls, function, caller ) );
+
+            caller_function_list.insert( std::make_tuple( caller, function ) );
+        }
+    }
+
+    std::vector<double> call_depths;
+
+    detail_reduction( caller_function_list, all_details, reduced_details );
+
+    std::ostringstream oss;
+    generate_calltree_graph( functions, caller_function_list, call_depths, oss );
+    std::cout << oss.str() << std::endl;
+
+    for(int i=0; i<call_depths.size(); i++)
+        std::cout << "    " << call_depths[i];
+    std::cout << std::endl;
+}
+#endif
 
 } // GUI
 } // ArgoNavis

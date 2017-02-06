@@ -37,6 +37,7 @@ KRELL_ROOT = $$(KRELL_ROOT)
 CBTF_ROOT = $$(CBTF_ROOT)
 OSS_CBTF_ROOT = $$(OSS_CBTF_ROOT)
 BOOST_ROOT = $$(BOOST_ROOT)
+BOOST_LIB_DIR = $$(BOOST_LIB_DIR)
 
 CONFIG_H = $$quote(common/config.h)
 
@@ -50,13 +51,13 @@ PRE_TARGETDEPS += $$CONFIG_H
 target.path = $$(OSS_CBTF_ROOT)/bin
 INSTALLS += target
 
-LIBS += -L$$KRELL_ROOT/lib64
-LIBS += -Wl,-rpath $$KRELL_ROOT/lib64
+LIBS += -L$$KRELL_ROOT/lib
+LIBS += -Wl,-rpath $$KRELL_ROOT/lib
 LIBS += -lxerces-c-3.1 -lxplat
 #LIBS += -lmrnet
 
 INCLUDEPATH += $$CBTF_ROOT/include
-LIBS += -L$$CBTF_ROOT/lib64
+LIBS += -L$$CBTF_ROOT/lib
 LIBS += -largonavis-base -largonavis-cuda
 
 CBTF_MESSAGES_PATH = $$CBTF_ROOT
@@ -65,10 +66,10 @@ include(CBTF-Messages.pri)
 LIBOPENSS_INC = $$OSS_CBTF_ROOT
 OPENSS_PATH = $$OSS_CBTF_ROOT
 include(OpenSS-CLI.pri)
-LIBS += -Wl,-rpath $$OSS_CBTF_ROOT/lib64
+LIBS += -Wl,-rpath $$OSS_CBTF_ROOT/lib
 
-# uncomment the following to produce XML dump of database
-#DEFINES += HAS_OSSCUDA2XML
+INCLUDEPATH += $$CBTF_ROOT/include/collectors
+
 #DEFINES += USE_DISCRETE_SAMPLES
 DEFINES += USE_PERIODIC_SAMPLE_AVG
 DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
@@ -85,15 +86,19 @@ DEFINES += HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
 DEFINES += HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
 #DEFINES += HAS_TIMER_THREAD_DESTROYED_CHECKING
 
+message("BOOST_ROOT="$$BOOST_ROOT)
 INCLUDEPATH += $$BOOST_ROOT/include $$BOOST_ROOT/include/boost
-LIBS += -L$$BOOST_ROOT/lib -lboost_system -lboost_thread -lboost_program_options
-# -lboost_date_time -lboost_filesystem -lboost_unit_test_framework -lboost_program_options
-LIBS += -Wl,-rpath $$BOOST_ROOT/lib
+exists($$BOOST_LIB_DIR): LIBS += -L$$BOOST_LIB_DIR/lib
+else: LIBS += -L$$BOOST_ROOT/lib
+LIBS += -lboost_system -lboost_thread -lboost_program_options
+message("LIBS="$$LIBS)
+LIBS += -lboost_date_time -lboost_filesystem -lboost_unit_test_framework
 LIBS += -lgomp
 
 QCUSTOMPLOTDIR = $$PWD/QCustomPlot
 INCLUDEPATH += $$QCUSTOMPLOTDIR
 
+message("LD_LIBRARY_PATH="$$LD_LIBRARY_PATH)
 
 SOURCES += \
     QCustomPlot/qcustomplot.cpp \
@@ -120,11 +125,16 @@ SOURCES += \
     CBTF-ArgoNavis-Ext/DataTransferDetails.cpp \
     CBTF-ArgoNavis-Ext/KernelExecutionDetails.cpp \
     widgets/ViewSortFilterProxyModel.cpp \
-    CBTF-ArgoNavis-Ext/ClusterNameBuilder.cpp
+    CBTF-ArgoNavis-Ext/ClusterNameBuilder.cpp \
+    managers/CalltreeGraphManager.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
-SOURCES += \
+# uncomment the following to produce XML dump of database
+DEFINES += HAS_OSSCUDA2XML
+contains(DEFINES, HAS_OSSCUDA2XML): {
+    SOURCES += \
     util/osscuda2xml.cxx \
+}
 }
 
 HEADERS += \
@@ -152,7 +162,8 @@ HEADERS += \
     CBTF-ArgoNavis-Ext/DataTransferDetails.h \
     CBTF-ArgoNavis-Ext/KernelExecutionDetails.h \
     widgets/ViewSortFilterProxyModel.h \
-    CBTF-ArgoNavis-Ext/ClusterNameBuilder.h
+    CBTF-ArgoNavis-Ext/ClusterNameBuilder.h \
+    managers/CalltreeGraphManager.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

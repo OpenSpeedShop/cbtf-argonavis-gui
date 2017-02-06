@@ -42,6 +42,9 @@
 namespace ArgoNavis { namespace GUI {
 
 
+QString PerformanceDataMetricView::s_functionTitle( tr("Function (defining location)") );
+
+
 /**
  * @brief PerformanceDataTableView::PerformanceDataTableView
  * @param parent - specify parent of the PerformanceDataTableView instance
@@ -263,6 +266,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
         // set static view properties: has custom context menu, doesn't allow editing, has no root decoration
         view->setContextMenuPolicy( Qt::CustomContextMenu );
         view->setEditTriggers( QAbstractItemView::NoEditTriggers );
+        view->setSelectionBehavior( QTreeView::SelectItems );
         view->setRootIsDecorated( false );
         // initially sorting is disabled and enabled once all data has been added to the metric/detail model
         view->setSortingEnabled( false );
@@ -371,6 +375,7 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, 
         // set static view properties: has custom context menu, doesn't allow editing, has no root decoration
         view->setContextMenuPolicy( Qt::CustomContextMenu );
         view->setEditTriggers( QAbstractItemView::NoEditTriggers );
+        view->setSelectionBehavior( QTreeView::SelectItems );
         view->setRootIsDecorated( false );
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( view, &QTreeView::clicked, [=](const QModelIndex& index) {
@@ -445,14 +450,21 @@ void PerformanceDataMetricView::processTableViewItemClicked(QTreeView* view, con
         QAbstractItemModel* model = view->model();
         if ( model ) {
             QString text( model->data( index ).toString() );
-            QString filename;
-            int lineNumber;
-            extractFilenameAndLine( text, filename, lineNumber );
-            if ( filename.isEmpty() || -1 == lineNumber ) {
-                emit signalClearSourceView();
+            QVariant titleVar( model->headerData( index.column(), Qt::Horizontal ) );
+            QString title;
+            if ( titleVar.isValid() ) {
+                title = titleVar.toString();
             }
-            else {
-                emit signalDisplaySourceFileLineNumber( filename, lineNumber );
+            if ( s_functionTitle == title ) {
+                QString filename;
+                int lineNumber;
+                extractFilenameAndLine( text, filename, lineNumber );
+                if ( filename.isEmpty() || -1 == lineNumber ) {
+                    emit signalClearSourceView();
+                }
+                else {
+                    emit signalDisplaySourceFileLineNumber( filename, lineNumber );
+                }
             }
         }
     }

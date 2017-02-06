@@ -99,6 +99,8 @@ private:
 
     Ui::PerformanceDataMetricView *ui;
 
+    static QString s_functionTitle;
+
     QString m_clusterName;                                  // cluster name associated to metric views
     QMutex m_mutex;                                         // mutex for the following QMap objects
     QMap< QString, QStandardItemModel* > m_models;          // map metric to model

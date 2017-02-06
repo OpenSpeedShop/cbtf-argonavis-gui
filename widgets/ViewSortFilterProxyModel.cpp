@@ -99,7 +99,7 @@ bool ViewSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInde
         // keep row if either "Time Begin" value within range defined by ['m_lower' .. 'm_upper'] OR
         // "Time Begin" is before 'm_lower' but "Time End" is equal to or greater than 'm_lower'
         result = ( ( m_type == "*" || type == m_type ) &&
-                   ( timeBegin >= m_lower && timeBegin <= m_upper || timeBegin < m_lower && timeEnd >= m_lower ) );
+                 ( ( timeBegin >= m_lower && timeBegin <= m_upper ) || ( timeBegin < m_lower && timeEnd >= m_lower ) ) );
     }
 
     return result;

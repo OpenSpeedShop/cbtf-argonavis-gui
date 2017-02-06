@@ -206,6 +206,31 @@ private:
     template <typename TS>
     QString getViewName() const { return QString(); }
 
+    void ShowUserTimeDetailOrig(const OpenSpeedShop::Framework::Experiment& experiment, const QString& metric);
+
+    using all_details_data_t = std::tuple< int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > >;
+    using TALLDETAILS = std::vector< all_details_data_t >;
+
+    using details_data_t = std::tuple< int64_t, double, OpenSpeedShop::Framework::Function >;
+    using TDETAILS = std::vector< details_data_t >;
+
+    void detail_reduction(const std::set< std::tuple< std::set< OpenSpeedShop::Framework::Function >, OpenSpeedShop::Framework::Function > >& caller_function_list,
+                           TALLDETAILS &all_details,
+                           TDETAILS& reduced_details);
+
+    void generate_calltree_graph(const std::set< OpenSpeedShop::Framework::Function >& functions,
+                                 const std::set< std::tuple< std::set< OpenSpeedShop::Framework::Function >, OpenSpeedShop::Framework::Function > >& caller_function_list,
+                                 std::vector<double>& call_depths,
+                                 std::ostream &os);
+
+    template <typename TDETAIL>
+    void ShowDetail(const OpenSpeedShop::Framework::Collector& collector,
+                    const OpenSpeedShop::Framework::ThreadGroup& threadGroup,
+                    const OpenSpeedShop::Framework::TimeInterval& interval,
+                    const std::set< OpenSpeedShop::Framework::Function >& functions,
+                    const QString& metric,
+                    TDETAILS& reduced_details);
+
     bool processDataTransferEvent(const ArgoNavis::Base::Time& time_origin,
                                   const ArgoNavis::CUDA::DataTransfer& details,
                                   const QString& clusterName,
