@@ -257,7 +257,7 @@ void MainWindow::unloadOpenSsExperiment()
 
         QString expName( action->text() );
 
-        ui->widget_MetricPlotView->unloadExperimentDataFromView( expName );
+        ui->widget_MetricViewManager->unloadExperimentDataFromView( expName );
 
         ui->widget_MetricTableView->deleteAllModelsViews();
 
@@ -306,7 +306,7 @@ void MainWindow::handleAdjustPlotViewScrollArea(const QString& clusteringCriteri
 
     int plotSize( 150 );
 
-    ui->widget_MetricPlotView->setFixedHeight( numPlots * plotSize );
+    ui->widget_MetricViewManager->setFixedHeight( numPlots * plotSize );
 }
 
 /**
@@ -329,7 +329,7 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
 
     int plotSize( 150 );
 
-    ui->widget_MetricPlotView->setFixedHeight( numPlots * plotSize );
+    ui->widget_MetricViewManager->setFixedHeight( numPlots * plotSize );
 }
 
 /**

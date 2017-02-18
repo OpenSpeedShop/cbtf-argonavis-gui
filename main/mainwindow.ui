@@ -48,7 +48,7 @@
         <property name="widgetResizable">
          <bool>true</bool>
         </property>
-        <widget class="ArgoNavis::GUI::PerformanceDataPlotView" name="widget_MetricPlotView">
+        <widget class="ArgoNavis::GUI::MetricViewManager" name="widget_MetricViewManager">
          <property name="geometry">
           <rect>
            <x>0</x>
@@ -146,12 +146,6 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>ArgoNavis::GUI::PerformanceDataPlotView</class>
-   <extends>QWidget</extends>
-   <header>widgets/PerformanceDataPlotView.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>ArgoNavis::GUI::ExperimentPanel</class>
    <extends>QWidget</extends>
    <header>widgets/ExperimentPanel.h</header>
@@ -167,6 +161,12 @@
    <class>ArgoNavis::GUI::SourceView</class>
    <extends>QWidget</extends>
    <header>SourceView/SourceView.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ArgoNavis::GUI::MetricViewManager</class>
+   <extends>QWidget</extends>
+   <header>widgets/MetricViewManager.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

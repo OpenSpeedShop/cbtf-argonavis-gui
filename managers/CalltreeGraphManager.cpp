@@ -108,6 +108,8 @@ CalltreeGraphManager::handle_t CalltreeGraphManager::addFunctionNode(
 
     m_vertices.push_back( vertex );
 
+    Q_ASSERT( vertex == m_vertices.size()-1 );
+
     return m_vertices.size()-1;
 }
 
@@ -206,19 +208,17 @@ void CalltreeGraphManager::write_graphviz(std::ostream& os)
 #endif
 }
 
-void CalltreeGraphManager::iterate_over_edges()
-{
-    std::pair<boost::graph_traits<CallTree>::edge_iterator, boost::graph_traits<CallTree>::edge_iterator> edgeIteratorRange = boost::edges( m_calltree );
-    for ( boost::graph_traits<CallTree>::edge_iterator edgeIterator = edgeIteratorRange.first; edgeIterator != edgeIteratorRange.second; ++edgeIterator ) {
-        std::cout << *edgeIterator << std::endl;
-    }
-}
-
-void CalltreeGraphManager::determine_call_depths(std::vector<double>& call_depths)
+/**
+ * @brief CalltreeGraphManager::generate_call_depths
+ * @param call_depth_map - the map of each pair of functions and the depth of the stackframe from the first function in the pair to the second
+ *
+ * This method produces a map of each pair of functions in a calltree and the depth of the stackframe from the first function in the pair to the second.
+ */
+void CalltreeGraphManager::generate_call_depths(std::map< std::pair< handle_t, handle_t>, uint32_t >& call_depth_map)
 {
     const int V = m_vertices.size();
 
-    std::vector < double >d( V, (std::numeric_limits < double >::max)() );
+    std::vector < double > d( V, (std::numeric_limits < double >::max)() );
 
     double** D = new double*[ V * sizeof(double) ];
     for (int i=0; i<V; i++)
@@ -226,28 +226,15 @@ void CalltreeGraphManager::determine_call_depths(std::vector<double>& call_depth
 
     boost::johnson_all_pairs_shortest_paths( m_calltree, D, boost::distance_map(d.data()) );
 
-    std::cout << "       ";
-    for ( int k = 0; k < V; ++k )
-        std::cout << std::setw(5) << m_calltree[m_vertices[k]].functionName;
-    std::cout << std::endl;
     for ( int i = 0; i < V; ++i ) {
-        std::cout << std::setw(3) << i << " -> ";
         for ( int j = 0; j < V; ++j ) {
-            if ( D[i][j] == std::numeric_limits<double>::max() )
-                std::cout << std::setw(5) << "inf";
-            else
-                std::cout << std::setw(5) << std::fixed << std::setprecision(0) << D[i][j];
+            if ( D[i][j] != 0 && D[i][j] != std::numeric_limits<double>::max() ) {
+                call_depth_map[ std::make_pair( m_vertices[i], m_vertices[j] ) ] = D[i][j];
+            }
         }
-        std::cout << std::endl;
     }
 
-    call_depths.resize( V );
-
-    for (int i = 0; i < V; ++i) {
-        call_depths[i] = D[0][i];
-    }
-
-    for (int i=0; i<V; i++)
+    for ( int i=0; i<V; i++ )
         delete[] D[i];
 
     delete[] D;

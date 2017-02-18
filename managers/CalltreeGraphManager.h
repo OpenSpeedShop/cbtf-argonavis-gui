@@ -42,9 +42,7 @@ public:
 
     void write_graphviz(std::ostream& os);
 
-    void iterate_over_edges();
-
-    void determine_call_depths(std::vector<double>& call_depths);
+    void generate_call_depths(std::map< std::pair< handle_t, handle_t>, uint32_t >& call_depth_map);
 
 private:
 

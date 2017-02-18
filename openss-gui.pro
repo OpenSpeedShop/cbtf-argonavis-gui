@@ -98,6 +98,14 @@ LIBS += -lgomp
 QCUSTOMPLOTDIR = $$PWD/QCustomPlot
 INCLUDEPATH += $$QCUSTOMPLOTDIR
 
+INCLUDEPATH += $$CBTF_ROOT/include/QtGraph
+CONFIG(debug, debug|release) {
+LIBS += -L$$CBTF_ROOT/lib64 -lQtGraphd
+}
+CONFIG(release, debug|release) {
+LIBS += $$CBTF_ROOT/lib64 -lQtGraph
+}
+
 message("LD_LIBRARY_PATH="$$LD_LIBRARY_PATH)
 
 SOURCES += \
@@ -126,7 +134,9 @@ SOURCES += \
     CBTF-ArgoNavis-Ext/KernelExecutionDetails.cpp \
     widgets/ViewSortFilterProxyModel.cpp \
     CBTF-ArgoNavis-Ext/ClusterNameBuilder.cpp \
-    managers/CalltreeGraphManager.cpp
+    managers/CalltreeGraphManager.cpp \
+    widgets/CalltreeGraphView.cpp \
+    widgets/MetricViewManager.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -163,12 +173,15 @@ HEADERS += \
     CBTF-ArgoNavis-Ext/KernelExecutionDetails.h \
     widgets/ViewSortFilterProxyModel.h \
     CBTF-ArgoNavis-Ext/ClusterNameBuilder.h \
-    managers/CalltreeGraphManager.h
+    managers/CalltreeGraphManager.h \
+    widgets/CalltreeGraphView.h \
+    widgets/MetricViewManager.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \
     widgets/PerformanceDataMetricView.ui \
-    SourceView/ModifyPathSubstitutionsDialog.ui
+    SourceView/ModifyPathSubstitutionsDialog.ui \
+    widgets/MetricViewManager.ui
 
 RESOURCES += \
     openss-gui.qrc

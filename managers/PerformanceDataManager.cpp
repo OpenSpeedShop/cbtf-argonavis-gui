@@ -932,6 +932,22 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 #endif
 }
 
+void PerformanceDataManager::print_details(const std::string& details_name, const TDETAILS& details) const
+{
+    std::string name( details_name );
+    std::size_t pos = name.find_first_of( "_" );
+    if ( pos != std::string::npos )
+        name[pos] = ' ';
+    std::cout << "Reduced " << name << " (by function name):" << std::endl;
+    for (const details_data_t& d : details) {
+        std::cout << "\t" << std::left << std::setw(20) << std::fixed << std::setprecision(6) << std::get<1>(d) << std::setw(20) << std::get<0>(d) << "   ";
+        std::ostringstream oss;
+        for ( uint32_t i=0; i<std::get<3>(d); ++i ) oss << '>';
+        const Function func( std::get<2>(d) );
+        std::cout << oss.str() << func.getName() << " (" << func.getLinkedObject().getPath().getBaseName() << ")" << std::endl;
+    }
+}
+
 /**
  * @brief PerformanceDataManager::asyncLoadCudaViews
  * @param filePath - filename of the experiment database to be opened and processed into the performance data manager and view for display
@@ -946,36 +962,39 @@ void PerformanceDataManager::asyncLoadCudaViews(const QString& filePath)
     QtConcurrent::run( this, &PerformanceDataManager::loadCudaViews, filePath );
 
     Experiment experiment( filePath.toStdString() );
-#if 0
-    ShowUserTimeDetailOrig( experiment, "exclusive_detail" );
-#else
+
     const Collector collector = *experiment.getCollectors().begin();
     const TimeInterval interval( Time::TheBeginning(), Time::TheEnd() );
     const ThreadGroup threadGroup( experiment.getThreads() );
     const std::set< Function > functions( threadGroup.getFunctions() );
 
-    TDETAILS exclusive_details;
+    if ( collector.getMetadata().getUniqueId() == "usertime" ) {
+        TDETAILS exclusive_details;
 
-    ShowDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "exclusive_detail", exclusive_details );
+        ShowCalltreeDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "exclusive_detail", exclusive_details );
 
-#if 1
-    std::cout << "Reduced exclusive details (by function name):" << std::endl;
-    for (const details_data_t& d : exclusive_details) {
-        std::cout << "\t" << std::left << std::setw(20) << std::fixed << std::setprecision(6) << std::get<1>(d) << std::setw(20) << std::get<0>(d) << std::setw(20) << std::get<2>(d).getName() << std::endl;
-    }
-#endif
+        struct {
+            bool operator() (const details_data_t& lhs, const details_data_t& rhs) {
+                return ( std::get<3>(lhs) < std::get<3>(rhs) ) || ( std::get<3>(lhs) == std::get<3>(rhs) && std::get<1>(lhs) > std::get<1>(rhs) );
+            }
+        } details_compare;
 
-    TDETAILS inclusive_details;
-
-    ShowDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "inclusive_detail", inclusive_details );
+        std::sort( exclusive_details.begin(), exclusive_details.end(), details_compare );
 
 #if 1
-    std::cout << "Reduced inclusive details (by function name):" << std::endl;
-    for (const details_data_t& d : inclusive_details) {
-        std::cout << "\t" << std::left << std::setw(20) << std::fixed << std::setprecision(6) << std::get<1>(d) << std::setw(20) << std::get<0>(d) << std::setw(20) << std::get<2>(d).getName() << std::endl;
+        print_details( "exclusive_detail", exclusive_details );
+#endif
+
+        TDETAILS inclusive_details;
+
+        ShowCalltreeDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "inclusive_detail", inclusive_details );
+
+        std::sort( inclusive_details.begin(), inclusive_details.end(), details_compare );
+
+#if 1
+        print_details( "inclusive_detail", inclusive_details );
+#endif
     }
-#endif
-#endif
 }
 
 /**
@@ -1455,10 +1474,12 @@ void PerformanceDataManager::xmlDump(const QString &filePath)
 }
 #endif
 
-//SmartPtr<std::map<Function,
-//                  std::map<Framework::StackTrace,
-//                           TDETAIL > > > raw_items;
-
+/**
+ * @brief Get_Subextents_To_Object
+ * @param tgrp
+ * @param object
+ * @param subextents
+ */
 template <typename TS>
 void Get_Subextents_To_Object (
         const Framework::ThreadGroup& tgrp,
@@ -1473,6 +1494,12 @@ void Get_Subextents_To_Object (
     }
 }
 
+/**
+ * @brief Get_Subextents_To_Object_Map
+ * @param tgrp
+ * @param object
+ * @param subextents_map
+ */
 template <typename TS>
 void Get_Subextents_To_Object_Map (
         const Framework::ThreadGroup& tgrp,
@@ -1491,6 +1518,12 @@ void Get_Subextents_To_Object_Map (
     }
 }
 
+/**
+ * @brief stack_contains_N_calls
+ * @param st
+ * @param subextents
+ * @return
+ */
 inline int64_t stack_contains_N_calls(const Framework::StackTrace& st, Framework::ExtentGroup& subextents)
 {
     int64_t num_calls = 0;
@@ -1516,91 +1549,14 @@ inline int64_t stack_contains_N_calls(const Framework::StackTrace& st, Framework
     return num_calls;
 }
 
-#if 1
-typedef std::map< Function, double > detail_time_t;
-typedef std::map< Function, uint64_t > detail_count_t;
-
-void sum_detail_values(const UserTimeDetail& primary, int64_t num_calls, uint64_t& detail_count, double& detail_time)
-{
-    detail_time += ( primary.dm_time / num_calls );
-    detail_count += primary.dm_count;
-}
-
-void PerformanceDataManager::ShowUserTimeDetailOrig(const Experiment& experiment, const QString& metric)
-{
-    Collector collector = *experiment.getCollectors().begin();
-    std::cout << "metric = " << metric.toStdString() << " Collector unique id =" << collector.getMetadata().getUniqueId() << std::endl;
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    using UserTimeDetail = OpenSpeedShop::Framework::UserTimeDetail;
-#else
-    typedef OpenSpeedShop::Framework::UserTimeDetail UserTimeDetail;
-#endif
-
-    SmartPtr< std::map< Function,
-                std::map< Framework::Thread,
-                    std::map< Framework::StackTrace, UserTimeDetail > > > > raw_items;
-
-    Framework::ThreadGroup threadGroup = experiment.getThreads();
-
-    Queries::GetMetricValues( collector, metric.toStdString(),
-                              TimeInterval( Time::TheBeginning(), Time::TheEnd() ),
-                              threadGroup,
-                              threadGroup.getFunctions(),
-                              raw_items );
-
-    SmartPtr< std::map<Function, std::map<Framework::StackTrace, UserTimeDetail > > > data =
-            Queries::Reduction::Apply( raw_items, Queries::Reduction::Summation );
-
-    detail_count_t inclusive_count_detail;
-    detail_time_t  inclusive_time_detail;
-    detail_count_t exclusive_count_detail;
-    detail_time_t  exclusive_time_detail;
-
-    std::map< Function, std::map< Framework::StackTrace, UserTimeDetail> >::iterator iter( data->begin() );
-
-    while ( iter != data->end() ) {
-        const Framework::Function& function( iter->first );
-        const std::string functionName = function.getMangledName();
-        std::cout << "Function: " << functionName << std::endl;
-        Framework::ExtentGroup subextents;
-        Get_Subextents_To_Object( threadGroup, function, subextents );
-        std::map< Framework::StackTrace, UserTimeDetail >& tracemap( iter->second );
-        std::map< Framework::StackTrace, UserTimeDetail >::iterator siter( tracemap.begin() );
-        std::set< Framework::StackTrace > StackTraces_Processed;
-        while ( siter != tracemap.end() ) {
-            const Framework::StackTrace& stacktrace( siter->first );
-            std::pair< std::set< Framework::StackTrace >::iterator, bool > ret = StackTraces_Processed.insert( stacktrace );
-            if ( ! ret.second ) {
-                std::cout << "STACK TRACE ALREADY PROCESSED - SKIP THIS ONE!!" << std::endl;
-                continue;
-            }
-            for ( std::size_t idx=0; idx<stacktrace.size(); idx++ ) {
-                Framework::Address address( stacktrace[idx] );
-                std::pair< bool, Framework::Function > this_function = stacktrace.getFunctionAt(idx);
-                if ( this_function.first ) {
-                    std::cout << '\t' << idx << ": function: " << this_function.second.getDemangledName() << " address: " << address;
-                    std::set< Framework::Statement > this_statement = stacktrace.getStatementsAt(idx);
-                    Q_ASSERT( this_statement.size() <= 1 );
-                    std::set< Framework::Statement >::iterator sit( this_statement.begin() );
-                    if ( sit != this_statement.end() ) {
-                        std::cout << " statement: " << (*sit).getPath() << "," << (*sit).getLine();
-                    }
-                    std::cout << std::endl;
-                }
-            }
-            const UserTimeDetail& detail( siter->second );
-            std::cout << "\tcount: " << detail.dm_count << " time: " << detail.dm_time << std::endl;
-            int64_t num_calls = stack_contains_N_calls( stacktrace, subextents );
-            sum_detail_values( detail, num_calls, inclusive_count_detail[function], inclusive_time_detail[function] );
-            sum_detail_values( detail, num_calls, exclusive_count_detail[function], exclusive_time_detail[function] );
-            siter++;
-        }
-        iter++;
-    }
-}
-#endif
-
+/**
+ * @brief sortByFixedComponent
+ * @param first
+ * @param last
+ *
+ * Sorts the 'first' to 'last' items in a container.  The item type is a std:tuple.  The Nth value in the std::tuple is used as the key for sorting.
+ * The container Iterator must follow the ForwardIterator concept.  The BinaryPredicate concept provides a function used during the sorting.
+ */
 template <int N, typename BinaryPredicate, typename ForwardIterator>
 void sortByFixedComponent (ForwardIterator first, ForwardIterator last) {
     std::sort (first, last, [](const typename ForwardIterator::value_type& x, const typename ForwardIterator::value_type& y)->bool {
@@ -1608,6 +1564,9 @@ void sortByFixedComponent (ForwardIterator first, ForwardIterator last) {
     });
 }
 
+/**
+ * @brief The ltST struct provides a Function object (functor) to sort a container of Framework::StackTrace items.
+ */
 struct ltST {
     bool operator() (Framework::StackTrace stl, Framework::StackTrace str) {
         if (stl.getTime() < str.getTime()) { return true; }
@@ -1620,68 +1579,26 @@ struct ltST {
     }
 };
 
-#if 0
-template <typename TDETAIL>
-void PerformanceDataManager::ShowDetail(
-        const Framework::Collector& collector,
-        const Framework::ThreadGroup& threadGroup,
-        const Framework::TimeInterval& interval,
-        const std::set< Framework::Function >& functions,
-        const QString& metric,
-        TDETAILS& reduced_details)
-{
-    SmartPtr< std::map< Function,
-                std::map< Framework::Thread,
-                    std::map< Framework::StackTrace, TDETAIL > > > > raw_items;
-
-    Queries::GetMetricValues( collector, metric.toStdString(), interval, threadGroup, functions,  // input - metric search criteria
-                              raw_items );                                                        // output - raw metric values
-
-    SmartPtr< std::map<Function, std::map<Framework::StackTrace, TDETAIL > > > data =
-            Queries::Reduction::Apply( raw_items, Queries::Reduction::Summation );
-
-    for ( typename std::map< Function, std::map< Framework::StackTrace, TDETAIL > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
-        const Framework::Function& function( iter->first );
-        std::map< Framework::StackTrace, TDETAIL >& tracemap( iter->second );
-
-        std::map< Framework::Thread, Framework::ExtentGroup > subextents_map;
-        Get_Subextents_To_Object_Map( threadGroup, function, subextents_map );
-
-        std::set< Framework::StackTrace, ltST > StackTraces_Processed;
-
-        int sum_count(0);
-        double sum_time(0.0);
-
-        for ( typename std::map< Framework::StackTrace, TDETAIL >::iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
-            const Framework::StackTrace& stacktrace( siter->first );
-
-            std::pair< std::set< Framework::StackTrace >::iterator, bool > ret = StackTraces_Processed.insert( stacktrace );
-            if ( ! ret.second )
-                continue;
-
-            const TDETAIL& detail( siter->second );
-
-            /* Find the extents associated with the stack trace's thread. */
-            std::map< Framework::Thread, Framework::ExtentGroup >::iterator tei = subextents_map.find( stacktrace.getThread() );
-            Framework::ExtentGroup subExtents;
-            if (tei != subextents_map.end()) {
-                subExtents = (*tei).second;
-            }
-
-            int64_t num_calls = ( subExtents.begin() == subExtents.end() ) ? 1 : stack_contains_N_calls( stacktrace, subExtents );
-
-            sum_count += detail.dm_count;
-            sum_time += detail.dm_time / num_calls;
-        }
-
-        reduced_details.push_back( std::make_tuple( sum_count, sum_time, function ) );
-    }
-
-    sortByFixedComponent<1, std::greater<std::tuple_element<1,details_data_t>::type>> (reduced_details.begin(), reduced_details.end());
-}
-#else
+/**
+ * @brief PerformanceDataManager::detail_reduction
+ * @param caller_function_list - the set of all direct calls (caller -> function) involved in the view
+ * @param call_depth_map - a map of the calltree depth from "_start" to a particular function
+ * @param all_details - an array of raw detail data
+ * @param reduced_details - an array of reduced detail data
+ *
+ * This method combines individual detail records for each function call pairs into one detail record.
+ * The std::partition algorithm is used to move all records associated with the current function call pair
+ * being processed to the front of the container and returns an iterator to the end of the group of items
+ * moved to the front.  The front is initially the beginning of the raw detail array and after completing
+ * the reduction for each function call pairs the front becomes the iterator returned by std::partition.
+ * The UnaryPredicate function used by std::partition determines whether an evaluated item should be moved
+ * to the front by comparing the caller function and linked object name and called function and linked object
+ * name to the current function and linked object name in the caller function list being processed.
+ * The reduced details container is sorted in descending order by time (the second item in the std::tuple).
+ */
 void PerformanceDataManager::detail_reduction(
         const std::set< std::tuple< std::set< Function >, Function > >& caller_function_list,
+        std::map< Function, uint32_t >& call_depth_map,
         TALLDETAILS& all_details,
         TDETAILS& reduced_details)
 {
@@ -1689,9 +1606,12 @@ void PerformanceDataManager::detail_reduction(
 
     for ( std::set< std::tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++) {
         const std::tuple< std::set< Function >, Function > elem( *fit );
+        // getting called function name and linked object name
         Function function = std::get<1>(elem);
         std::string functionName( function.getName() );
         std::string linkedObjectName( function.getLinkedObject().getPath() );
+        uint32_t depth = ( call_depth_map.find( function ) != call_depth_map.end() ) ? call_depth_map[ function ] : 0;
+        // getting caller function name and linked object name
         std::string callingFunctionName;
         std::string callingLinkedObjectName;
         std::set< Function > caller = std::get<0>(elem);
@@ -1700,7 +1620,7 @@ void PerformanceDataManager::detail_reduction(
             callingFunctionName = callingFunction.getName();
             callingLinkedObjectName = callingFunction.getLinkedObject().getPath();
         }
-        std::cout << callingFunctionName << " --> " << functionName << std::endl;
+        // partition remaining raw details per caller->callee relationships for current caller being processed in the caller function list
         TALLDETAILS::iterator eiter = std::partition( siter, all_details.end(),
                                                       [&](const all_details_data_t& d) {
                                                           const Function& func( std::get<2>(d) );
@@ -1712,11 +1632,16 @@ void PerformanceDataManager::detail_reduction(
                                                               cfuncName = cfunc.getName();
                                                               cfuncLinkedObjectName = cfunc.getLinkedObject().getPath();
                                                           }
+                                                          // Same caller -> callee relationship?  This is determined by comparing the caller function and
+                                                          // linked object name and callee function and linked object name to the current function and linked
+                                                          // object name of the current item in the caller function list being processed.
                                                           return func.getName() == functionName && func.getLinkedObject().getPath() == linkedObjectName &&
                                                                  callingFunctionName == cfuncName && callingLinkedObjectName == cfuncLinkedObjectName;
                                                       } );
+        // exit when reached end of raw details
         if ( siter == all_details.end() )
             break;
+        // sum the count and time values
         int sum_count(0);
         double sum_time(0.0);
         for ( TALLDETAILS::iterator it = siter; it != eiter; it++ ) {
@@ -1724,55 +1649,100 @@ void PerformanceDataManager::detail_reduction(
             sum_count += std::get<0>(d);
             sum_time += std::get<1>(d);
         }
-        reduced_details.push_back( std::make_tuple( sum_count, sum_time, function ) );
+        // save the reduced details data
+        reduced_details.push_back( std::make_tuple( sum_count, sum_time, function, depth ) );
+        // set start iterator to the end iterator
         siter = eiter;
     }
 
+    // Sort the reduced details by time (the second item in the std::tuple - index value of 1).
     sortByFixedComponent<1, std::greater<std::tuple_element<1,details_data_t>::type>> (reduced_details.begin(), reduced_details.end());
 }
 
+/**
+ * @brief PerformanceDataManager::generate_calltree_graph
+ * @param functions - the set of functions involved in the calltree view
+ * @param caller_function_list - the set of all direct calls (caller -> function) involved in the calltree view
+ * @param call_depth_map - a map of the calltree depth from "_start" to a particular function
+ * @param os - the std::ostream object in which the DOT format data should be copied to
+ *
+ * This method constructs a graph using a CalltreeGraphManager class instannce.  Each function is added as a vertex to the graph.  Each calling -> callee
+ * function pair results in the associated edge to be added to the graph.  The calltree depth map and DOT formatted output is returned by this method.
+ */
 void PerformanceDataManager::generate_calltree_graph(
         const std::set< Framework::Function >& functions,
         const std::set< std::tuple< std::set< Function >, Function > >& caller_function_list,
-        std::vector<double>& call_depths,
+        std::map< Function, uint32_t >& call_depth_map,
         std::ostream& os)
 {
+    // Create a calltree graph manager instance.
     CalltreeGraphManager graphManager;
 
-    std::map< Function, CalltreeGraphManager::handle_t > handleMap;
+    // Define fast lookup data structures from Function type to CalltreeGraphManager::handle_t type and vice-versa.
+    std::map< Function, CalltreeGraphManager::handle_t > mapFunctionToHandle;
+    std::vector< std::set< Function > > mapHandleToFunction( functions.size() );
 
+    // Create a vertex in the graph for each function
     foreach ( const Framework::Function& function, functions ) {
-        std::string functionName( function.getName() );
-        std::string sourceFilename;
-        uint32_t lineNumber(0);
-        std::string linkedObjectName( function.getLinkedObject().getPath() );
-        CalltreeGraphManager::handle_t handle = graphManager.addFunctionNode( functionName, sourceFilename, lineNumber, linkedObjectName );
-
-        handleMap[ function ] = handle;
+        CalltreeGraphManager::handle_t handle = graphManager.addFunctionNode( function.getName(), std::string(), 0, function.getLinkedObject().getPath().getBaseName() );
+        // Add items to the lookup data structures for the function/handle pair
+        mapFunctionToHandle[ function ] = handle;
+        mapHandleToFunction[ handle ].insert( function );
     }
 
-    for ( std::set< std::tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++) {
+    // Create an edge for each caller->callee function pair
+    for ( std::set< std::tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++ ) {
         const std::tuple< std::set< Function >, Function > elem( *fit );
+
         std::set< Function > caller = std::get<0>(elem);
-        if ( caller.empty() ) continue;
+        if ( caller.empty() )
+            continue;
+
         const Function callingFunction( *(caller.cbegin()) );
         Function function = std::get<1>(elem);
-        if ( handleMap.find( callingFunction ) != handleMap.end() && handleMap.find( function ) != handleMap.end() ) {
-            const CalltreeGraphManager::handle_t& caller_handle = handleMap.at( callingFunction );
-            const CalltreeGraphManager::handle_t& handle = handleMap.at( function );
+
+        if ( mapFunctionToHandle.find( callingFunction ) != mapFunctionToHandle.end() && mapFunctionToHandle.find( function ) != mapFunctionToHandle.end() ) {
+            const CalltreeGraphManager::handle_t& caller_handle = mapFunctionToHandle.at( callingFunction );
+            const CalltreeGraphManager::handle_t& handle = mapFunctionToHandle.at( function );
             graphManager.addCallEdge( caller_handle, handle );
         }
     }
 
+    // Generate the DOT formatted data from the graph
     graphManager.write_graphviz( os );
 
-    graphManager.iterate_over_edges();
+    // Find the calltree depths for each function
+    std::map< std::pair< CalltreeGraphManager::handle_t, CalltreeGraphManager::handle_t>, uint32_t > depth_map;  // maps pair (caller_handle. handle) to calltree depth
 
-    graphManager.determine_call_depths( call_depths );
+    graphManager.generate_call_depths( depth_map );
+
+    // Convert the handle pairs to Function pairs
+    const std::string startFunction = "_start";
+
+    for ( std::map< std::pair< CalltreeGraphManager::handle_t, CalltreeGraphManager::handle_t>, uint32_t >::iterator iter = depth_map.begin(); iter != depth_map.end(); iter++ ) {
+        std::pair< CalltreeGraphManager::handle_t, CalltreeGraphManager::handle_t > callpath( iter->first );
+        const Function caller( *mapHandleToFunction[ callpath.first ].cbegin() );
+        if ( caller.getName() != startFunction || callpath.second >= mapHandleToFunction.size() )
+            continue;
+        const Function function( *mapHandleToFunction[ callpath.second ].cbegin() );
+        call_depth_map[ function ] = iter->second;
+    }
 }
 
+/**
+ * @brief PerformanceDataManager::ShowCalltreeDetail
+ * @param collector - the experiment collector used for the calltree view
+ * @param threadGroup - the set of threads applicable to the calltree view
+ * @param interval - the time interval for the calltree view
+ * @param functions - the set of functions involved in the calltree view
+ * @param metric - the metric computed in the calltree view
+ * @param reduced_details - the data computed for the calltree view
+ *
+ * This method computes the data for the calltree view in accordance with the various contraints for the view -
+ * set of threads, set of functions, time interval and the metric name.
+ */
 template <typename TDETAIL>
-void PerformanceDataManager::ShowDetail(
+void PerformanceDataManager::ShowCalltreeDetail(
         const Framework::Collector& collector,
         const Framework::ThreadGroup& threadGroup,
         const Framework::TimeInterval& interval,
@@ -1794,8 +1764,8 @@ void PerformanceDataManager::ShowDetail(
     std::set< std::tuple< std::set< Function >, Function > > caller_function_list;
 
     for ( typename std::map< Function, std::map< Framework::StackTrace, TDETAIL > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
-        const Framework::Function& function( iter->first );
-        std::map< Framework::StackTrace, TDETAIL >& tracemap( iter->second );
+        const Framework::Function function( iter->first );
+        std::map< Framework::StackTrace, TDETAIL > tracemap( iter->second );
 
         std::map< Framework::Thread, Framework::ExtentGroup > subextents_map;
         Get_Subextents_To_Object_Map( threadGroup, function, subextents_map );
@@ -1809,10 +1779,10 @@ void PerformanceDataManager::ShowDetail(
             if ( ! ret.second )
                 continue;
 
-            /* Find the extents associated with the stack trace's thread. */
+            // Find the extents associated with the stack trace's thread.
             std::map< Framework::Thread, Framework::ExtentGroup >::iterator tei = subextents_map.find( stacktrace.getThread() );
             Framework::ExtentGroup subExtents;
-            if (tei != subextents_map.end()) {
+            if ( tei != subextents_map.end() ) {
                 subExtents = (*tei).second;
             }
 
@@ -1841,19 +1811,15 @@ void PerformanceDataManager::ShowDetail(
         }
     }
 
-    std::vector<double> call_depths;
-
-    detail_reduction( caller_function_list, all_details, reduced_details );
+    // Define map for Function to calltree depth from "_start" invocation to the Function
+    std::map< Function, uint32_t > call_depth_map;
 
     std::ostringstream oss;
-    generate_calltree_graph( functions, caller_function_list, call_depths, oss );
+    generate_calltree_graph( functions, caller_function_list, call_depth_map, oss );
     std::cout << oss.str() << std::endl;
 
-    for(int i=0; i<call_depths.size(); i++)
-        std::cout << "    " << call_depths[i];
-    std::cout << std::endl;
+    detail_reduction( caller_function_list, call_depth_map, all_details, reduced_details );
 }
-#endif
 
 } // GUI
 } // ArgoNavis
