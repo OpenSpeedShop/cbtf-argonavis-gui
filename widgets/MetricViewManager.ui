@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MetricViewManager</class>
+ <widget class="QStackedWidget" name="MetricViewManager">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>806</width>
+    <height>527</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>StackedWidget</string>
+  </property>
+  <widget class="ArgoNavis::GUI::PerformanceDataPlotView" name="widget_MetricPlotView"/>
+  <widget class="ArgoNavis::GUI::CalltreeGraphView" name="widget_CalltreeGraphView"/>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ArgoNavis::GUI::PerformanceDataPlotView</class>
+   <extends>QWidget</extends>
+   <header>widgets/PerformanceDataPlotView.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ArgoNavis::GUI::CalltreeGraphView</class>
+   <extends>QWidget</extends>
+   <header>widgets/CalltreeGraphView.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
