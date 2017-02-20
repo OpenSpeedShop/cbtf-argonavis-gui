@@ -62,7 +62,9 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
     m_expView.resizeColumnToContents( 0 );
     m_expView.setEditTriggers( QAbstractItemView::NoEditTriggers );
     m_expView.setSelectionMode( QAbstractItemView::NoSelection );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     m_expView.setSizeAdjustPolicy( QAbstractItemView::AdjustToContents );
+#endif
     m_expView.setStyleSheet("QTreeView {"
                             "   font: 14px;"
                             "}"
@@ -102,7 +104,6 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
  */
 void ExperimentPanel::handleAddExperiment(const QString &name, const QString &clusteringCriteriaName, const QVector<QString> &clusterNames, const QVector<QString> &sampleCounterNames)
 {
-#if 1
     // create experiment item and add as child of the root item
     TreeItem* expItem = new TreeItem( QList< QVariant>() << name, m_root );
     m_root->appendChild( expItem );
@@ -113,10 +114,7 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
 
     foreach( const QString& clusterName, clusterNames ) {
         // create new cluster item and add as child of the criteria item
-        TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName << 0.0 << 0.0, expCriteriaItem );
-        clusterItem->setCheckable( true );
-        clusterItem->setChecked( true );
-        clusterItem->setEnabled( false );
+        TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName, expCriteriaItem, true, true, false );
         expCriteriaItem->appendChild( clusterItem );
 
         // is this cluster item associated with a GPU view?
@@ -137,50 +135,6 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
 
     m_expView.resizeColumnToContents( 0 );
     m_expView.expandAll();
-#else
-    // get number of experiments loaded
-    int expCount = m_expModel->rowCount();
-
-    // add root child: experiment
-    bool success = m_expModel->insertRow( expCount, QModelIndex() );
-    Q_ASSERT( success );
-    QModelIndex expIndex = m_expModel->index( expCount, 0 );
-    m_expModel->setData( expIndex, name, Qt::EditRole );
-
-    // add children: experiment group criteria
-    success = m_expModel->insertRow( expCount, expIndex );
-    Q_ASSERT( success );
-    QModelIndex critIndex = m_expModel->index( 0, 0, expIndex );
-    m_expModel->setData( critIndex, clusteringCriteriaName, Qt::EditRole );
-
-    int clusterNum = 0;
-    foreach( const QString& clusterName, clusterNames ) {
-        // add children: experiment thread group
-        success = m_expModel->insertRow( clusterNum, critIndex );
-        Q_ASSERT( success );
-        QModelIndex threadIndex = m_expModel->index( clusterNum, 0, critIndex );
-        TreeItem* item = m_expModel->getItem( threadIndex );
-        item->setCheckable( true );
-        m_expModel->setData( threadIndex, true, Qt::CheckStateRole );
-        m_expModel->setData( threadIndex, clusterName, Qt::EditRole );
-        ++clusterNum;
-
-        bool isGpuCluster( clusterName.contains( QStringLiteral("GPU") ) );
-
-        // add children: experiment sample counters
-        int counter = 0;
-        foreach( const QString& counterName, sampleCounterNames ) {
-            bool isGpuSampleCounter( counterName.contains( QStringLiteral("GPU") ) );
-            if ( isGpuCluster == isGpuSampleCounter ) {
-                success = m_expModel->insertRow( counter, threadIndex );
-                Q_ASSERT( success );
-                QModelIndex counterIndex = m_expModel->index( counter, 0, threadIndex );
-                m_expModel->setData( counterIndex, counterName, Qt::EditRole );
-                ++counter;
-            }
-        }
-    }
-#endif
 }
 
 /**
