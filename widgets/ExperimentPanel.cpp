@@ -26,6 +26,8 @@
 #include "TreeModel.h"
 #include "TreeItem.h"
 
+#include "managers/PerformanceDataManager.h"
+
 #include <QVBoxLayout>
 #include <QDebug>
 
@@ -50,15 +52,17 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
     vLayout->addWidget( &m_expView );
 
     QList<QVariant> rootData;
-    rootData << "Loaded Experiments";
+    rootData << "Currently Loaded Experiment Information" << QString() << QString();
     m_root = new TreeItem( rootData );
 
     m_expModel = new TreeModel( m_root, this );
 
     m_expView.setModel( m_expModel );
 
-    m_expView.expandAll();
+    m_expView.resizeColumnToContents( 0 );
+    m_expView.setEditTriggers( QAbstractItemView::NoEditTriggers );
     m_expView.setSelectionMode( QAbstractItemView::NoSelection );
+    m_expView.setSizeAdjustPolicy( QAbstractItemView::AdjustToContents );
     m_expView.setStyleSheet("QTreeView {"
                             "   font: 14px;"
                             "}"
@@ -85,6 +89,16 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
                             "        border-image: none;"
                             "        image: url(:/images/branch-open);"
                             "}");
+
+    // connect performance data manager signals to performance data metric view slots
+    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
+    if ( dataMgr ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        connect( dataMgr, &PerformanceDataManager::updateComputeDataTransferRatio, this, &ExperimentPanel::handleUpdateComputeDataTransferRatio );
+#else
+        connect( dataMgr, SIGNAL(updateComputeDataTransferRatio(QString,double)), this, SLOT(handleUpdateComputeDataTransferRatio(QString,double)) );
+#endif
+    }
 }
 
 /**
@@ -98,6 +112,42 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
  */
 void ExperimentPanel::handleAddExperiment(const QString &name, const QString &clusteringCriteriaName, const QVector<QString> &clusterNames, const QVector<QString> &sampleCounterNames)
 {
+#if 1
+    // create experiment item and add as child of the root item
+    TreeItem* expItem = new TreeItem( QList< QVariant>() << name << "" << "", m_root );
+    m_root->appendChild( expItem );
+
+    // create criteria item and add as child of the experiment item
+    TreeItem* expCriteriaItem = new TreeItem( QList< QVariant >() << clusteringCriteriaName << "In View" << "Overall", expItem );
+    expItem->appendChild( expCriteriaItem );
+
+    foreach( const QString& clusterName, clusterNames ) {
+        // create new cluster item and add as child of the criteria item
+        TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName << 0.0 << 0.0, expCriteriaItem );
+        clusterItem->setCheckable( true );
+        clusterItem->setChecked( true );
+        clusterItem->setEnabled( false );
+        expCriteriaItem->appendChild( clusterItem );
+
+        // is this cluster item associated with a GPU view?
+        bool isGpuCluster( clusterName.contains( QStringLiteral("GPU") ) );
+
+        // add children: experiment sample counters
+        foreach( const QString& counterName, sampleCounterNames ) {
+            // is this counter a GPU counter?
+            bool isGpuSampleCounter( counterName.contains( QStringLiteral("GPU") ) );
+            // if flags match then add the counter to the cluster item
+            if ( isGpuCluster == isGpuSampleCounter ) {
+                // create new counter item and add as child of the cluster item
+                TreeItem* counterItem = new TreeItem( QList< QVariant >() << counterName, clusterItem );
+                clusterItem->appendChild( counterItem );
+            }
+        }
+    }
+
+    m_expView.resizeColumnToContents( 0 );
+    m_expView.expandAll();
+#else
     // get number of experiments loaded
     int expCount = m_expModel->rowCount();
 
@@ -140,6 +190,7 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
             }
         }
     }
+#endif
 }
 
 /**
@@ -155,6 +206,35 @@ void ExperimentPanel::handleRemoveExperiment(const QString &name)
         if ( var.isValid() && var.toString() == name ) {
             m_expModel->removeRow( i );
             break;
+        }
+    }
+}
+
+/**
+ * @brief updateComputerDataTransferRatio
+ * @param clusterName
+ * @param value
+ */
+void ExperimentPanel::handleUpdateComputeDataTransferRatio(const QString &clusterName, double value)
+{
+    static bool first = true;
+    qDebug() << "COMPUTE/DATA TRANSFER RATION =" << value;
+    if ( m_root->childCount() == 1 && m_root->columnCount() == 3 ) {
+        TreeItem* expItem = m_root->child( 0 );
+        QModelIndex expModelIndex = m_expModel->index( 0, 0 );
+        if ( expItem ) {
+            TreeItem* expCriteriaItem = expItem->child( 0 );
+            QModelIndex expCriteriaIndex = m_expModel->index( 0, 0, expModelIndex );
+            if ( expCriteriaItem ) {
+                for ( int i=0; i<expCriteriaItem->childCount(); ++i ) {
+                    TreeItem* clusterItem = expCriteriaItem->child( i );
+                    if ( clusterItem && clusterItem->data( 0 ).toString() == clusterName ) {
+                        QModelIndex index = m_expModel->index( i, first ? 2 : 1, expCriteriaIndex );
+                        m_expModel->setData( index, value );
+                    }
+                }
+                first = false;
+            }
         }
     }
 }

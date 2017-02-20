@@ -71,6 +71,8 @@ public slots:
 
     void handleRemoveExperiment(const QString& name);
 
+    void handleUpdateComputeDataTransferRatio(const QString& clusterName, double value);
+
 private:
 
     QTreeView m_expView;

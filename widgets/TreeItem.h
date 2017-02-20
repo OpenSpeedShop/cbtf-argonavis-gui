@@ -41,6 +41,7 @@ class TreeItem : public QObject
     Q_OBJECT
     Q_PROPERTY(bool checkable READ isCheckable WRITE setCheckable NOTIFY checkableChanged)
     Q_PROPERTY(bool checked READ isChecked() WRITE setChecked NOTIFY checkedChanged)
+    Q_PROPERTY(bool enabled READ isEnabled() WRITE setEnabled NOTIFY enabledChanged)
 
 public:
 
@@ -58,16 +59,20 @@ public:
     TreeItem *parentItem();
     void setData(int column, const QVariant& data);
     // check state setter/getter
-    void setChecked(bool set){ m_checked = set; emit checkedChanged( set ); }
+    void setChecked(bool set){ if ( m_enabled) { m_checked = set; emit checkedChanged( set ); } }
     bool isChecked() const { return m_checked; }
     // checkable state setter/getter
     void setCheckable(bool set) { m_checkable = set; emit checkableChanged( set ); }
     bool isCheckable() const { return m_checkable; }
+    // enabled state setter/getter
+    void setEnabled(bool set){ m_enabled = set; emit enabledChanged( set ); }
+    bool isEnabled() const { return m_enabled; }
 
 signals:
 
     void checkableChanged(bool value);
     void checkedChanged(bool value);
+    void enabledChanged(bool value);
 
 private:
 
@@ -75,6 +80,7 @@ private:
     QList<QVariant> m_itemData;
     bool m_checked;
     bool m_checkable;
+    bool m_enabled;
 
 };
 

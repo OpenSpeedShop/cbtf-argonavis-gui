@@ -39,6 +39,7 @@ TreeItem::TreeItem(const QList<QVariant> &data, TreeItem *parent)
     , m_itemData( data )
     , m_checked( false )
     , m_checkable( false )
+    , m_enabled( true )
 {
 
 }
