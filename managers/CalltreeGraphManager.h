@@ -3,11 +3,19 @@
 
 #include <QObject>
 
+#ifndef Q_MOC_RUN
 #include <boost/graph/adjacency_list.hpp>
+#endif
 
 #include <string>
 #include <vector>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <tuple>
+#else
+#ifndef Q_MOC_RUN
+#include "boost/tuple/tuple.hpp"
+#endif
+#endif
 #include <stdexcept>
 #include <iostream>
 
@@ -24,7 +32,11 @@ public:
 
     typedef std::size_t handle_t;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     typedef std::tuple< std::string, std::string > NameValuePair_t;
+#else
+    typedef boost::tuple< std::string, std::string > NameValuePair_t;
+#endif
     typedef std::vector< NameValuePair_t > MetricValues;
 
     typedef std::logic_error edge_exception;
@@ -68,10 +80,18 @@ private:
     };
 
     // Define the graph using those classes
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #if 1
     using CallTree = boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, boost::property< boost::edge_weight_t, double > >;
 #else
     using CallTree = boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, EdgeProperties >;
+#endif
+#else
+#if 1
+    typedef boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, boost::property< boost::edge_weight_t, double > > CallTree;
+#else
+    typedef boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, EdgeProperties > CallTree;
+#endif
 #endif
 
     // Some typedefs for simplicity

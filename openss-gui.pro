@@ -100,7 +100,7 @@ INCLUDEPATH += $$QCUSTOMPLOTDIR
 
 INCLUDEPATH += $$CBTF_ROOT/include/QtGraph
 CONFIG(debug, debug|release) {
-LIBS += -L$$CBTF_ROOT/lib64 -lQtGraphd
+LIBS += -L$$CBTF_ROOT/lib64/$$QT_VERSION -lQtGraphd
 }
 CONFIG(release, debug|release) {
 LIBS += $$CBTF_ROOT/lib64 -lQtGraph

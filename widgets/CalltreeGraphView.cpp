@@ -24,7 +24,12 @@
 #include "CalltreeGraphView.h"
 
 #include <QWheelEvent>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtMath>
+#else
+#include <qmath.h>
+#include <QPair>
+#endif
 
 #include "QtGraph/QGraphCanvas.h"
 #include "QtGraph/QGraphNode.h"

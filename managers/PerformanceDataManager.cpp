@@ -939,11 +939,20 @@ void PerformanceDataManager::print_details(const std::string& details_name, cons
     if ( pos != std::string::npos )
         name[pos] = ' ';
     std::cout << "Reduced " << name << " (by function name):" << std::endl;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     for (const details_data_t& d : details) {
         std::cout << "\t" << std::left << std::setw(20) << std::fixed << std::setprecision(6) << std::get<1>(d) << std::setw(20) << std::get<0>(d) << "   ";
         std::ostringstream oss;
         for ( uint32_t i=0; i<std::get<3>(d); ++i ) oss << '>';
         const Function func( std::get<2>(d) );
+#else
+    for ( int i=0; i<details.size(); i++ ) {
+        const details_data_t& d = details[i];
+        std::cout << "\t" << std::left << std::setw(20) << std::fixed << std::setprecision(6) << boost::get<1>(d) << std::setw(20) << boost::get<0>(d) << "   ";
+        std::ostringstream oss;
+        for ( uint32_t i=0; i<boost::get<3>(d); ++i ) oss << '>';
+        const Function func( boost::get<2>(d) );
+#endif
         std::cout << oss.str() << func.getName() << " (" << func.getLinkedObject().getPath().getBaseName() << ")" << std::endl;
     }
 }
@@ -972,12 +981,6 @@ void PerformanceDataManager::asyncLoadCudaViews(const QString& filePath)
         TDETAILS exclusive_details;
 
         ShowCalltreeDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "exclusive_detail", exclusive_details );
-
-        struct {
-            bool operator() (const details_data_t& lhs, const details_data_t& rhs) {
-                return ( std::get<3>(lhs) < std::get<3>(rhs) ) || ( std::get<3>(lhs) == std::get<3>(rhs) && std::get<1>(lhs) > std::get<1>(rhs) );
-            }
-        } details_compare;
 
         std::sort( exclusive_details.begin(), exclusive_details.end(), details_compare );
 
@@ -1550,21 +1553,6 @@ inline int64_t stack_contains_N_calls(const Framework::StackTrace& st, Framework
 }
 
 /**
- * @brief sortByFixedComponent
- * @param first
- * @param last
- *
- * Sorts the 'first' to 'last' items in a container.  The item type is a std:tuple.  The Nth value in the std::tuple is used as the key for sorting.
- * The container Iterator must follow the ForwardIterator concept.  The BinaryPredicate concept provides a function used during the sorting.
- */
-template <int N, typename BinaryPredicate, typename ForwardIterator>
-void sortByFixedComponent (ForwardIterator first, ForwardIterator last) {
-    std::sort (first, last, [](const typename ForwardIterator::value_type& x, const typename ForwardIterator::value_type& y)->bool {
-        return BinaryPredicate()(std::get<N>(x), std::get<N>(y));
-    });
-}
-
-/**
  * @brief The ltST struct provides a Function object (functor) to sort a container of Framework::StackTrace items.
  */
 struct ltST {
@@ -1578,6 +1566,61 @@ struct ltST {
         return stl < str;
     }
 };
+
+
+/**
+ * @brief sortByFixedComponent
+ * @param first
+ * @param last
+ *
+ * Sorts the 'first' to 'last' items in a container.  The item type is a std:tuple.  The Nth value in the std::tuple is used as the key for sorting.
+ * The container Iterator must follow the ForwardIterator concept.  The BinaryPredicate concept provides a function used during the sorting.
+ */
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+template <int N, typename BinaryPredicate, typename ForwardIterator>
+void sortByFixedComponent (ForwardIterator first, ForwardIterator last) {
+    std::sort (first, last, [](const typename ForwardIterator::value_type& x, const typename ForwardIterator::value_type& y)->bool {
+        return BinaryPredicate()(std::get<N>(x), std::get<N>(y));
+    });
+}
+#else
+template <int N, typename BinaryPredicate, typename ForwardIterator>
+bool PerformanceDataManager::ComponentBinaryPredicate(const typename ForwardIterator::value_type& x, const typename ForwardIterator::value_type& y)
+{
+    return BinaryPredicate()(boost::get<N>(x), boost::get<N>(y));
+}
+template <int N, typename BinaryPredicate, typename ForwardIterator>
+void PerformanceDataManager::sortByFixedComponent (ForwardIterator first, ForwardIterator last)
+{
+    std::sort( first, last, boost::bind(&PerformanceDataManager::ComponentBinaryPredicate<N, BinaryPredicate, ForwardIterator>, this, _1, _2) );
+}
+
+bool PerformanceDataManager::partition_sort(const std::string& functionName,
+                                            const std::string& linkedObjectName,
+                                            const std::string& callingFunctionName,
+                                            const std::string& callingLinkedObjectName,
+                                            const all_details_data_t& d)
+{
+    const Function& func( get<2>(d) );
+    const std::set< Function >& callingFunction( get<3>(d) );
+    std::string cfuncName;
+    std::string cfuncLinkedObjectName;
+    if ( ! callingFunction.empty() ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        const Function cfunc( *(callingFunction.cbegin()) );
+#else
+        const Function cfunc( *(callingFunction.begin()) );
+#endif
+        cfuncName = cfunc.getName();
+        cfuncLinkedObjectName = cfunc.getLinkedObject().getPath();
+    }
+    // Same caller -> callee relationship?  This is determined by comparing the caller function and
+    // linked object name and callee function and linked object name to the current function and linked
+    // object name of the current item in the caller function list being processed.
+    return func.getName() == functionName && func.getLinkedObject().getPath() == linkedObjectName &&
+            callingFunctionName == cfuncName && callingLinkedObjectName == cfuncLinkedObjectName;
+}
+#endif
 
 /**
  * @brief PerformanceDataManager::detail_reduction
@@ -1596,35 +1639,44 @@ struct ltST {
  * name to the current function and linked object name in the caller function list being processed.
  * The reduced details container is sorted in descending order by time (the second item in the std::tuple).
  */
-void PerformanceDataManager::detail_reduction(
-        const std::set< std::tuple< std::set< Function >, Function > >& caller_function_list,
+void PerformanceDataManager::detail_reduction(const ArgoNavis::GUI::PerformanceDataManager::FunctionSet &caller_function_list,
         std::map< Function, uint32_t >& call_depth_map,
         TALLDETAILS& all_details,
         TDETAILS& reduced_details)
 {
     TALLDETAILS::iterator siter = all_details.begin();
 
-    for ( std::set< std::tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++) {
-        const std::tuple< std::set< Function >, Function > elem( *fit );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    using namespace std;
+#else
+    using namespace boost;
+#endif
+    for ( std::set< tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++) {
+        const tuple< std::set< Function >, Function > elem( *fit );
         // getting called function name and linked object name
-        Function function = std::get<1>(elem);
+        Function function = get<1>(elem);
         std::string functionName( function.getName() );
         std::string linkedObjectName( function.getLinkedObject().getPath() );
         uint32_t depth = ( call_depth_map.find( function ) != call_depth_map.end() ) ? call_depth_map[ function ] : 0;
         // getting caller function name and linked object name
         std::string callingFunctionName;
         std::string callingLinkedObjectName;
-        std::set< Function > caller = std::get<0>(elem);
+        std::set< Function > caller = get<0>(elem);
         if ( ! caller.empty() ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
             const Function callingFunction( *(caller.cbegin()) );
+#else
+            const Function callingFunction( *(caller.begin()) );
+#endif
             callingFunctionName = callingFunction.getName();
             callingLinkedObjectName = callingFunction.getLinkedObject().getPath();
         }
         // partition remaining raw details per caller->callee relationships for current caller being processed in the caller function list
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         TALLDETAILS::iterator eiter = std::partition( siter, all_details.end(),
                                                       [&](const all_details_data_t& d) {
-                                                          const Function& func( std::get<2>(d) );
-                                                          const std::set< Function >& callingFunction( std::get<3>(d) );
+                                                          const Function& func( get<2>(d) );
+                                                          const std::set< Function >& callingFunction( get<3>(d) );
                                                           std::string cfuncName;
                                                           std::string cfuncLinkedObjectName;
                                                           if ( ! callingFunction.empty() ) {
@@ -1638,6 +1690,12 @@ void PerformanceDataManager::detail_reduction(
                                                           return func.getName() == functionName && func.getLinkedObject().getPath() == linkedObjectName &&
                                                                  callingFunctionName == cfuncName && callingLinkedObjectName == cfuncLinkedObjectName;
                                                       } );
+#else
+        TALLDETAILS::iterator eiter = std::partition(
+                    siter, all_details.end(),
+                    boost::bind( &PerformanceDataManager::partition_sort, this,
+                                 boost::cref(functionName), boost::cref(linkedObjectName), boost::cref(callingFunctionName), boost::cref(callingLinkedObjectName), _1 ) );
+#endif
         // exit when reached end of raw details
         if ( siter == all_details.end() )
             break;
@@ -1646,17 +1704,21 @@ void PerformanceDataManager::detail_reduction(
         double sum_time(0.0);
         for ( TALLDETAILS::iterator it = siter; it != eiter; it++ ) {
             all_details_data_t d( *it );
-            sum_count += std::get<0>(d);
-            sum_time += std::get<1>(d);
+            sum_count += get<0>(d);
+            sum_time += get<1>(d);
         }
         // save the reduced details data
-        reduced_details.push_back( std::make_tuple( sum_count, sum_time, function, depth ) );
+        reduced_details.push_back( make_tuple( sum_count, sum_time, function, depth ) );
         // set start iterator to the end iterator
         siter = eiter;
     }
 
     // Sort the reduced details by time (the second item in the std::tuple - index value of 1).
-    sortByFixedComponent<1, std::greater<std::tuple_element<1,details_data_t>::type>> (reduced_details.begin(), reduced_details.end());
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    sortByFixedComponent<1, std::greater<std::tuple_element<1,details_data_t>::type>>( reduced_details.begin(), reduced_details.end() );
+#else
+    sortByFixedComponent<1, std::greater< boost::tuples::element<1,details_data_t>::type > >( reduced_details.begin(), reduced_details.end() );
+#endif
 }
 
 /**
@@ -1669,9 +1731,8 @@ void PerformanceDataManager::detail_reduction(
  * This method constructs a graph using a CalltreeGraphManager class instannce.  Each function is added as a vertex to the graph.  Each calling -> callee
  * function pair results in the associated edge to be added to the graph.  The calltree depth map and DOT formatted output is returned by this method.
  */
-void PerformanceDataManager::generate_calltree_graph(
-        const std::set< Framework::Function >& functions,
-        const std::set< std::tuple< std::set< Function >, Function > >& caller_function_list,
+void PerformanceDataManager::generate_calltree_graph(const std::set< Framework::Function >& functions,
+        const ArgoNavis::GUI::PerformanceDataManager::FunctionSet &caller_function_list,
         std::map< Function, uint32_t >& call_depth_map,
         std::ostream& os)
 {
@@ -1690,16 +1751,26 @@ void PerformanceDataManager::generate_calltree_graph(
         mapHandleToFunction[ handle ].insert( function );
     }
 
-    // Create an edge for each caller->callee function pair
-    for ( std::set< std::tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++ ) {
-        const std::tuple< std::set< Function >, Function > elem( *fit );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    using namespace std;
+#else
+    using namespace boost;
+#endif
 
-        std::set< Function > caller = std::get<0>(elem);
+    // Create an edge for each caller->callee function pair
+    for ( std::set< tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++ ) {
+        const tuple< std::set< Function >, Function > elem( *fit );
+
+        std::set< Function > caller = get<0>(elem);
         if ( caller.empty() )
             continue;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         const Function callingFunction( *(caller.cbegin()) );
-        Function function = std::get<1>(elem);
+#else
+        const Function callingFunction( *(caller.begin()) );
+#endif
+        Function function = get<1>(elem);
 
         if ( mapFunctionToHandle.find( callingFunction ) != mapFunctionToHandle.end() && mapFunctionToHandle.find( function ) != mapFunctionToHandle.end() ) {
             const CalltreeGraphManager::handle_t& caller_handle = mapFunctionToHandle.at( callingFunction );
@@ -1721,10 +1792,18 @@ void PerformanceDataManager::generate_calltree_graph(
 
     for ( std::map< std::pair< CalltreeGraphManager::handle_t, CalltreeGraphManager::handle_t>, uint32_t >::iterator iter = depth_map.begin(); iter != depth_map.end(); iter++ ) {
         std::pair< CalltreeGraphManager::handle_t, CalltreeGraphManager::handle_t > callpath( iter->first );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         const Function caller( *mapHandleToFunction[ callpath.first ].cbegin() );
+#else
+        const Function caller( *mapHandleToFunction[ callpath.first ].begin() );
+#endif
         if ( caller.getName() != startFunction || callpath.second >= mapHandleToFunction.size() )
             continue;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         const Function function( *mapHandleToFunction[ callpath.second ].cbegin() );
+#else
+        const Function function( *mapHandleToFunction[ callpath.second ].begin() );
+#endif
         call_depth_map[ function ] = iter->second;
     }
 }
@@ -1760,8 +1839,14 @@ void PerformanceDataManager::ShowCalltreeDetail(
     SmartPtr< std::map<Function, std::map<Framework::StackTrace, TDETAIL > > > data =
             Queries::Reduction::Apply( raw_items, Queries::Reduction::Summation );
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    using namespace std;
+#else
+    using namespace boost;
+#endif
+
     TALLDETAILS all_details;
-    std::set< std::tuple< std::set< Function >, Function > > caller_function_list;
+    std::set< tuple< std::set< Function >, Function > > caller_function_list;
 
     for ( typename std::map< Function, std::map< Framework::StackTrace, TDETAIL > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
         const Framework::Function function( iter->first );
@@ -1805,9 +1890,9 @@ void PerformanceDataManager::ShowCalltreeDetail(
                     caller.insert( result.second );
             }
 
-            all_details.push_back( std::make_tuple( detail.dm_count, detail.dm_time / num_calls, function, caller ) );
+            all_details.push_back( make_tuple( detail.dm_count, detail.dm_time / num_calls, function, caller ) );
 
-            caller_function_list.insert( std::make_tuple( caller, function ) );
+            caller_function_list.insert( make_tuple( caller, function ) );
         }
     }
 

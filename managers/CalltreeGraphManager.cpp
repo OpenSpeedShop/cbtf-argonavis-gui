@@ -27,9 +27,15 @@ public:
             << "\", line=\"" << m_pmap[v].lineNumber
             << "\", unit=\"" << m_pmap[v].linkedObjectName;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        using namespace std;
+#else
+        using namespace boost;
+#endif
+
         for(int i=0; i<m_pmap[v].metricValues.size(); i++) {
-            std::tuple< std::string, std::string > nameValuePair = m_pmap[v].metricValues[i];
-            out << "\", " << std::get<0>(nameValuePair) << "=\"" << std::get<1>(nameValuePair);
+            tuple< std::string, std::string > nameValuePair = m_pmap[v].metricValues[i];
+            out << "\", " << get<0>(nameValuePair) << "=\"" << get<1>(nameValuePair);
         }
 
         out << "\"]";
