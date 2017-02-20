@@ -28,6 +28,8 @@
 #include <QList>
 #include <QVariant>
 
+#include "common/openss-gui-config.h"
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -43,13 +45,24 @@ class TreeItem : public QObject
     Q_PROPERTY(bool checked READ isChecked() WRITE setChecked NOTIFY checkedChanged)
     Q_PROPERTY(bool enabled READ isEnabled() WRITE setEnabled NOTIFY enabledChanged)
 
+    friend class TreeModel;
+
 public:
 
-    explicit TreeItem(const QList<QVariant> &data, TreeItem *parent = 0);
+    explicit TreeItem(const QList<QVariant> &data, TreeItem *parent = 0, bool checkable = false, bool checked = false, bool enabled = true);
     virtual ~TreeItem();
 
+    // child manipulators
     void appendChild(TreeItem *child);
     void removeChild(TreeItem *child);
+
+signals:
+
+    void checkableChanged(bool value);
+    void checkedChanged(bool value);
+    void enabledChanged(bool value);
+
+protected:
 
     TreeItem *child(int row);
     int childCount() const;
@@ -57,7 +70,6 @@ public:
     QVariant data(int column) const;
     int row() const;
     TreeItem *parentItem();
-    void setData(int column, const QVariant& data);
     // check state setter/getter
     void setChecked(bool set){ if ( m_enabled) { m_checked = set; emit checkedChanged( set ); } }
     bool isChecked() const { return m_checked; }
@@ -68,13 +80,11 @@ public:
     void setEnabled(bool set){ m_enabled = set; emit enabledChanged( set ); }
     bool isEnabled() const { return m_enabled; }
 
-signals:
-
-    void checkableChanged(bool value);
-    void checkedChanged(bool value);
-    void enabledChanged(bool value);
+    void setData(int column, const QVariant& data);
 
 private:
+
+    explicit TreeItem() Q_DECL_EQ_DELETE;
 
     QList<TreeItem*> m_childItems;
     QList<QVariant> m_itemData;

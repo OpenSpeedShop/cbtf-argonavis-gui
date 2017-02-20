@@ -45,6 +45,8 @@ class TreeModel : public QAbstractItemModel
 
 public:
 
+    const int CheckableRole = Qt::UserRole + 1;
+
     explicit TreeModel(TreeItem* root, QObject *parent = 0);
     virtual ~TreeModel();
 

@@ -93,9 +93,13 @@ QModelIndex TreeModel::parent(const QModelIndex &index) const
         return QModelIndex();
 
     TreeItem *childItem = static_cast< TreeItem* >( index.internalPointer() );
+
+    if ( childItem == NULL )
+        return QModelIndex();
+
     TreeItem *parentItem = childItem->parentItem();
 
-    if ( parentItem == rootItem )
+    if ( parentItem == NULL || parentItem == rootItem )
         return QModelIndex();
 
     return createIndex( parentItem->row(), 0, parentItem );
@@ -149,6 +153,14 @@ int TreeModel::columnCount(const QModelIndex &parent) const
 bool TreeModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     TreeItem *item = getItem( index );
+
+    if ( role == CheckableRole ) {
+        bool checked = value.toBool();
+        item->setCheckable( checked );
+        emit dataChanged( index, index );
+        return true;
+    }
+
     if ( role == Qt::CheckStateRole ) {
         bool checked = value.toBool();
         item->setChecked( checked );
@@ -299,6 +311,10 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
         return static_cast< int >( item->isChecked() ? Qt::Checked : Qt::Unchecked );
     }
 
+    if ( role == CheckableRole && 0 == index.column() ) {
+        return item->isCheckable();
+    }
+
     if ( role != Qt::DisplayRole && role != Qt::EditRole )
         return QVariant();
 
@@ -316,13 +332,19 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
  */
 Qt::ItemFlags TreeModel::flags(const QModelIndex &index) const
 {
-    Qt::ItemFlags flags(0);
+    Qt::ItemFlags flags( Qt::NoItemFlags );
 
     if ( index.isValid() ) {
-        flags = Qt::ItemIsEditable | QAbstractItemModel::flags(index);
-        TreeItem *item = getItem(index);
-        if ( item && item->isCheckable() ) {
-            flags |= Qt::ItemIsUserCheckable;
+        TreeItem *item = getItem( index );
+        if ( item ) {
+            flags = QAbstractItemModel::flags( index );
+            if ( item->isCheckable() ) {
+                flags |= Qt::ItemIsUserCheckable;
+                flags |= Qt::ItemIsEditable;
+            }
+            if ( item->isEnabled() ) {
+                flags |= Qt::ItemIsEnabled;
+            }
         }
     }
 
