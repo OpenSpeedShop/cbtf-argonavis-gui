@@ -193,7 +193,7 @@ private:
                              const QStringList& metricList,
                              const QStringList& viewList,
                              QStringList metricDescList,
-                             boost::optional<OpenSpeedShop::Framework::Collector>& collector,
+                             const OpenSpeedShop::Framework::Collector& collector,
                              const OpenSpeedShop::Framework::Experiment& experiment,
                              const OpenSpeedShop::Framework::TimeInterval& interval);
 

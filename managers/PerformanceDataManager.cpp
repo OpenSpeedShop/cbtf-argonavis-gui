@@ -335,48 +335,46 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
 #endif
 
     CollectorGroup collectors = experiment.getCollectors();
-    boost::optional<Collector> collector;
 
-    for ( CollectorGroup::const_iterator i = collectors.begin(); i != collectors.end(); ++i ) {
-        collector = *i;
-        break;
-    }
+    if ( collectors.size() > 0 ) {
+        const Collector collector( *collectors.begin() );
 
-    QStringList tableColumnHeaders = info.tableColumnHeaders;
-    TimeInterval interval = info.interval;
+        QStringList tableColumnHeaders = info.tableColumnHeaders;
+        TimeInterval interval = info.interval;
 
-    if ( ! info.viewList.contains( viewName ) )
-        info.viewList << viewName;
+        if ( ! info.viewList.contains( viewName ) )
+            info.viewList << viewName;
 
-    QStringList columnTitles;
-    columnTitles << tableColumnHeaders.takeFirst();
-    columnTitles << tableColumnHeaders.takeFirst();
-    columnTitles << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
+        QStringList columnTitles;
+        columnTitles << tableColumnHeaders.takeFirst();
+        columnTitles << tableColumnHeaders.takeFirst();
+        columnTitles << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
 
-    loadCudaMetricViews(
-#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                         synchronizer, futures,
-#endif
-                         QStringList() << metricName,
-                         QStringList() << viewName,
-                         columnTitles,
-                         collector,
-                         experiment,
-                         interval );
+        loadCudaMetricViews(
+            #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+                    synchronizer, futures,
+            #endif
+                    QStringList() << metricName,
+                    QStringList() << viewName,
+                    columnTitles,
+                    collector,
+                    experiment,
+                    interval );
 
-    if ( futures.size() > 0 ) {
-        // Determine full time interval extent of this experiment
-        Extent extent = experiment.getPerformanceDataExtent();
-        Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
+        if ( futures.size() > 0 ) {
+            // Determine full time interval extent of this experiment
+            Extent extent = experiment.getPerformanceDataExtent();
+            Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
 
-        Base::TimeInterval graphInterval = ConvertToArgoNavis( interval );
+            Base::TimeInterval graphInterval = ConvertToArgoNavis( interval );
 
-        double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
-        double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
+            double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
+            double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
 
-        synchronizer.waitForFinished();
+            synchronizer.waitForFinished();
 
-        emit requestMetricViewComplete( clusterName, metricName, viewName, lower, upper );
+            emit requestMetricViewComplete( clusterName, metricName, viewName, lower, upper );
+        }
     }
 
     QApplication::restoreOverrideCursor();
@@ -1240,50 +1238,48 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
 #endif
 
     CollectorGroup collectors = experiment.getCollectors();
-    boost::optional<Collector> collector;
 
-    for ( CollectorGroup::const_iterator i = collectors.begin(); i != collectors.end(); ++i ) {
-        collector = *i;
-        break;
-    }
+    if ( collectors.size() > 0 ) {
+        const Collector collector( *collectors.begin() );
 
-    // Determine time origin from extent of this experiment
-    Extent extent = experiment.getPerformanceDataExtent();
-    Time timeOrigin = extent.getTimeInterval().getBegin();
+        // Determine time origin from extent of this experiment
+        Extent extent = experiment.getPerformanceDataExtent();
+        Time timeOrigin = extent.getTimeInterval().getBegin();
 
-    // Calculate new interval from currently selected graph range
-    Time lowerTime = timeOrigin + lower * 1000000;
-    Time upperTime = timeOrigin + upper * 1000000;
+        // Calculate new interval from currently selected graph range
+        Time lowerTime = timeOrigin + lower * 1000000;
+        Time upperTime = timeOrigin + upper * 1000000;
 
-    TimeInterval interval( lowerTime, upperTime );
+        TimeInterval interval( lowerTime, upperTime );
 
-    info.interval = interval;
+        info.interval = interval;
 
-    // Update metric view scorresponding to timeline in graph view
-    loadCudaMetricViews(
-                        #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                        synchronizer, futures,
-                        #endif
-                        info.metricList, info.viewList, info.tableColumnHeaders, collector, experiment, interval );
+        // Update metric view scorresponding to timeline in graph view
+        loadCudaMetricViews(
+            #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+                    synchronizer, futures,
+            #endif
+                    info.metricList, info.viewList, info.tableColumnHeaders, collector, experiment, interval );
 
-    // Emit signal to update detail views corresponding to timeline in graph view
-    foreach ( const QString& metricViewName, info.metricViewList ) {
-        QStringList tokens = metricViewName.split('-');
-        if ( 2 == tokens.size() ) {
-            if ( QStringLiteral("Details") == tokens[0] ) {
-                emit metricViewRangeChanged( clusterName, tokens[0], tokens[1], lower, upper );
-            }
-            else {
-                emit requestMetricViewComplete( clusterName, tokens[0], tokens[1], lower, upper );
+        // Emit signal to update detail views corresponding to timeline in graph view
+        foreach ( const QString& metricViewName, info.metricViewList ) {
+            QStringList tokens = metricViewName.split('-');
+            if ( 2 == tokens.size() ) {
+                if ( QStringLiteral("Details") == tokens[0] ) {
+                    emit metricViewRangeChanged( clusterName, tokens[0], tokens[1], lower, upper );
+                }
+                else {
+                    emit requestMetricViewComplete( clusterName, tokens[0], tokens[1], lower, upper );
+                }
             }
         }
-    }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-    synchronizer.waitForFinished();
+        synchronizer.waitForFinished();
+#endif
+    }
 
     QApplication::restoreOverrideCursor();
-#endif
 }
 
 /**
@@ -1300,22 +1296,18 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
  * Process the specified metric views.
  */
 void PerformanceDataManager::loadCudaMetricViews(
-                                                 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                                                 QFutureSynchronizer<void>& synchronizer,
-                                                 QMap< QString, QFuture<void> >& futures,
-                                                 #endif
-                                                 const QStringList& metricList,
-                                                 const QStringList& viewList,
-                                                 QStringList metricDescList,
-                                                 boost::optional<Collector>& collector,
-                                                 const Experiment& experiment,
-                                                 const TimeInterval& interval)
+        #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        QFutureSynchronizer<void>& synchronizer,
+        QMap< QString, QFuture<void> >& futures,
+        #endif
+        const QStringList& metricList,
+        const QStringList& viewList,
+        QStringList metricDescList,
+        const Collector& collector,
+        const Experiment& experiment,
+        const TimeInterval& interval)
 {
-    if ( ! collector )
-        return;
-
     const ThreadGroup threadGroup( experiment.getThreads() );
-    const Collector& coll = collector.get();
 
     foreach ( const QString& metricName, metricList ) {
         QStringList metricDesc;
@@ -1327,7 +1319,7 @@ void PerformanceDataManager::loadCudaMetricViews(
 
             if ( viewName == QStringLiteral("Functions") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Function>, coll, threadGroup, interval, metricName, metricDesc );
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Function>, collector, threadGroup, interval, metricName, metricDesc );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<Function>( collector.get(), experiment.getThreads(), metric, metricDesc );
@@ -1336,7 +1328,7 @@ void PerformanceDataManager::loadCudaMetricViews(
 
             else if ( viewName == QStringLiteral("Statements") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>, coll, threadGroup, interval, metricName, metricDesc );
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>, collector, threadGroup, interval, metricName, metricDesc );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<Statement>( collector.get(), experiment.getThreads(), metric, metricDesc );
@@ -1345,7 +1337,7 @@ void PerformanceDataManager::loadCudaMetricViews(
 
             else if ( viewName == QStringLiteral("LinkedObjects") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>, coll, threadGroup, interval, metricName, metricDesc );
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>, collector, threadGroup, interval, metricName, metricDesc );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<LinkedObject>( collector.get(), experiment.getThreads(), metric, metricDesc );
@@ -1354,7 +1346,7 @@ void PerformanceDataManager::loadCudaMetricViews(
 
             else if ( viewName == QStringLiteral("Loops") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>, coll, threadGroup, interval, metricName, metricDesc );
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>, collector, threadGroup, interval, metricName, metricDesc );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<Loop>( collector.get(), experiment.getThreads(), metric, metricDesc );
@@ -1363,11 +1355,12 @@ void PerformanceDataManager::loadCudaMetricViews(
 
             else if ( viewName == QStringLiteral("Calltree") ) {
                 const std::set< Function > functions( threadGroup.getFunctions() );
+                const std::string collectorId = collector.getMetadata().getUniqueId();
 
-                if ( coll.getMetadata().getUniqueId() == "usertime" ) {
+                if ( collectorId == "usertime" ) {
                     TDETAILS details;
 
-                    ShowCalltreeDetail< Framework::UserTimeDetail >( coll, threadGroup, interval, functions, "exclusive_detail", details );
+                    ShowCalltreeDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "inclusive_detail", details );
 
                     //TDETAILS inclusive_details;
                     //ShowCalltreeDetail< Framework::UserTimeDetail >( coll, threadGroup, interval, functions, "inclusive_detail", inclusive_details );
