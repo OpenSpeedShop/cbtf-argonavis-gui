@@ -34,16 +34,17 @@
 #include <QAtomicPointer>
 #include <QFutureSynchronizer>
 #include <QMutex>
-#if (QT_VERSION < QT_VERSION_CHECK(4, 8, 0))
-#include <QUuid>
-#endif
 
 #include <vector>
+// use either std::tuple or boost::tuple
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <tuple>
+using namespace std;
 #else
+#include <QUuid>
 #include "boost/tuple/tuple.hpp"
 #include "boost/tuple/tuple_comparison.hpp"
+using namespace boost;
 #endif
 
 #include "common/openss-gui-config.h"
@@ -212,23 +213,17 @@ private:
     template <typename TS>
     QString getViewName() const { return QString(); }
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    using all_details_data_t = std::tuple< int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > >;
-    using TALLDETAILS = std::vector< all_details_data_t >;
-
-    using details_data_t = std::tuple< int64_t, double, OpenSpeedShop::Framework::Function, uint32_t >;  // count, time, Function, calltree depth
-    using TDETAILS = std::vector< details_data_t >;
-    using FunctionSet = std::set< std::tuple< std::set< OpenSpeedShop::Framework::Function >, OpenSpeedShop::Framework::Function > >;
-#else
-    typedef boost::tuple< int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > > all_details_data_t;
+    typedef tuple< int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > > all_details_data_t;
     typedef std::vector< all_details_data_t > TALLDETAILS;
 
-    typedef boost::tuple< int64_t, double, OpenSpeedShop::Framework::Function, uint32_t > details_data_t;  // count, time, Function, calltree depth
+    typedef tuple< int64_t, double, OpenSpeedShop::Framework::Function, uint32_t > details_data_t;  // count, time, Function, calltree depth
     typedef std::vector< details_data_t > TDETAILS;
-    typedef std::set< boost::tuple< std::set< OpenSpeedShop::Framework::Function >, OpenSpeedShop::Framework::Function > > FunctionSet;
+    typedef std::set< tuple< std::set< OpenSpeedShop::Framework::Function >, OpenSpeedShop::Framework::Function > > FunctionSet;
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
     template <int N, typename BinaryPredicate, typename ForwardIterator>
     bool ComponentBinaryPredicate(const typename ForwardIterator::value_type& x, const typename ForwardIterator::value_type& y);
+#endif
 
     template <int N, typename BinaryPredicate, typename ForwardIterator>
     void sortByFixedComponent (ForwardIterator first, ForwardIterator last);
@@ -238,7 +233,6 @@ private:
                         const std::string& callingFunctionName,
                         const std::string& callingLinkedObjectName,
                         const all_details_data_t& d);
-#endif
 
     void print_details(const std::string& details_name, const TDETAILS &details) const;
 
@@ -253,7 +247,7 @@ private:
             std::map< OpenSpeedShop::Framework::Function, uint32_t>& function_call_depth_map,
             std::ostream &os);
 
-    template <typename TDETAIL>
+    template <typename DETAIL_t>
     void ShowCalltreeDetail(const OpenSpeedShop::Framework::Collector& collector,
                             const OpenSpeedShop::Framework::ThreadGroup& threadGroup,
                             const OpenSpeedShop::Framework::TimeInterval& interval,
@@ -336,11 +330,6 @@ private:
 
     struct {
         bool operator() (const details_data_t& lhs, const details_data_t& rhs) {
-    #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-            using namespace std;
-    #else
-            using namespace boost;
-    #endif
             return ( get<3>(lhs) < get<3>(rhs) ) || ( get<3>(lhs) == get<3>(rhs) && get<1>(lhs) > get<1>(rhs) );
         }
     } details_compare;

@@ -89,6 +89,116 @@ const QString DATA_TRANSFER_DETAILS_VIEW = QStringLiteral("Data Transfers");
 
 QAtomicPointer< PerformanceDataManager > PerformanceDataManager::s_instance;
 
+#if defined(HAS_OSSCUDA2XML)
+/**
+ * @brief PerformanceDataManager::xmlDump
+ * @param filePath  Filename path to experiment database file with CUDA data collection (.openss file)
+ *
+ * Generate a XML formatted dump of the experiment database.  Will write output to a file located in the directory
+ * where the experiment database is located having the same name as the experiment database with ".xml" suffix.
+ */
+void PerformanceDataManager::xmlDump(const QString &filePath)
+{
+    QString xmlFilename( filePath + ".xml" );
+    QFile file( xmlFilename );
+    if ( file.open( QFile::WriteOnly | QFile::Truncate ) ) {
+        QTextStream xml( &file );
+        cuda2xml( filePath, xml );
+        file.close();
+    }
+}
+#endif
+
+/**
+ * @brief Get_Subextents_To_Object
+ * @param tgrp
+ * @param object
+ * @param subextents
+ */
+template <typename TS>
+void Get_Subextents_To_Object (
+        const Framework::ThreadGroup& tgrp,
+        TS& object,
+        Framework::ExtentGroup& subextents)
+{
+    for (ThreadGroup::iterator ti = tgrp.begin(); ti != tgrp.end(); ti++) {
+        ExtentGroup newExtents = object.getExtentIn (*ti);
+        for (ExtentGroup::iterator ei = newExtents.begin(); ei != newExtents.end(); ei++) {
+            subextents.push_back(*ei);
+        }
+    }
+}
+
+/**
+ * @brief Get_Subextents_To_Object_Map
+ * @param tgrp
+ * @param object
+ * @param subextents_map
+ */
+template <typename TS>
+void Get_Subextents_To_Object_Map (
+        const Framework::ThreadGroup& tgrp,
+        TS& object,
+        std::map<Framework::Thread, Framework::ExtentGroup>& subextents_map)
+{
+    for (ThreadGroup::iterator ti = tgrp.begin(); ti != tgrp.end(); ti++) {
+        ExtentGroup newExtents = object.getExtentIn (*ti);
+        Framework::ExtentGroup subextents;
+
+        for (ExtentGroup::iterator ei = newExtents.begin(); ei != newExtents.end(); ei++) {
+            subextents.push_back(*ei);
+        }
+
+        subextents_map[*ti] = subextents;
+    }
+}
+
+/**
+ * @brief stack_contains_N_calls
+ * @param st
+ * @param subextents
+ * @return
+ */
+inline int64_t stack_contains_N_calls(const Framework::StackTrace& st, Framework::ExtentGroup& subextents)
+{
+    int64_t num_calls = 0;
+
+    Time t = st.getTime();
+
+    for ( ExtentGroup::iterator ei = subextents.begin(); ei != subextents.end(); ei++ ) {
+        Extent check( *ei );
+        if ( ! check.isEmpty() ) {
+            TimeInterval time = check.getTimeInterval();
+            AddressRange addr = check.getAddressRange();
+
+            for ( std::size_t sti = 0; sti < st.size(); sti++ ) {
+                const Address& a = st[sti];
+
+                if ( time.doesContain(t) && addr.doesContain(a) ) {
+                    num_calls++;
+                }
+            }
+        }
+    }
+
+    return num_calls;
+}
+
+/**
+ * @brief The ltST struct provides a Function object (functor) to sort a container of Framework::StackTrace items.
+ */
+struct ltST {
+    bool operator() (Framework::StackTrace stl, Framework::StackTrace str) {
+        if (stl.getTime() < str.getTime()) { return true; }
+        if (stl.getTime() > str.getTime()) { return false; }
+
+        if (stl.getThread() < str.getThread()) { return true; }
+        if (stl.getThread() > str.getThread()) { return false; }
+
+        return stl < str;
+    }
+};
+
 
 /**
  * @brief PerformanceDataManager::PerformanceDataManager
@@ -932,7 +1042,7 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 #endif
 }
 
-void PerformanceDataManager::print_details(const std::string& details_name, const TDETAILS& details) const
+void PerformanceDataManager::print_details(const std::string& details_name, const TDETAILS &details) const
 {
     std::string name( details_name );
     std::size_t pos = name.find_first_of( "_" );
@@ -969,35 +1079,6 @@ void PerformanceDataManager::asyncLoadCudaViews(const QString& filePath)
     qDebug() << "PerformanceDataManager::asyncLoadCudaViews: filePath=" << filePath;
 #endif
     QtConcurrent::run( this, &PerformanceDataManager::loadCudaViews, filePath );
-
-    Experiment experiment( filePath.toStdString() );
-
-    const Collector collector = *experiment.getCollectors().begin();
-    const TimeInterval interval( Time::TheBeginning(), Time::TheEnd() );
-    const ThreadGroup threadGroup( experiment.getThreads() );
-    const std::set< Function > functions( threadGroup.getFunctions() );
-
-    if ( collector.getMetadata().getUniqueId() == "usertime" ) {
-        TDETAILS exclusive_details;
-
-        ShowCalltreeDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "exclusive_detail", exclusive_details );
-
-        std::sort( exclusive_details.begin(), exclusive_details.end(), details_compare );
-
-#if 1
-        print_details( "exclusive_detail", exclusive_details );
-#endif
-
-        TDETAILS inclusive_details;
-
-        ShowCalltreeDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "inclusive_detail", inclusive_details );
-
-        std::sort( inclusive_details.begin(), inclusive_details.end(), details_compare );
-
-#if 1
-        print_details( "inclusive_detail", inclusive_details );
-#endif
-    }
 }
 
 /**
@@ -1230,17 +1311,24 @@ void PerformanceDataManager::loadCudaMetricViews(
                                                  const Experiment& experiment,
                                                  const TimeInterval& interval)
 {
+    if ( ! collector )
+        return;
+
+    const ThreadGroup threadGroup( experiment.getThreads() );
+    const Collector& coll = collector.get();
+
     foreach ( const QString& metricName, metricList ) {
         QStringList metricDesc;
 
         metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
 
         foreach ( const QString& viewName, viewList ) {
+            const QString futuresKey = metricName + QStringLiteral("-") + viewName;
+
             if ( viewName == QStringLiteral("Functions") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                QString functionView = metricName + QStringLiteral("-Functions");
-                futures[ functionView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Function>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
-                synchronizer.addFuture( futures[ functionView ] );
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Function>, coll, threadGroup, interval, metricName, metricDesc );
+                synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<Function>( collector.get(), experiment.getThreads(), metric, metricDesc );
 #endif
@@ -1248,9 +1336,8 @@ void PerformanceDataManager::loadCudaMetricViews(
 
             else if ( viewName == QStringLiteral("Statements") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                QString statementView = metricName + QStringLiteral("-Statements");
-                futures[ statementView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
-                synchronizer.addFuture( futures[ statementView ] );
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>, coll, threadGroup, interval, metricName, metricDesc );
+                synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<Statement>( collector.get(), experiment.getThreads(), metric, metricDesc );
 #endif
@@ -1258,9 +1345,8 @@ void PerformanceDataManager::loadCudaMetricViews(
 
             else if ( viewName == QStringLiteral("LinkedObjects") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                QString linkedObjectView = metricName + QStringLiteral("-LinkedObjects");
-                futures[ linkedObjectView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
-                synchronizer.addFuture( futures[ linkedObjectView ] );
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>, coll, threadGroup, interval, metricName, metricDesc );
+                synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<LinkedObject>( collector.get(), experiment.getThreads(), metric, metricDesc );
 #endif
@@ -1268,17 +1354,30 @@ void PerformanceDataManager::loadCudaMetricViews(
 
             else if ( viewName == QStringLiteral("Loops") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                QString loopViewView = metricName + QStringLiteral("-Loops");
-                futures[ loopViewView ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>, collector.get(), experiment.getThreads(), interval, metricName, metricDesc );
-                synchronizer.addFuture( futures[ loopViewView ] );
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>, coll, threadGroup, interval, metricName, metricDesc );
+                synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<Loop>( collector.get(), experiment.getThreads(), metric, metricDesc );
 #endif
             }
+
+            else if ( viewName == QStringLiteral("Calltree") ) {
+                const std::set< Function > functions( threadGroup.getFunctions() );
+
+                if ( coll.getMetadata().getUniqueId() == "usertime" ) {
+                    TDETAILS details;
+
+                    ShowCalltreeDetail< Framework::UserTimeDetail >( coll, threadGroup, interval, functions, "exclusive_detail", details );
+
+                    //TDETAILS inclusive_details;
+                    //ShowCalltreeDetail< Framework::UserTimeDetail >( coll, threadGroup, interval, functions, "inclusive_detail", inclusive_details );
+                    //std::sort( inclusive_details.begin(), inclusive_details.end(), details_compare );
+                    //print_details( "inclusive_detail", inclusive_details );
+                }
+            }
         }
     }
 }
-
 /**
  * @brief PerformanceDataManager::unloadCudaViews
  * @param clusteringCriteriaName - the clustering criteria name
@@ -1457,128 +1556,17 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
 #endif
 }
 
-#if defined(HAS_OSSCUDA2XML)
-/**
- * @brief PerformanceDataManager::xmlDump
- * @param filePath  Filename path to experiment database file with CUDA data collection (.openss file)
- *
- * Generate a XML formatted dump of the experiment database.  Will write output to a file located in the directory
- * where the experiment database is located having the same name as the experiment database with ".xml" suffix.
- */
-void PerformanceDataManager::xmlDump(const QString &filePath)
-{
-    QString xmlFilename( filePath + ".xml" );
-    QFile file( xmlFilename );
-    if ( file.open( QFile::WriteOnly | QFile::Truncate ) ) {
-        QTextStream xml( &file );
-        cuda2xml( filePath, xml );
-        file.close();
-    }
-}
-#endif
-
-/**
- * @brief Get_Subextents_To_Object
- * @param tgrp
- * @param object
- * @param subextents
- */
-template <typename TS>
-void Get_Subextents_To_Object (
-        const Framework::ThreadGroup& tgrp,
-        TS& object,
-        Framework::ExtentGroup& subextents)
-{
-    for (ThreadGroup::iterator ti = tgrp.begin(); ti != tgrp.end(); ti++) {
-        ExtentGroup newExtents = object.getExtentIn (*ti);
-        for (ExtentGroup::iterator ei = newExtents.begin(); ei != newExtents.end(); ei++) {
-            subextents.push_back(*ei);
-        }
-    }
-}
-
-/**
- * @brief Get_Subextents_To_Object_Map
- * @param tgrp
- * @param object
- * @param subextents_map
- */
-template <typename TS>
-void Get_Subextents_To_Object_Map (
-        const Framework::ThreadGroup& tgrp,
-        TS& object,
-        std::map<Framework::Thread, Framework::ExtentGroup>& subextents_map)
-{
-    for (ThreadGroup::iterator ti = tgrp.begin(); ti != tgrp.end(); ti++) {
-        ExtentGroup newExtents = object.getExtentIn (*ti);
-        Framework::ExtentGroup subextents;
-
-        for (ExtentGroup::iterator ei = newExtents.begin(); ei != newExtents.end(); ei++) {
-            subextents.push_back(*ei);
-        }
-
-        subextents_map[*ti] = subextents;
-    }
-}
-
-/**
- * @brief stack_contains_N_calls
- * @param st
- * @param subextents
- * @return
- */
-inline int64_t stack_contains_N_calls(const Framework::StackTrace& st, Framework::ExtentGroup& subextents)
-{
-    int64_t num_calls = 0;
-
-    Time t = st.getTime();
-
-    for ( ExtentGroup::iterator ei = subextents.begin(); ei != subextents.end(); ei++ ) {
-        Extent check( *ei );
-        if ( ! check.isEmpty() ) {
-            TimeInterval time = check.getTimeInterval();
-            AddressRange addr = check.getAddressRange();
-
-            for ( std::size_t sti = 0; sti < st.size(); sti++ ) {
-                const Address& a = st[sti];
-
-                if ( time.doesContain(t) && addr.doesContain(a) ) {
-                    num_calls++;
-                }
-            }
-        }
-    }
-
-    return num_calls;
-}
-
-/**
- * @brief The ltST struct provides a Function object (functor) to sort a container of Framework::StackTrace items.
- */
-struct ltST {
-    bool operator() (Framework::StackTrace stl, Framework::StackTrace str) {
-        if (stl.getTime() < str.getTime()) { return true; }
-        if (stl.getTime() > str.getTime()) { return false; }
-
-        if (stl.getThread() < str.getThread()) { return true; }
-        if (stl.getThread() > str.getThread()) { return false; }
-
-        return stl < str;
-    }
-};
-
-
 /**
  * @brief sortByFixedComponent
- * @param first
- * @param last
+ * @param first - iterator to start sorting from
+ * @param last - iterator one past last item to sort
  *
  * Sorts the 'first' to 'last' items in a container.  The item type is a std:tuple.  The Nth value in the std::tuple is used as the key for sorting.
  * The container Iterator must follow the ForwardIterator concept.  The BinaryPredicate concept provides a function used during the sorting.
  */
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 template <int N, typename BinaryPredicate, typename ForwardIterator>
-void sortByFixedComponent (ForwardIterator first, ForwardIterator last) {
+void PerformanceDataManager::sortByFixedComponent(ForwardIterator first, ForwardIterator last) {
     std::sort (first, last, [](const typename ForwardIterator::value_type& x, const typename ForwardIterator::value_type& y)->bool {
         return BinaryPredicate()(std::get<N>(x), std::get<N>(y));
     });
@@ -1590,10 +1578,11 @@ bool PerformanceDataManager::ComponentBinaryPredicate(const typename ForwardIter
     return BinaryPredicate()(boost::get<N>(x), boost::get<N>(y));
 }
 template <int N, typename BinaryPredicate, typename ForwardIterator>
-void PerformanceDataManager::sortByFixedComponent (ForwardIterator first, ForwardIterator last)
+void PerformanceDataManager::sortByFixedComponent(ForwardIterator first, ForwardIterator last)
 {
     std::sort( first, last, boost::bind(&PerformanceDataManager::ComponentBinaryPredicate<N, BinaryPredicate, ForwardIterator>, this, _1, _2) );
 }
+#endif
 
 bool PerformanceDataManager::partition_sort(const std::string& functionName,
                                             const std::string& linkedObjectName,
@@ -1606,11 +1595,7 @@ bool PerformanceDataManager::partition_sort(const std::string& functionName,
     std::string cfuncName;
     std::string cfuncLinkedObjectName;
     if ( ! callingFunction.empty() ) {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        const Function cfunc( *(callingFunction.cbegin()) );
-#else
         const Function cfunc( *(callingFunction.begin()) );
-#endif
         cfuncName = cfunc.getName();
         cfuncLinkedObjectName = cfunc.getLinkedObject().getPath();
     }
@@ -1620,7 +1605,6 @@ bool PerformanceDataManager::partition_sort(const std::string& functionName,
     return func.getName() == functionName && func.getLinkedObject().getPath() == linkedObjectName &&
             callingFunctionName == cfuncName && callingLinkedObjectName == cfuncLinkedObjectName;
 }
-#endif
 
 /**
  * @brief PerformanceDataManager::detail_reduction
@@ -1653,52 +1637,33 @@ void PerformanceDataManager::detail_reduction(const ArgoNavis::GUI::PerformanceD
 #endif
     for ( std::set< tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++) {
         const tuple< std::set< Function >, Function > elem( *fit );
+
         // getting called function name and linked object name
         Function function = get<1>(elem);
         std::string functionName( function.getName() );
         std::string linkedObjectName( function.getLinkedObject().getPath() );
         uint32_t depth = ( call_depth_map.find( function ) != call_depth_map.end() ) ? call_depth_map[ function ] : 0;
+
         // getting caller function name and linked object name
         std::string callingFunctionName;
         std::string callingLinkedObjectName;
         std::set< Function > caller = get<0>(elem);
         if ( ! caller.empty() ) {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-            const Function callingFunction( *(caller.cbegin()) );
-#else
             const Function callingFunction( *(caller.begin()) );
-#endif
             callingFunctionName = callingFunction.getName();
             callingLinkedObjectName = callingFunction.getLinkedObject().getPath();
         }
+
         // partition remaining raw details per caller->callee relationships for current caller being processed in the caller function list
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        TALLDETAILS::iterator eiter = std::partition( siter, all_details.end(),
-                                                      [&](const all_details_data_t& d) {
-                                                          const Function& func( get<2>(d) );
-                                                          const std::set< Function >& callingFunction( get<3>(d) );
-                                                          std::string cfuncName;
-                                                          std::string cfuncLinkedObjectName;
-                                                          if ( ! callingFunction.empty() ) {
-                                                              const Function cfunc( *(callingFunction.cbegin()) );
-                                                              cfuncName = cfunc.getName();
-                                                              cfuncLinkedObjectName = cfunc.getLinkedObject().getPath();
-                                                          }
-                                                          // Same caller -> callee relationship?  This is determined by comparing the caller function and
-                                                          // linked object name and callee function and linked object name to the current function and linked
-                                                          // object name of the current item in the caller function list being processed.
-                                                          return func.getName() == functionName && func.getLinkedObject().getPath() == linkedObjectName &&
-                                                                 callingFunctionName == cfuncName && callingLinkedObjectName == cfuncLinkedObjectName;
-                                                      } );
-#else
         TALLDETAILS::iterator eiter = std::partition(
                     siter, all_details.end(),
                     boost::bind( &PerformanceDataManager::partition_sort, this,
                                  boost::cref(functionName), boost::cref(linkedObjectName), boost::cref(callingFunctionName), boost::cref(callingLinkedObjectName), _1 ) );
-#endif
+
         // exit when reached end of raw details
         if ( siter == all_details.end() )
             break;
+
         // sum the count and time values
         int sum_count(0);
         double sum_time(0.0);
@@ -1707,8 +1672,10 @@ void PerformanceDataManager::detail_reduction(const ArgoNavis::GUI::PerformanceD
             sum_count += get<0>(d);
             sum_time += get<1>(d);
         }
+
         // save the reduced details data
         reduced_details.push_back( make_tuple( sum_count, sum_time, function, depth ) );
+
         // set start iterator to the end iterator
         siter = eiter;
     }
@@ -1820,7 +1787,7 @@ void PerformanceDataManager::generate_calltree_graph(const std::set< Framework::
  * This method computes the data for the calltree view in accordance with the various contraints for the view -
  * set of threads, set of functions, time interval and the metric name.
  */
-template <typename TDETAIL>
+template <typename DETAIL_t>
 void PerformanceDataManager::ShowCalltreeDetail(
         const Framework::Collector& collector,
         const Framework::ThreadGroup& threadGroup,
@@ -1831,12 +1798,12 @@ void PerformanceDataManager::ShowCalltreeDetail(
 {
     SmartPtr< std::map< Function,
                 std::map< Framework::Thread,
-                    std::map< Framework::StackTrace, TDETAIL > > > > raw_items;
+                    std::map< Framework::StackTrace, DETAIL_t > > > > raw_items;
 
     Queries::GetMetricValues( collector, metric.toStdString(), interval, threadGroup, functions,  // input - metric search criteria
                               raw_items );                                                        // output - raw metric values
 
-    SmartPtr< std::map<Function, std::map<Framework::StackTrace, TDETAIL > > > data =
+    SmartPtr< std::map<Function, std::map<Framework::StackTrace, DETAIL_t > > > data =
             Queries::Reduction::Apply( raw_items, Queries::Reduction::Summation );
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -1848,16 +1815,16 @@ void PerformanceDataManager::ShowCalltreeDetail(
     TALLDETAILS all_details;
     std::set< tuple< std::set< Function >, Function > > caller_function_list;
 
-    for ( typename std::map< Function, std::map< Framework::StackTrace, TDETAIL > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
+    for ( typename std::map< Function, std::map< Framework::StackTrace, DETAIL_t > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
         const Framework::Function function( iter->first );
-        std::map< Framework::StackTrace, TDETAIL > tracemap( iter->second );
+        std::map< Framework::StackTrace, DETAIL_t > tracemap( iter->second );
 
         std::map< Framework::Thread, Framework::ExtentGroup > subextents_map;
         Get_Subextents_To_Object_Map( threadGroup, function, subextents_map );
 
         std::set< Framework::StackTrace, ltST > StackTraces_Processed;
 
-        for ( typename std::map< Framework::StackTrace, TDETAIL >::iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
+        for ( typename std::map< Framework::StackTrace, DETAIL_t >::iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
             const Framework::StackTrace& stacktrace( siter->first );
 
             std::pair< std::set< Framework::StackTrace >::iterator, bool > ret = StackTraces_Processed.insert( stacktrace );
@@ -1873,7 +1840,7 @@ void PerformanceDataManager::ShowCalltreeDetail(
 
             int64_t num_calls = ( subExtents.begin() == subExtents.end() ) ? 1 : stack_contains_N_calls( stacktrace, subExtents );
 
-            const TDETAIL& detail( siter->second );
+            const DETAIL_t& detail( siter->second );
 
             int index;
             for ( index=0; index<stacktrace.size(); index++ ) {
@@ -1904,6 +1871,9 @@ void PerformanceDataManager::ShowCalltreeDetail(
     std::cout << oss.str() << std::endl;
 
     detail_reduction( caller_function_list, call_depth_map, all_details, reduced_details );
+
+    std::sort( reduced_details.begin(), reduced_details.end(), details_compare );
+    print_details( metric.toStdString(), reduced_details );
 }
 
 } // GUI

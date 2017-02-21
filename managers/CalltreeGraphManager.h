@@ -80,18 +80,10 @@ private:
     };
 
     // Define the graph using those classes
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-#if 1
-    using CallTree = boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, boost::property< boost::edge_weight_t, double > >;
-#else
-    using CallTree = boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, EdgeProperties >;
-#endif
-#else
 #if 1
     typedef boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, boost::property< boost::edge_weight_t, double > > CallTree;
 #else
     typedef boost::adjacency_list< boost::listS, boost::vecS, boost::directedS, VertexProperties, EdgeProperties > CallTree;
-#endif
 #endif
 
     // Some typedefs for simplicity
