@@ -35,7 +35,7 @@ OPENSS_PRI_INCLUDED = 1
 
     isEmpty(OPENSS_LIBPATH): OPENSS_LIBPATH = $${OPENSS_PATH}
 
-#    OPENSS_LIBFILES += openss-cli
+    OPENSS_LIBFILES += openss-cli
     OPENSS_LIBFILES += openss-framework
     OPENSS_LIBFILES += openss-framework-cbtf
 #    OPENSS_LIBFILES += openss-framework-symtabapi

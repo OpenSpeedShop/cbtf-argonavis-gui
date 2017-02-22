@@ -28,6 +28,18 @@ CONFIG(release, debug|release) {
     DEFINES += QT_NO_DEBUG_OUTPUT
 }
 
+# BUILD should be automatically set to x86 or x86_64 unless passed in by user.
+isEmpty(BUILD) {
+    BUILD = $$QMAKE_HOST.arch
+}
+
+contains(BUILD, x86_64) {
+    BUILDLIB = lib64
+}
+else {
+    BUILDLIB = lib
+}
+
 OBJECTS_DIR = $$DESTDIR/.obj
 MOC_DIR = $$DESTDIR/.moc
 RCC_DIR = $$DESTDIR/.qrc
@@ -51,13 +63,13 @@ PRE_TARGETDEPS += $$CONFIG_H
 target.path = $$(OSS_CBTF_ROOT)/bin
 INSTALLS += target
 
-LIBS += -L$$KRELL_ROOT/lib
-LIBS += -Wl,-rpath $$KRELL_ROOT/lib
+LIBS += -L$$KRELL_ROOT/$$BUILDLIB
+LIBS += -Wl,-rpath $$KRELL_ROOT/$$BUILDLIB
 LIBS += -lxerces-c-3.1 -lxplat
-#LIBS += -lmrnet
+LIBS += -lmrnet
 
 INCLUDEPATH += $$CBTF_ROOT/include
-LIBS += -L$$CBTF_ROOT/lib
+LIBS += -L$$CBTF_ROOT/$$BUILDLIB
 LIBS += -largonavis-base -largonavis-cuda
 
 CBTF_MESSAGES_PATH = $$CBTF_ROOT
@@ -66,7 +78,7 @@ include(CBTF-Messages.pri)
 LIBOPENSS_INC = $$OSS_CBTF_ROOT
 OPENSS_PATH = $$OSS_CBTF_ROOT
 include(OpenSS-CLI.pri)
-LIBS += -Wl,-rpath $$OSS_CBTF_ROOT/lib
+LIBS += -Wl,-rpath $$OSS_CBTF_ROOT/$$BUILDLIB
 
 INCLUDEPATH += $$CBTF_ROOT/include/collectors
 
@@ -100,10 +112,10 @@ INCLUDEPATH += $$QCUSTOMPLOTDIR
 
 INCLUDEPATH += $$CBTF_ROOT/include/QtGraph
 CONFIG(debug, debug|release) {
-LIBS += -L$$CBTF_ROOT/lib64/$$QT_VERSION -lQtGraphd
+LIBS += -L$$CBTF_ROOT/$$BUILDLIB/$$QT_VERSION -lQtGraphd
 }
 CONFIG(release, debug|release) {
-LIBS += $$CBTF_ROOT/lib64 -lQtGraph
+LIBS += $$CBTF_ROOT/$$BUILDLIB/$$QT_VERSION -lQtGraph
 }
 
 message("LD_LIBRARY_PATH="$$LD_LIBRARY_PATH)
