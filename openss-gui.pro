@@ -28,6 +28,8 @@ CONFIG(release, debug|release) {
     DEFINES += QT_NO_DEBUG_OUTPUT
 }
 
+BUILD = $$(BUILD)
+
 # BUILD should be automatically set to x86 or x86_64 unless passed in by user.
 isEmpty(BUILD) {
     BUILD = $$QMAKE_HOST.arch
@@ -112,10 +114,10 @@ INCLUDEPATH += $$QCUSTOMPLOTDIR
 
 INCLUDEPATH += $$CBTF_ROOT/include/QtGraph
 CONFIG(debug, debug|release) {
-LIBS += -L$$CBTF_ROOT/$$BUILDLIB/$$QT_VERSION -lQtGraphd
+LIBS += -L$$CBTF_ROOT/lib64/$$QT_VERSION -lQtGraphd
 }
 CONFIG(release, debug|release) {
-LIBS += $$CBTF_ROOT/$$BUILDLIB/$$QT_VERSION -lQtGraph
+LIBS += $$CBTF_ROOT/lib64/$$QT_VERSION -lQtGraph
 }
 
 message("LD_LIBRARY_PATH="$$LD_LIBRARY_PATH)
