@@ -1,5 +1,5 @@
 /*!
-   \file ModifyPathSubstitutionDialog.h
+   \file DataTransferDetails.h
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
