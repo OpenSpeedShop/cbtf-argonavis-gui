@@ -60,6 +60,7 @@ CBTF_MESSAGES_PRI_INCLUDED = 1
       for(CBTF_MESSAGES_DIRECTORY, CBTF_MESSAGES_DIRECTORIES) {
         exists($${CBTF_MESSAGES_DIRECTORY}/$${CBTF_MESSAGES_FILENAME}) {
            LIBS += -L$$quote($${CBTF_MESSAGES_DIRECTORY}) -l$${CBTF_MESSAGES_LIBFILE}
+           LIBS += -Wl,-rpath $$quote($${CBTF_MESSAGES_DIRECTORY})
            unset(CBTF_MESSAGES_DIRECTORIES)
            break()
         }
