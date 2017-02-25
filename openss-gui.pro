@@ -80,7 +80,6 @@ include(CBTF-Messages.pri)
 LIBOPENSS_INC = $$OSS_CBTF_ROOT
 OPENSS_PATH = $$OSS_CBTF_ROOT
 include(OpenSS-CLI.pri)
-LIBS += -Wl,-rpath $$OSS_CBTF_ROOT/$$BUILDLIB
 
 INCLUDEPATH += $$CBTF_ROOT/include/collectors
 
@@ -101,7 +100,7 @@ DEFINES += HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
 #DEFINES += HAS_TIMER_THREAD_DESTROYED_CHECKING
 
 message("BOOST_ROOT="$$BOOST_ROOT)
-INCLUDEPATH += $$BOOST_ROOT/include $$BOOST_ROOT/include/boost
+INCLUDEPATH += $$BOOST_ROOT/include
 exists($$BOOST_LIB_DIR): LIBS += -L$$BOOST_LIB_DIR/lib
 else: LIBS += -L$$BOOST_ROOT/lib
 LIBS += -lboost_system -lboost_thread -lboost_program_options
