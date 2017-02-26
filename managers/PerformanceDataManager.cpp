@@ -56,6 +56,7 @@
 #include <ArgoNavis/CUDA/stringify.hpp>
 
 #include "collectors/usertime/UserTimeDetail.hxx"
+#include "collectors/cuda/CUDAExecDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -1357,20 +1358,19 @@ void PerformanceDataManager::loadCudaMetricViews(
                 const std::set< Function > functions( threadGroup.getFunctions() );
                 const std::string collectorId = collector.getMetadata().getUniqueId();
 
+                TDETAILS details;
+
                 if ( collectorId == "usertime" ) {
-                    TDETAILS details;
-
                     ShowCalltreeDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "inclusive_detail", details );
-
-                    //TDETAILS inclusive_details;
-                    //ShowCalltreeDetail< Framework::UserTimeDetail >( coll, threadGroup, interval, functions, "inclusive_detail", inclusive_details );
-                    //std::sort( inclusive_details.begin(), inclusive_details.end(), details_compare );
-                    //print_details( "inclusive_detail", inclusive_details );
+                }
+                else if ( collectorId == "cuda" ) {
+                    ShowCalltreeDetail< std::vector<Framework::CUDAExecDetail> >( collector, threadGroup, interval, functions, "exec_inclusive_details", details );
                 }
             }
         }
     }
 }
+
 /**
  * @brief PerformanceDataManager::unloadCudaViews
  * @param clusteringCriteriaName - the clustering criteria name
@@ -1769,6 +1769,27 @@ void PerformanceDataManager::generate_calltree_graph(const std::set< Framework::
 }
 
 /**
+ * @brief PerformanceDataManager::getDetailTotals
+ * @param detail - the OpenSpeedShop::Framework::CUDAExecDetail instance
+ * @param factor - the time factor
+ * @return - a std::pair formed from the 'factor' parameter and the time from the 'detail' instance scaled by the 'factor'
+ *
+ * This is a template specialization for PerformanceDataManager::getDetailTotal which usually works on a type required to have the two public member variables 'dm_count'
+ * and 'dm_time'.  This template specialization works with the OpenSpeedShop::Framework::CUDAExecDetail class which doesn't satisfy this requirement as it doesn't have the
+ * 'dm_count' member variable and 'dm_time' isn't public but is accessed via a public getter method 'getTime()'.  Thus, this template specialization works for the special case
+ * of the OpenSpeedShop::Framework::CUDAExecDetail implementation.
+ */
+template <>
+std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::CUDAExecDetail >& detail, const double factor)
+{
+    double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::CUDAExecDetail& d) {
+        return sum + d.getTime();
+    } );
+
+    return std::make_pair( factor, sum / factor * 1000.0 );
+}
+
+/**
  * @brief PerformanceDataManager::ShowCalltreeDetail
  * @param collector - the experiment collector used for the calltree view
  * @param threadGroup - the set of threads applicable to the calltree view
@@ -1800,13 +1821,13 @@ void PerformanceDataManager::ShowCalltreeDetail(
             Queries::Reduction::Apply( raw_items, Queries::Reduction::Summation );
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    using namespace std;
+    typedef std::tuple< std::set< Function >, Function > CallerCallee_t;
 #else
-    using namespace boost;
+    typedef boost::tuple< std::set< Function >, Function > CallerCallee_t;
 #endif
 
     TALLDETAILS all_details;
-    std::set< tuple< std::set< Function >, Function > > caller_function_list;
+    std::set< CallerCallee_t > caller_function_list;
 
     for ( typename std::map< Function, std::map< Framework::StackTrace, DETAIL_t > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
         const Framework::Function function( iter->first );
@@ -1833,8 +1854,6 @@ void PerformanceDataManager::ShowCalltreeDetail(
 
             int64_t num_calls = ( subExtents.begin() == subExtents.end() ) ? 1 : stack_contains_N_calls( stacktrace, subExtents );
 
-            const DETAIL_t& detail( siter->second );
-
             int index;
             for ( index=0; index<stacktrace.size(); index++ ) {
                 std::pair< bool, Function > result = stacktrace.getFunctionAt( index );
@@ -1850,9 +1869,21 @@ void PerformanceDataManager::ShowCalltreeDetail(
                     caller.insert( result.second );
             }
 
-            all_details.push_back( make_tuple( detail.dm_count, detail.dm_time / num_calls, function, caller ) );
+            const DETAIL_t& detail( siter->second );
 
-            caller_function_list.insert( make_tuple( caller, function ) );
+            // compute the 'count' and 'time' metric for this 'detail' instance
+            std::pair< uint64_t, double > results = getDetailTotals( detail, num_calls );
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+            all_details_data_t detail_tuple = std::make_tuple( results.first, results.second, function, caller );
+            CallerCallee_t callerCalleeInfo = std::make_tuple( caller, function ) ;
+#else
+            all_details_data_t detail_tuple = boost::make_tuple( results.first, results.second, function, caller );
+            CallerCallee_t callerCalleeInfo = boost::make_tuple( caller, function ) ;
+#endif
+            all_details.push_back( detail_tuple );
+
+            caller_function_list.insert( callerCalleeInfo );
         }
     }
 

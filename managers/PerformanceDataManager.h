@@ -248,6 +248,9 @@ private:
             std::ostream &os);
 
     template <typename DETAIL_t>
+    std::pair< uint64_t, double > getDetailTotals(const DETAIL_t& detail, const double factor) { return std::make_pair( detail.dm_count, detail.dm_time / factor ); }
+
+    template <typename DETAIL_t>
     void ShowCalltreeDetail(const OpenSpeedShop::Framework::Collector& collector,
                             const OpenSpeedShop::Framework::ThreadGroup& threadGroup,
                             const OpenSpeedShop::Framework::TimeInterval& interval,
