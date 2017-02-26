@@ -114,8 +114,6 @@ CalltreeGraphManager::handle_t CalltreeGraphManager::addFunctionNode(
 
     m_vertices.push_back( vertex );
 
-    Q_ASSERT( vertex == m_vertices.size()-1 );
-
     return m_vertices.size()-1;
 }
 
@@ -235,7 +233,7 @@ void CalltreeGraphManager::generate_call_depths(std::map< std::pair< handle_t, h
     for ( int i = 0; i < V; ++i ) {
         for ( int j = 0; j < V; ++j ) {
             if ( D[i][j] != 0 && D[i][j] != std::numeric_limits<double>::max() ) {
-                call_depth_map[ std::make_pair( m_vertices[i], m_vertices[j] ) ] = D[i][j];
+                call_depth_map[ std::make_pair( i, j ) ] = D[i][j];
             }
         }
     }
