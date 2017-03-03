@@ -43,7 +43,6 @@ namespace ArgoNavis { namespace GUI {
 const QString OSS_QUICK_START_GUIDE_FILEPATH = QString("%1/share/doc/packages/OpenSpeedShop/doc/users_guide/OpenSpeedShop_Quick_Start_Guide.pdf").arg(OSS_CBTF_ROOT);
 const QString OSS_REFERENCE_GUIDE_FILEPATH = QString("%1/share/doc/packages/OpenSpeedShop/doc/users_guide/OpenSpeedShop_Reference_Guide.pdf").arg(OSS_CBTF_ROOT);
 
-
 /**
  * \brief MainWindow::MainWindow
  * @param parent - specify parent of the MainWindow instance
@@ -95,6 +94,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestMetricView, dataMgr, &PerformanceDataManager::handleRequestMetricView );
         connect( dataMgr, &PerformanceDataManager::addCluster, this, &MainWindow::handleAdjustPlotViewScrollArea );
         connect( dataMgr, &PerformanceDataManager::removeCluster, this, &MainWindow::handleRemoveCluster );
+        connect( dataMgr, &PerformanceDataManager::signalSetDefaultMetricView, ui->widget_MetricViewManager, &MetricViewManager::handleSwitchView );
 #else
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<QString>)),
@@ -107,6 +107,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestMetricView(QString,QString,QString)), dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
+        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );
 #endif
     }
 

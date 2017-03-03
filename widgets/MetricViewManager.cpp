@@ -25,6 +25,8 @@
 
 #include "ui_MetricViewManager.h"
 
+#include <QDebug>
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -35,9 +37,7 @@ MetricViewManager::MetricViewManager(QWidget *parent)
 {
     ui->setupUi( this );
 
-#if 0
-    switchView( "Call Tree" );
-#endif
+    qRegisterMetaType<MetricViewTypes>("MetricViewTypes");
 }
 
 MetricViewManager::~MetricViewManager()
@@ -45,17 +45,20 @@ MetricViewManager::~MetricViewManager()
     delete ui;
 }
 
-void MetricViewManager::switchView(const QString &viewName)
+void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
 {
-    if ( "CUDA Timeline" == viewName )
+    qDebug() << "MetricViewManager::handleSwitchView: viewType=" << ( viewType == CUDA_VIEW ? "CUDA_VIEW" : "CALLTREE_VIEW" );
+
+    if ( CUDA_VIEW == viewType )
         setCurrentWidget( ui->widget_MetricPlotView );
-    else if ( "Call Tree" == viewName )
+    else if ( CALLTREE_VIEW == viewType )
         setCurrentWidget( ui->widget_CalltreeGraphView );
 }
 
 void MetricViewManager::unloadExperimentDataFromView(const QString &experimentName)
 {
     ui->widget_MetricPlotView->unloadExperimentDataFromView( experimentName );
+    ui->widget_CalltreeGraphView->handleDisplayGraphView( QString() );
 }
 
 

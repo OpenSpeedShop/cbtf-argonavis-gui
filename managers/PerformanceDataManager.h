@@ -60,6 +60,7 @@ using namespace boost;
 #include "Collector.hxx"
 
 #include "UserGraphRangeChangeManager.h"
+#include "widgets/MetricViewManager.h"
 
 namespace OpenSpeedShop {
 namespace Framework {
@@ -121,6 +122,8 @@ public slots:
 
 signals:
 
+    void signalSetDefaultMetricView(const MetricViewTypes viewType);
+
     void addExperiment(const QString& name,
                        const QString& clusteringCriteriaName,
                        const QVector< QString >& clusterNames,
@@ -163,6 +166,8 @@ signals:
     void loadComplete();
 
     void requestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
+
+    void signalDisplayCalltreeGraph(const QString& graph);
 
 private slots:
 
@@ -211,7 +216,7 @@ private:
     QString getLocationInfo(const TS& metric) { Q_UNUSED(metric) return QString(); }
 
     template <typename TS>
-    QString getViewName() const { return QString(); }
+    QString getViewName() const { return QString("CallTree"); }
 
     typedef tuple< int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > > all_details_data_t;
     typedef std::vector< all_details_data_t > TALLDETAILS;
@@ -254,9 +259,13 @@ private:
     void ShowCalltreeDetail(const OpenSpeedShop::Framework::Collector& collector,
                             const OpenSpeedShop::Framework::ThreadGroup& threadGroup,
                             const OpenSpeedShop::Framework::TimeInterval& interval,
-                            const std::set< OpenSpeedShop::Framework::Function >& functions,
-                            const QString& metric,
-                            TDETAILS& reduced_details);
+                            const std::set< OpenSpeedShop::Framework::Function > functions,
+                            const QString metric,
+                            const QStringList metricDesc);
+
+    void processCalltreeView(const OpenSpeedShop::Framework::Collector collector,
+                             const OpenSpeedShop::Framework::ThreadGroup& threads,
+                             const OpenSpeedShop::Framework::TimeInterval& interval);
 
     bool processDataTransferEvent(const ArgoNavis::Base::Time& time_origin,
                                   const ArgoNavis::CUDA::DataTransfer& details,

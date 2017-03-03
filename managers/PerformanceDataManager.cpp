@@ -57,6 +57,7 @@
 
 #include "collectors/usertime/UserTimeDetail.hxx"
 #include "collectors/cuda/CUDAExecDetail.hxx"
+#include "collectors/mpi/MPIDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -1041,6 +1042,34 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 #endif
 }
 
+/**
+ * @brief PerformanceDataManager::processCalltreeView
+ * @param collector - a copy of the cuda collector
+ * @param threads - all threads known by the cuda collector
+ * @param interval - the time interval of interest
+ *
+ * Build calltree view output for the specified group of threads and time interval.
+ */
+void PerformanceDataManager::processCalltreeView(const Collector collector, const ThreadGroup& threads, const TimeInterval& interval)
+{
+    const std::set< Function > functions( threads.getFunctions() );
+
+    QStringList metricDesc;
+    metricDesc << QStringLiteral("Inclusive Time") << QStringLiteral("Inclusive Counts") << s_functionTitle;
+
+    const std::string collectorId = collector.getMetadata().getUniqueId();
+
+    if ( collectorId == "usertime" ) {
+        ShowCalltreeDetail< Framework::UserTimeDetail >( collector, threads, interval, functions, "inclusive_detail", metricDesc );
+    }
+    else if ( collectorId == "cuda" ) {
+        ShowCalltreeDetail< std::vector<Framework::CUDAExecDetail> >( collector, threads, interval, functions, "exec_inclusive_details", metricDesc );
+    }
+    else if ( collectorId == "mpi" ) {
+        ShowCalltreeDetail< std::vector<Framework::MPIDetail> >( collector, threads, interval, functions, "inclusive_details", metricDesc );
+    }
+}
+
 void PerformanceDataManager::print_details(const std::string& details_name, const TDETAILS &details) const
 {
     std::string name( details_name );
@@ -1354,18 +1383,13 @@ void PerformanceDataManager::loadCudaMetricViews(
 #endif
             }
 
-            else if ( viewName == QStringLiteral("Calltree") ) {
-                const std::set< Function > functions( threadGroup.getFunctions() );
-                const std::string collectorId = collector.getMetadata().getUniqueId();
-
-                TDETAILS details;
-
-                if ( collectorId == "usertime" ) {
-                    ShowCalltreeDetail< Framework::UserTimeDetail >( collector, threadGroup, interval, functions, "inclusive_detail", details );
-                }
-                else if ( collectorId == "cuda" ) {
-                    ShowCalltreeDetail< std::vector<Framework::CUDAExecDetail> >( collector, threadGroup, interval, functions, "exec_inclusive_details", details );
-                }
+            else if ( viewName == QStringLiteral("CallTree") ) {
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processCalltreeView, collector, threadGroup, interval );
+                synchronizer.addFuture( futures[ futuresKey ] );
+#else
+                processCalltreeView( collector.get(), experiment.getThreads(), metric, metricDesc );
+#endif
             }
         }
     }
@@ -1448,6 +1472,10 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     bool hasCudaCollector( false );
 
     hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
+
+    if ( ! hasCudaCollector ) {
+        emit signalSetDefaultMetricView( hasCudaCollector ? CUDA_VIEW : CALLTREE_VIEW );
+    }
 
     // reset all thread flags to false
     QMutableMapIterator< Base::ThreadName, bool > mapiter( flags );
@@ -1790,6 +1818,27 @@ std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std:
 }
 
 /**
+ * @brief PerformanceDataManager::getDetailTotals
+ * @param detail - the OpenSpeedShop::Framework::MPIDetail instance
+ * @param factor - the time factor
+ * @return - a std::pair formed from the 'factor' parameter and the time from the 'detail' instance scaled by the 'factor'
+ *
+ * This is a template specialization for PerformanceDataManager::getDetailTotal which usually works on a type required to have the two public member variables 'dm_count'
+ * and 'dm_time'.  This template specialization works with the OpenSpeedShop::Framework::MPIDetail class which doesn't satisfy this requirement as it doesn't have the
+ * 'dm_count' member variable although it does has a pubic 'dm_time' member variable.  Thus, this template specialization works for the special case
+ * of the OpenSpeedShop::Framework::MPIDetail implementation.
+ */
+template <>
+std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::MPIDetail >& detail, const double factor)
+{
+    double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::MPIDetail& d) {
+        return sum + d.dm_time;
+    } );
+
+    return std::make_pair( factor, sum / factor * 1000.0 );
+}
+
+/**
  * @brief PerformanceDataManager::ShowCalltreeDetail
  * @param collector - the experiment collector used for the calltree view
  * @param threadGroup - the set of threads applicable to the calltree view
@@ -1802,14 +1851,23 @@ std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std:
  * set of threads, set of functions, time interval and the metric name.
  */
 template <typename DETAIL_t>
-void PerformanceDataManager::ShowCalltreeDetail(
-        const Framework::Collector& collector,
+void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& collector,
         const Framework::ThreadGroup& threadGroup,
         const Framework::TimeInterval& interval,
-        const std::set< Framework::Function >& functions,
-        const QString& metric,
-        TDETAILS& reduced_details)
+        const std::set<Function> functions,
+        const QString metric,
+        const QStringList metricDesc)
 {
+    // bet view name
+    const QString viewName = getViewName<DETAIL_t>();
+
+    // get cluster name
+    Thread thread = *(threadGroup.begin());
+
+    const QString clusterName = ArgoNavis::CUDA::getUniqueClusterName( thread );
+
+    emit addMetricView( clusterName, viewName, viewName, metricDesc );
+
     SmartPtr< std::map< Function,
                 std::map< Framework::Thread,
                     std::map< Framework::StackTrace, DETAIL_t > > > > raw_items;
@@ -1892,12 +1950,34 @@ void PerformanceDataManager::ShowCalltreeDetail(
 
     std::ostringstream oss;
     generate_calltree_graph( functions, caller_function_list, call_depth_map, oss );
+    emit signalDisplayCalltreeGraph( QString::fromStdString( oss.str() ) );
     std::cout << oss.str() << std::endl;
+
+    TDETAILS reduced_details;
 
     detail_reduction( caller_function_list, call_depth_map, all_details, reduced_details );
 
     std::sort( reduced_details.begin(), reduced_details.end(), details_compare );
     print_details( metric.toStdString(), reduced_details );
+
+    for ( TDETAILS::reverse_iterator i = reduced_details.rbegin(); i != reduced_details.rend(); ++i ) {
+        const details_data_t& d( *i );
+        QVariantList metricData;
+        std::ostringstream oss;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        metricData << std::get<1>(d) << QVariant::fromValue((long)std::get<0>(d));
+        for ( uint32_t i=0; i<std::get<3>(d); ++i ) oss << '>';
+        const Function func( std::get<2>(d) );
+#else
+        metricData << boost::get<1>(d) << QVariant::fromValue((long)boost::get<0>(d));
+        for ( uint32_t i=0; i<boost::get<3>(d); ++i ) oss << '>';
+        const Function func( boost::get<2>(d) );
+#endif
+        oss << func.getName() << " (" << func.getLinkedObject().getPath().getBaseName() << ")";
+        metricData << QString::fromStdString( oss.str() );
+        emit addMetricViewData( clusterName, viewName, viewName, metricData );
+    }
+
 }
 
 } // GUI

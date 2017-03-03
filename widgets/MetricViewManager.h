@@ -25,6 +25,7 @@
 #define METRICVIEWMANAGER_H
 
 #include <QStackedWidget>
+#include <QMetaType>
 
 namespace Ui {
 class MetricViewManager;
@@ -33,6 +34,10 @@ class MetricViewManager;
 
 namespace ArgoNavis { namespace GUI {
 
+enum MetricViewTypes {
+    CUDA_VIEW,
+    CALLTREE_VIEW
+};
 
 class MetricViewManager : public QStackedWidget
 {
@@ -43,9 +48,11 @@ public:
     explicit MetricViewManager(QWidget *parent = 0);
     ~MetricViewManager();
 
-    void switchView(const QString& viewName);
-
     void unloadExperimentDataFromView(const QString& experimentName);
+
+public slots:
+
+    void handleSwitchView(const MetricViewTypes viewType);
 
 private:
 
@@ -56,5 +63,7 @@ private:
 
 } // GUI
 } // ArgoNavis
+
+Q_DECLARE_METATYPE( ArgoNavis::GUI::MetricViewTypes )
 
 #endif // METRICVIEWMANAGER_H

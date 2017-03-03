@@ -38,7 +38,11 @@ class CalltreeGraphView : public QGraphicsView
 
 public:
 
-    explicit CalltreeGraphView(const QString& calltreeData = QString(), QWidget *parent = 0);
+    explicit CalltreeGraphView(QWidget *parent = 0);
+
+public slots:
+
+    void handleDisplayGraphView(const QString& graph);
 
 protected:
 

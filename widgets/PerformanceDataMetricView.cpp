@@ -81,6 +81,9 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
     m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
 
+    // initialize model used for view combobox when in calltree mode
+    m_calltreeViewModel.appendRow( new QStandardItem( QStringLiteral("CallTree") ) );
+
     // initial mode is details mode
     m_mode = METRIC_MODE;
 
@@ -312,7 +315,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
     }
 
     // Make sure metric view not already in combobox
-    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
+    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 && metricName != QStringLiteral("CallTree") ) {
         // Add metric view to combobox
         ui->comboBox_MetricSelection->addItem( metricName );
     }
@@ -632,6 +635,11 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
         ui->comboBox_ViewSelection->setModel( &m_detailsViewModel );
         ui->comboBox_MetricSelection->setEnabled( false );
     }
+    else if ( QStringLiteral("CallTree") == text ) {
+        m_mode = CALLTREE_MODE;
+        ui->comboBox_ViewSelection->setModel( &m_calltreeViewModel );
+        ui->comboBox_MetricSelection->setEnabled( false );
+    }
     else {
         m_mode = METRIC_MODE;
         ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
@@ -649,7 +657,7 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 {
     Q_UNUSED(text)
 
-    if ( ui->comboBox_MetricSelection->currentText().isEmpty() || ui->comboBox_ViewSelection->currentText().isEmpty() )
+    if ( ui->comboBox_MetricSelection->currentText().isEmpty() )
         return;
 
     QTreeView* view( Q_NULLPTR );
@@ -658,6 +666,8 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 
     if ( DETAILS_MODE == m_mode )
         metricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
+    else if ( CALLTREE_MODE == m_mode )
+        metricViewName = QStringLiteral("CallTree") + "-" + QStringLiteral("CallTree");
     else
         metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
 
@@ -673,6 +683,8 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 
         if ( DETAILS_MODE == m_mode )
             emit signalRequestDetailView( m_clusterName, ui->comboBox_ViewSelection->currentText() );
+        if ( CALLTREE_MODE == m_mode )
+            emit signalRequestMetricView( m_clusterName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
         else
             emit signalRequestMetricView( m_clusterName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
     }
@@ -713,15 +725,21 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
             return;
 
         // now sorting can be enabled
-        view->setSortingEnabled( true );
-        if ( QStringLiteral("Details") == metricName ) {
-            if ( QStringLiteral("All Events") == viewName )
-                view->sortByColumn( 1, Qt::AscendingOrder );
-            else
-                view->sortByColumn( 2, Qt::AscendingOrder );
+        if ( QStringLiteral("CallTree") == metricName ) {
+            // calltree has fixed order
+            view->setSortingEnabled( false );
         }
-        else
-            view->sortByColumn( 0, Qt::DescendingOrder );
+        else {
+            view->setSortingEnabled( true );
+            if ( QStringLiteral("Details") == metricName ) {
+                if ( QStringLiteral("All Events") == viewName )
+                    view->sortByColumn( 1, Qt::AscendingOrder );
+                else
+                    view->sortByColumn( 2, Qt::AscendingOrder );
+            }
+            else
+                view->sortByColumn( 0, Qt::DescendingOrder );
+        }
     }
 
     handleRangeChanged( clusterName, metricName, viewName, lower, upper );

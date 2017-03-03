@@ -35,43 +35,49 @@
 #include "QtGraph/QGraphNode.h"
 #include "QtGraph/QGraphEdge.h"
 
+#include "managers/PerformanceDataManager.h"
+
 
 namespace ArgoNavis { namespace GUI {
 
 
-CalltreeGraphView::CalltreeGraphView(const QString &calltreeData, QWidget *parent)
+CalltreeGraphView::CalltreeGraphView(QWidget *parent)
     : QGraphicsView( parent )
 {
     setTransformationAnchor( QGraphicsView::AnchorUnderMouse );
 
-    // set graph attributes
-    QGraphCanvas::NameValueList graphAttributeList;
-    graphAttributeList.push_back( qMakePair( QStringLiteral("nodesep"), QStringLiteral("0.4") ) );;
+    // connect performance data manager signals to performance data metric view slots
+    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
+    if ( dataMgr ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        connect( dataMgr, &PerformanceDataManager::signalDisplayCalltreeGraph, this, &CalltreeGraphView::handleDisplayGraphView );
+#else
+        connect( dataMgr, SIGNAL(signalDisplayCalltreeGraph(QString)), this, SLOT(handleDisplayGraphView(QString)) );
+#endif
+    }
+}
 
-    // set default node attributes
-    QGraphCanvas::NameValueList nodeAttributeList;
-    nodeAttributeList.push_back( qMakePair( QStringLiteral("style"), QStringLiteral("filled") ) );
-    nodeAttributeList.push_back( qMakePair( QStringLiteral("fillcolor"), QStringLiteral("white") ) );
+void CalltreeGraphView::handleDisplayGraphView(const QString& graph)
+{
+    QGraphCanvas* g = NULL;
 
-    // set default edge attributes
-    QGraphCanvas::NameValueList edgeAttributeList;
+    if ( ! graph.isEmpty() ) {
+        // set graph attributes
+        QGraphCanvas::NameValueList graphAttributeList;
+        graphAttributeList.push_back( qMakePair( QStringLiteral("nodesep"), QStringLiteral("0.4") ) );;
 
-    const std::string digraphStr2 =
-            "digraph G {"
-            "0 [label=\"main\", shape=\"square\", file=\"mutatee.c\", line=\"43\", unit=\"mutatee\"];"
-            "1 [label=\"work\", file=\"mutatee.c\", line=\"33\", unit=\"mutatee\"];"
-            "2 [label=\"f3\", file=\"mutatee.c\", line=\"24\", unit=\"mutatee\"];"
-            "3 [label=\"f2\", file=\"mutatee.c\", line=\"15\", unit=\"mutatee\"];"
-            "4 [label=\"f1\", file=\"mutatee.c\", line=\"6\", unit=\"mutatee\"];"
-            "0->1  [label=\"0\"];"
-            "1->2  [label=\"50\"];"
-            "1->3  [label=\"36.3636\"];"
-            "1->4  [label=\"13.6364\"];"
-            "}";
+        // set default node attributes
+        QGraphCanvas::NameValueList nodeAttributeList;
+        nodeAttributeList.push_back( qMakePair( QStringLiteral("style"), QStringLiteral("filled") ) );
+        nodeAttributeList.push_back( qMakePair( QStringLiteral("fillcolor"), QStringLiteral("white") ) );
 
-    QGraphCanvas* g = new QGraphCanvas( digraphStr2.c_str(), graphAttributeList, nodeAttributeList, edgeAttributeList );
+        // set default edge attributes
+        QGraphCanvas::NameValueList edgeAttributeList;
 
-    g->updateLayout();
+        g = new QGraphCanvas( graph.toLocal8Bit().data(), graphAttributeList, nodeAttributeList, edgeAttributeList );
+
+        g->updateLayout();
+    }
 
     setScene( g );
 }
