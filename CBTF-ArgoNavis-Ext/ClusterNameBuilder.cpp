@@ -56,6 +56,12 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread &threa
         clusterName = clusterName.left( index );
 #endif
 
+    std::pair<bool, int> mpiRank = thread.getMPIRank();
+
+    if ( mpiRank.first ) {
+        clusterName += ( "( rank:" + QString::number(mpiRank.second) + " )" );
+    }
+
     return clusterName;
 }
 
