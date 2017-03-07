@@ -1968,7 +1968,6 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
     detail_reduction( caller_function_list, call_depth_map, all_details, callPairToWeightMap, reduced_details );
 
     std::sort( reduced_details.begin(), reduced_details.end(), details_compare );
-    print_details( metric.toStdString(), reduced_details );
 
     CalltreeGraphManager::EdgeWeightMap edgeWeightMap;
     for ( CallPairToEdgeMap::iterator iter = callPairToEdgeMap.begin(); iter != callPairToEdgeMap.end(); iter++ ) {
@@ -1981,7 +1980,6 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
     std::ostringstream oss;
     graphManager.write_graphviz( oss );
     emit signalDisplayCalltreeGraph( QString::fromStdString( oss.str() ) );
-    std::cout << oss.str() << std::endl;
 
     for ( TDETAILS::reverse_iterator i = reduced_details.rbegin(); i != reduced_details.rend(); ++i ) {
         const details_data_t& d( *i );
