@@ -31,6 +31,12 @@
 namespace ArgoNavis { namespace GUI {
 
 
+/**
+ * @brief MetricViewManager::MetricViewManager
+ * @param parent - the parent widget
+ *
+ * Constructs an MetricViewManager instance of the given parent.
+ */
 MetricViewManager::MetricViewManager(QWidget *parent)
     : QStackedWidget( parent )
     , ui( new Ui::MetricViewManager )
@@ -40,11 +46,22 @@ MetricViewManager::MetricViewManager(QWidget *parent)
     qRegisterMetaType<MetricViewTypes>("MetricViewTypes");
 }
 
+/**
+ * @brief MetricViewManager::~MetricViewManager
+ *
+ * Destroys the MetricViewManager instance.
+ */
 MetricViewManager::~MetricViewManager()
 {
     delete ui;
 }
 
+/**
+ * @brief MetricViewManager::handleSwitchView
+ * @param viewType - the view type
+ *
+ * This method set the current widget of the stack widget in accordance with the view type.
+ */
 void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
 {
     qDebug() << "MetricViewManager::handleSwitchView: viewType=" << ( viewType == CUDA_VIEW ? "CUDA_VIEW" : "CALLTREE_VIEW" );
@@ -55,6 +72,12 @@ void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
         setCurrentWidget( ui->widget_CalltreeGraphView );
 }
 
+/**
+ * @brief MetricViewManager::unloadExperimentDataFromView
+ * @param experimentName - the name of the experiment being unloaded from the application
+ *
+ * This method is invoked when an experiment is unloaded from the application.
+ */
 void MetricViewManager::unloadExperimentDataFromView(const QString &experimentName)
 {
     ui->widget_MetricPlotView->unloadExperimentDataFromView( experimentName );

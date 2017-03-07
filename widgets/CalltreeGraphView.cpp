@@ -41,6 +41,12 @@
 namespace ArgoNavis { namespace GUI {
 
 
+/**
+ * @brief CalltreeGraphView::CalltreeGraphView
+ * @param parent - the parent widget
+ *
+ * Constructs an experiment panel instance of the given parent.
+ */
 CalltreeGraphView::CalltreeGraphView(QWidget *parent)
     : QGraphicsView( parent )
 {
@@ -57,6 +63,14 @@ CalltreeGraphView::CalltreeGraphView(QWidget *parent)
     }
 }
 
+/**
+ * @brief CalltreeGraphView::handleDisplayGraphView
+ * @param graph - DOT format data representing calltree graph to create
+ *
+ * This method takes the DOT format data and creates a calltree graph from it, updates the layout to cause all graph vertex and edge
+ * state to be calculated and then attaches the scene to the view.  If am empty string is passed into this method, then a null pointer
+ * is set as the scene to clear the graph in view.  The current calltree graph will be removed and destroyed.
+ */
 void CalltreeGraphView::handleDisplayGraphView(const QString& graph)
 {
     QGraphCanvas* g = NULL;
@@ -79,17 +93,34 @@ void CalltreeGraphView::handleDisplayGraphView(const QString& graph)
         g->updateLayout();
     }
 
+    QGraphicsScene* currentScene = scene();
+
     setScene( g );
+
+    if ( currentScene ) {
+        delete currentScene;
+    }
 }
 
+/**
+ * @brief CalltreeGraphView::wheelEvent
+ * @param event - the wheel event
+ *
+ * This method reimplements the QGraphicsView::wheelEvent method to produce a scale transformation to cause a zoom in or out
+ * in accordance with user mouse wheel actions.
+ */
 void CalltreeGraphView::wheelEvent(QWheelEvent* event)
 {
-    qreal scaleFactor = qPow( 2.0, event->delta() / 240.0 ); // how fast zooming occurs
+    const qreal scaleFactor = qPow( 2.0, event->delta() / 240.0 ); // how fast zooming occurs
+
     qreal factor = transform().scale( scaleFactor, scaleFactor ).mapRect( QRectF(0, 0, 1, 1) ).width();
+
     if ( 0.05 < factor && factor < 10.0 ) {
         // limit zoom extents
         scale( scaleFactor, scaleFactor );
     }
+
+    QGraphicsView::wheelEvent( event );
 }
 
 
