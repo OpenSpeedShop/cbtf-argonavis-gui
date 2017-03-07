@@ -56,6 +56,10 @@ public:
 
     void generate_call_depths(std::map< std::pair< handle_t, handle_t>, uint32_t >& call_depth_map);
 
+    typedef std::map< handle_t, double > EdgeWeightMap;
+
+    void setEdgeWeights(const EdgeWeightMap& edgeWeightMap);
+
 private:
 
     // Create a struct to hold properties for each vertex
@@ -93,7 +97,7 @@ private:
     CallTree m_calltree;
 
     std::vector< vertex_t > m_vertices;
-    std::vector< edge_t > m_edges;
+    std::map< edge_t, handle_t > m_edges;
 
 };
 

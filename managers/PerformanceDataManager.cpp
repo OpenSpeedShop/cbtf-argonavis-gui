@@ -26,7 +26,6 @@
 #include "common/openss-gui-config.h"
 
 #include "managers/BackgroundGraphRenderer.h"
-#include "managers/CalltreeGraphManager.h"
 #include "CBTF-ArgoNavis-Ext/DataTransferDetails.h"
 #include "CBTF-ArgoNavis-Ext/KernelExecutionDetails.h"
 #include "CBTF-ArgoNavis-Ext/ClusterNameBuilder.h"
@@ -1473,9 +1472,8 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
 
     hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
 
-    if ( ! hasCudaCollector ) {
-        emit signalSetDefaultMetricView( hasCudaCollector ? CUDA_VIEW : CALLTREE_VIEW );
-    }
+    // set default metric view
+    emit signalSetDefaultMetricView( hasCudaCollector ? CUDA_VIEW : CALLTREE_VIEW );
 
     // reset all thread flags to false
     QMutableMapIterator< Base::ThreadName, bool > mapiter( flags );
@@ -1644,9 +1642,11 @@ bool PerformanceDataManager::partition_sort(const std::string& functionName,
  * name to the current function and linked object name in the caller function list being processed.
  * The reduced details container is sorted in descending order by time (the second item in the std::tuple).
  */
-void PerformanceDataManager::detail_reduction(const ArgoNavis::GUI::PerformanceDataManager::FunctionSet &caller_function_list,
+void PerformanceDataManager::detail_reduction(
+        const ArgoNavis::GUI::PerformanceDataManager::FunctionSet &caller_function_list,
         std::map< Function, uint32_t >& call_depth_map,
         TALLDETAILS& all_details,
+        CallPairToWeightMap& callPairToWeightMap,
         TDETAILS& reduced_details)
 {
     TALLDETAILS::iterator siter = all_details.begin();
@@ -1697,6 +1697,12 @@ void PerformanceDataManager::detail_reduction(const ArgoNavis::GUI::PerformanceD
         // save the reduced details data
         reduced_details.push_back( make_tuple( sum_count, sum_time, function, depth ) );
 
+        // add entry to the call pair to weight map
+        if ( ! caller.empty() ) {
+            const Function callingFunction( *(caller.begin()) );
+            callPairToWeightMap[ std::make_pair( callingFunction, function ) ] = sum_time;
+        }
+
         // set start iterator to the end iterator
         siter = eiter;
     }
@@ -1711,22 +1717,22 @@ void PerformanceDataManager::detail_reduction(const ArgoNavis::GUI::PerformanceD
 
 /**
  * @brief PerformanceDataManager::generate_calltree_graph
+ * @param graphManager - the calltree graph manager instance in which to store the vertices (functions) and edges representing the call pairs
  * @param functions - the set of functions involved in the calltree view
  * @param caller_function_list - the set of all direct calls (caller -> function) involved in the calltree view
  * @param call_depth_map - a map of the calltree depth from "_start" to a particular function
- * @param os - the std::ostream object in which the DOT format data should be copied to
+ * @param callPairToEdgeMap - a map of the function call pairs to the edge handle of the edge linking them in the calltree graph
  *
  * This method constructs a graph using a CalltreeGraphManager class instannce.  Each function is added as a vertex to the graph.  Each calling -> callee
  * function pair results in the associated edge to be added to the graph.  The calltree depth map and DOT formatted output is returned by this method.
  */
-void PerformanceDataManager::generate_calltree_graph(const std::set< Framework::Function >& functions,
+void PerformanceDataManager::generate_calltree_graph(
+        CalltreeGraphManager& graphManager,
+        const std::set< Framework::Function >& functions,
         const ArgoNavis::GUI::PerformanceDataManager::FunctionSet &caller_function_list,
         std::map< Function, uint32_t >& call_depth_map,
-        std::ostream& os)
+        CallPairToEdgeMap& callPairToEdgeMap)
 {
-    // Create a calltree graph manager instance.
-    CalltreeGraphManager graphManager;
-
     // Define fast lookup data structures from Function type to CalltreeGraphManager::handle_t type and vice-versa.
     std::map< Function, CalltreeGraphManager::handle_t > mapFunctionToHandle;
     std::vector< std::set< Function > > mapHandleToFunction( functions.size() );
@@ -1746,6 +1752,7 @@ void PerformanceDataManager::generate_calltree_graph(const std::set< Framework::
 #endif
 
     // Create an edge for each caller->callee function pair
+    // NOTE: Initial edge weight will be one so that the call depths can be computed using the boost::johnson_all_pairs_shortest_paths algorithm.
     for ( std::set< tuple< std::set< Function >, Function > >::iterator fit = caller_function_list.begin(); fit != caller_function_list.end(); fit++ ) {
         const tuple< std::set< Function >, Function > elem( *fit );
 
@@ -1763,12 +1770,9 @@ void PerformanceDataManager::generate_calltree_graph(const std::set< Framework::
         if ( mapFunctionToHandle.find( callingFunction ) != mapFunctionToHandle.end() && mapFunctionToHandle.find( function ) != mapFunctionToHandle.end() ) {
             const CalltreeGraphManager::handle_t& caller_handle = mapFunctionToHandle.at( callingFunction );
             const CalltreeGraphManager::handle_t& handle = mapFunctionToHandle.at( function );
-            graphManager.addCallEdge( caller_handle, handle );
+            callPairToEdgeMap[ std::make_pair( callingFunction, function ) ] = graphManager.addCallEdge( caller_handle, handle );
         }
     }
-
-    // Generate the DOT formatted data from the graph
-    graphManager.write_graphviz( os );
 
     // Find the calltree depths for each function
     std::map< std::pair< CalltreeGraphManager::handle_t, CalltreeGraphManager::handle_t>, uint32_t > depth_map;  // maps pair (caller_handle. handle) to calltree depth
@@ -1948,17 +1952,36 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
     // Define map for Function to calltree depth from "_start" invocation to the Function
     std::map< Function, uint32_t > call_depth_map;
 
-    std::ostringstream oss;
-    generate_calltree_graph( functions, caller_function_list, call_depth_map, oss );
-    emit signalDisplayCalltreeGraph( QString::fromStdString( oss.str() ) );
-    std::cout << oss.str() << std::endl;
+    // Create calltree graph manager instance
+    CalltreeGraphManager graphManager;
+
+    // A map of function call-pairs to edge handles
+    CallPairToEdgeMap callPairToEdgeMap;
+
+    // A map of function call-pairs to edge weights
+    CallPairToWeightMap callPairToWeightMap;
+
+    generate_calltree_graph( graphManager, functions, caller_function_list, call_depth_map, callPairToEdgeMap );
 
     TDETAILS reduced_details;
 
-    detail_reduction( caller_function_list, call_depth_map, all_details, reduced_details );
+    detail_reduction( caller_function_list, call_depth_map, all_details, callPairToWeightMap, reduced_details );
 
     std::sort( reduced_details.begin(), reduced_details.end(), details_compare );
     print_details( metric.toStdString(), reduced_details );
+
+    CalltreeGraphManager::EdgeWeightMap edgeWeightMap;
+    for ( CallPairToEdgeMap::iterator iter = callPairToEdgeMap.begin(); iter != callPairToEdgeMap.end(); iter++ ) {
+        edgeWeightMap[ iter->second ] = callPairToWeightMap[ iter->first ];
+    }
+
+    graphManager.setEdgeWeights( edgeWeightMap );
+
+    // Generate the DOT formatted data from the graph
+    std::ostringstream oss;
+    graphManager.write_graphviz( oss );
+    emit signalDisplayCalltreeGraph( QString::fromStdString( oss.str() ) );
+    std::cout << oss.str() << std::endl;
 
     for ( TDETAILS::reverse_iterator i = reduced_details.rbegin(); i != reduced_details.rend(); ++i ) {
         const details_data_t& d( *i );

@@ -61,6 +61,7 @@ using namespace boost;
 
 #include "UserGraphRangeChangeManager.h"
 #include "widgets/MetricViewManager.h"
+#include "managers/CalltreeGraphManager.h"
 
 namespace OpenSpeedShop {
 namespace Framework {
@@ -225,6 +226,10 @@ private:
     typedef std::vector< details_data_t > TDETAILS;
     typedef std::set< tuple< std::set< OpenSpeedShop::Framework::Function >, OpenSpeedShop::Framework::Function > > FunctionSet;
 
+    typedef std::pair< OpenSpeedShop::Framework::Function, OpenSpeedShop::Framework::Function > FunctionCallPair;
+    typedef std::map< FunctionCallPair, CalltreeGraphManager::handle_t > CallPairToEdgeMap;
+    typedef std::map< FunctionCallPair, double > CallPairToWeightMap;
+
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
     template <int N, typename BinaryPredicate, typename ForwardIterator>
     bool ComponentBinaryPredicate(const typename ForwardIterator::value_type& x, const typename ForwardIterator::value_type& y);
@@ -244,13 +249,15 @@ private:
     void detail_reduction(const FunctionSet& caller_function_list,
                           std::map< OpenSpeedShop::Framework::Function, uint32_t >& call_depth_map,
                           TALLDETAILS &all_details,
+                          CallPairToWeightMap& callPairToWeightMap,
                           TDETAILS& reduced_details);
 
     void generate_calltree_graph(
+            CalltreeGraphManager& graphManager,
             const std::set< OpenSpeedShop::Framework::Function >& functions,
             const FunctionSet& caller_function_list,
             std::map< OpenSpeedShop::Framework::Function, uint32_t>& function_call_depth_map,
-            std::ostream &os);
+            CallPairToEdgeMap& callPairToEdgeMap);
 
     template <typename DETAIL_t>
     std::pair< uint64_t, double > getDetailTotals(const DETAIL_t& detail, const double factor) { return std::make_pair( detail.dm_count, detail.dm_time / factor ); }

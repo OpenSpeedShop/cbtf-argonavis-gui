@@ -152,7 +152,10 @@ CalltreeGraphManager::handle_t CalltreeGraphManager::addCallEdge(
     vertex_t tail_node = m_vertices[tail];
 
 #if 1
-    // Create an edge conecting vertex "head" to "tail"
+    // Create an edge connecting vertex "head" to "tail"
+    // NOTE: At this point we do have inclusive times to assign to the edge weight and in fact
+    // we wish to have the edge weights to all have the value of one so that the call depths
+    // can be computed using the boost::johnson_all_pairs_shortest_paths algorithm.
     boost::tie(edge, added) = boost::add_edge( head_node, tail_node, 1.0, m_calltree );
 #else
     // Create an edge conecting vertex "head" to "tail"
@@ -177,9 +180,11 @@ CalltreeGraphManager::handle_t CalltreeGraphManager::addCallEdge(
     m_calltree[edge].metricValues = metricValues;
 #endif
 
-    m_edges.push_back( edge );
+    const handle_t this_handle = m_edges.size();
 
-    return m_edges.size()-1;
+    m_edges[ edge ] = this_handle;
+
+    return this_handle;
 }
 
 /**
@@ -242,6 +247,30 @@ void CalltreeGraphManager::generate_call_depths(std::map< std::pair< handle_t, h
         delete[] D[i];
 
     delete[] D;
+}
+
+/**
+ * @brief CalltreeGraphManager::setEdgeWeights
+ * @param callPairToWeightMap - the edge weight map
+ *
+ * Set the weight values in the property map to the value in the callpair-to-weight map.
+ */
+void CalltreeGraphManager::setEdgeWeights(const EdgeWeightMap& edgeWeightMap)
+{
+    // get calltree graph edge weight property map
+    boost::property_map< CallTree, boost::edge_weight_t>::type weightMap = boost::get( boost::edge_weight, m_calltree );
+
+    // iterate thru all the edges and set the weight values in the property map to the value in the callpair-to-weight map
+    boost::graph_traits < CallTree >::edge_iterator e, e_end;
+    for ( boost::tie(e, e_end) = boost::edges(m_calltree); e != e_end; ++e ) {
+        edge_t desc = *e;
+        if ( m_edges.find( desc ) != m_edges.end() ) {
+            handle_t handle = m_edges[ desc ];
+            if ( edgeWeightMap.find( handle ) != edgeWeightMap.end() ) {
+                weightMap[ desc ] = edgeWeightMap.at( handle );
+            }
+        }
+    }
 }
 
 

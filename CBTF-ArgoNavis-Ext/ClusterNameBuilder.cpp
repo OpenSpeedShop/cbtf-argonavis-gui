@@ -39,6 +39,13 @@ const QString getUniqueClusterName(const Base::ThreadName &thread)
         clusterName = clusterName.left( index );
 #endif
 
+    // append MPI rank (if any)
+    boost::optional<boost::uint32_t> mpiRank = thread.mpi_rank();
+
+    if ( mpiRank ) {
+        clusterName += ( "-rank-" + QString::number(mpiRank.get()) );
+    }
+
     return clusterName;
 }
 
@@ -56,10 +63,11 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread &threa
         clusterName = clusterName.left( index );
 #endif
 
+    // append MPI rank (if any)
     std::pair<bool, int> mpiRank = thread.getMPIRank();
 
     if ( mpiRank.first ) {
-        clusterName += ( "( rank:" + QString::number(mpiRank.second) + " )" );
+        clusterName += ( "-rank-" + QString::number(mpiRank.second) );
     }
 
     return clusterName;
