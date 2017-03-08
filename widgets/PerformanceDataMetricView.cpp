@@ -26,6 +26,7 @@
 #include "common/openss-gui-config.h"
 
 #include "ViewSortFilterProxyModel.h"
+#include "MetricViewDelegate.h"
 
 #include "managers/PerformanceDataManager.h"
 #include "SourceView/ModifyPathSubstitutionsDialog.h"
@@ -271,6 +272,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
         view->setEditTriggers( QAbstractItemView::NoEditTriggers );
         view->setSelectionBehavior( QTreeView::SelectItems );
         view->setRootIsDecorated( false );
+        view->setItemDelegate( new MetricViewDelegate(this) );
         // initially sorting is disabled and enabled once all data has been added to the metric/detail model
         view->setSortingEnabled( false );
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -380,6 +382,7 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, 
         view->setEditTriggers( QAbstractItemView::NoEditTriggers );
         view->setSelectionBehavior( QTreeView::SelectItems );
         view->setRootIsDecorated( false );
+        view->setItemDelegate( new MetricViewDelegate(this) );
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( view, &QTreeView::clicked, [=](const QModelIndex& index) {
             processTableViewItemClicked( view, index );

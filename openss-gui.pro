@@ -150,7 +150,8 @@ SOURCES += \
     CBTF-ArgoNavis-Ext/ClusterNameBuilder.cpp \
     managers/CalltreeGraphManager.cpp \
     widgets/CalltreeGraphView.cpp \
-    widgets/MetricViewManager.cpp
+    widgets/MetricViewManager.cpp \
+    widgets/MetricViewDelegate.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -189,7 +190,8 @@ HEADERS += \
     CBTF-ArgoNavis-Ext/ClusterNameBuilder.h \
     managers/CalltreeGraphManager.h \
     widgets/CalltreeGraphView.h \
-    widgets/MetricViewManager.h
+    widgets/MetricViewManager.h \
+    widgets/MetricViewDelegate.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

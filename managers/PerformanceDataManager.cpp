@@ -112,9 +112,11 @@ void PerformanceDataManager::xmlDump(const QString &filePath)
 
 /**
  * @brief Get_Subextents_To_Object
- * @param tgrp
- * @param object
- * @param subextents
+ * @param tgrp - the set of threads
+ * @param object - the view object (Function, Statements, LinkedObject, Loops, etc)
+ * @param subextents - the extents in the view object for the entire set of threads
+ *
+ * Return the extents in the view object for the entire set of threads.
  */
 template <typename TS>
 void Get_Subextents_To_Object (
@@ -132,9 +134,11 @@ void Get_Subextents_To_Object (
 
 /**
  * @brief Get_Subextents_To_Object_Map
- * @param tgrp
- * @param object
- * @param subextents_map
+ * @param tgrp - the set of threads
+ * @param object - the view object (Function, Statements, LinkedObject, Loops, etc)
+ * @param subextents_map - a map for each thread to its extents in the view object
+ *
+ * Return the map for each thread to its extents in the view object.
  */
 template <typename TS>
 void Get_Subextents_To_Object_Map (
@@ -156,9 +160,11 @@ void Get_Subextents_To_Object_Map (
 
 /**
  * @brief stack_contains_N_calls
- * @param st
- * @param subextents
- * @return
+ * @param st - the stack frame object
+ * @param subextents - the relevant extents for the view object and thread(s) desired
+ * @return - the number of calls within the extent
+ *
+ * Determine the number of calls found in the stack frame within the extent.
  */
 inline int64_t stack_contains_N_calls(const Framework::StackTrace& st, Framework::ExtentGroup& subextents)
 {
@@ -1015,23 +1021,18 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
     for ( typename std::multimap<double, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
         QVariantList metricData;
 
-        double value( i->first * 1000.0 );
-        double min( dataMin->at(i->second) * 1000.0 );
-        double max( dataMax->at(i->second) * 1000.0 );
-        double mean( dataMean->at(i->second) * 1000.0 );
-        double percentage( i->first / total * 100.0 );
-        QString valueStr( QString::number( value, 'f', 6 ) );
-        QString minStr( QString::number( min, 'f', 6 ) );
-        QString maxStr( QString::number( max, 'f', 6 ) );
-        QString meanStr( QString::number( mean, 'f', 6 ) );
-        QString percentageStr( QString::number( percentage, 'f', 6 ) );
+        const double value( i->first * 1000.0 );
+        const double min( dataMin->at(i->second) * 1000.0 );
+        const double max( dataMax->at(i->second) * 1000.0 );
+        const double mean( dataMean->at(i->second) * 1000.0 );
+        const double percentage( i->first / total * 100.0 );
 
-        metricData << QVariant::fromValue< double >( valueStr.toDouble() );
-        metricData << QVariant::fromValue< double >( percentageStr.toDouble() );
+        metricData << value;
+        metricData << percentage;
         metricData << getLocationInfo<TS>( i->second );
-        metricData << QVariant::fromValue< double >( minStr.toDouble() );
-        metricData << QVariant::fromValue< double >( maxStr.toDouble() );
-        metricData << QVariant::fromValue< double >( meanStr.toDouble() );
+        metricData << min;
+        metricData << max;
+        metricData << mean;
 
         emit addMetricViewData( clusterName, metric, viewName, metricData );
     }
