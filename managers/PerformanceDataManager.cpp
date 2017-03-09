@@ -1469,9 +1469,8 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
 
     CUDA::PerformanceData data;
     QMap< Base::ThreadName, Thread> threads;
-    bool hasCudaCollector( false );
 
-    hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
+    bool hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
 
     // set default metric view
     emit signalSetDefaultMetricView( hasCudaCollector ? CUDA_VIEW : CALLTREE_VIEW );
