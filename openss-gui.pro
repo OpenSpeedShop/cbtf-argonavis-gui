@@ -112,12 +112,16 @@ LIBS += -lgomp
 QCUSTOMPLOTDIR = $$PWD/QCustomPlot
 INCLUDEPATH += $$QCUSTOMPLOTDIR
 
+GRAPHVIZ_PATH = /usr
+INCLUDEPATH += $$GRAPHVIZ_PATH/include/graphviz
+LIBS += -L$$GRAPHVIZ_PATH/lib -lcdt -lgvc -lcgraph
+
 INCLUDEPATH += $$CBTF_ROOT/include/QtGraph
 CONFIG(debug, debug|release) {
 LIBS += -L$$CBTF_ROOT/lib64/$$QT_VERSION -lQtGraphd
 }
 CONFIG(release, debug|release) {
-LIBS += $$CBTF_ROOT/lib64/$$QT_VERSION -lQtGraph
+LIBS += -L$$CBTF_ROOT/lib64/$$QT_VERSION -lQtGraph
 }
 
 message("LD_LIBRARY_PATH="$$LD_LIBRARY_PATH)
