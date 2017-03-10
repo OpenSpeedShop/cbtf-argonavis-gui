@@ -51,6 +51,7 @@ UI_DIR = $$DESTDIR/.ui
 KRELL_ROOT = $$(KRELL_ROOT)
 CBTF_ROOT = $$(CBTF_ROOT)
 OSS_CBTF_ROOT = $$(OSS_CBTF_ROOT)
+GRAPHVIZ_ROOT = $$(GRAPHVIZ_ROOT)
 BOOST_ROOT = $$(BOOST_ROOT)
 BOOST_LIB_DIR = $$(BOOST_LIB_DIR)
 
@@ -112,9 +113,8 @@ LIBS += -lgomp
 QCUSTOMPLOTDIR = $$PWD/QCustomPlot
 INCLUDEPATH += $$QCUSTOMPLOTDIR
 
-GRAPHVIZ_PATH = /usr
-INCLUDEPATH += $$GRAPHVIZ_PATH/include/graphviz
-LIBS += -L$$GRAPHVIZ_PATH/lib -lcdt -lgvc -lcgraph
+INCLUDEPATH += $$GRAPHVIZ_ROOT/include/graphviz
+LIBS += -L$$GRAPHVIZ_ROOT/lib -lcdt -lgvc -lcgraph
 
 INCLUDEPATH += $$CBTF_ROOT/include/QtGraph
 CONFIG(debug, debug|release) {
