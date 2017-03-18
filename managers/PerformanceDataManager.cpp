@@ -1502,7 +1502,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
 #endif
         sampleCounterNames << sampleCounterName;
 #else
-        std::string displayNameStr = ArgoNavis::CUDA::stringify<>( ArgoNavis::CUDA::CounterName( data.counters()[i] ) );
+        std::string displayNameStr = ArgoNavis::CUDA::stringify<>( ArgoNavis::CUDA::CounterName( data.counters()[i].name ) );
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         QString displayName = QString::fromStdString( displayNameStr );
 #else
