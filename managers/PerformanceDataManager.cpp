@@ -713,6 +713,26 @@ bool PerformanceDataManager::hasKernelExecutionEvents(const CUDA::KernelExecutio
 }
 
 /**
+ * @brief PerformanceDataManager::processPeriodicSample
+ * @return - continue (=true) or not continue (=false) the visitation
+ *
+ * If the visitation finds a thread which has CUDA periodic samples, then the flag will be set 'true' and visitation will halt.
+ */
+bool PerformanceDataManager::hasCudaPeriodicSamples(const QSet< int >& gpuCounterIndexes,
+                                                    const std::vector<uint64_t>& counts,
+                                                    bool& flag)
+{
+    for ( std::vector<uint64_t>::size_type i = 0; i < counts.size(); ++i ) {
+        if ( gpuCounterIndexes.contains( i ) && counts[i] != 0 ) {
+            flag = true;
+            return false;
+        }
+    }
+
+    return true; // continue the visitation
+}
+
+/**
  * @brief PerformanceDataManager::hasCudaEvents
  * @param data - the performance data structure to be parsed
  * @param thread - the thread of interest
@@ -720,6 +740,7 @@ bool PerformanceDataManager::hasKernelExecutionEvents(const CUDA::KernelExecutio
  * @return - continue (=true) or not continue (=false) the visitation
  */
 bool PerformanceDataManager::hasCudaEvents(const CUDA::PerformanceData &data,
+                                           const QSet< int >& gpuCounterIndexes,
                                            const Base::ThreadName &thread,
                                            QMap< Base::ThreadName, bool >& flags)
 {
@@ -734,6 +755,13 @@ bool PerformanceDataManager::hasCudaEvents(const CUDA::PerformanceData &data,
         data.visitKernelExecutions(
                     thread, data.interval(),
                     boost::bind( &PerformanceDataManager::hasKernelExecutionEvents, instance(), _1, boost::ref(flag) )
+                    );
+    }
+
+    if ( ! flag ) {
+        data.visitPeriodicSamples(
+                    thread, data.interval(),
+                    boost::bind( &PerformanceDataManager::hasCudaPeriodicSamples, instance(), boost::cref(gpuCounterIndexes), _2, boost::ref(flag) )
                     );
     }
 
@@ -1482,8 +1510,6 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
         mapiter.value() = false;
     }
 
-    data.visitThreads( boost::bind( &PerformanceDataManager::hasCudaEvents, instance(), boost::cref(data), _1, boost::ref(flags) ) );
-
     double durationMs( 0.0 );
     if ( ! data.interval().empty() ) {
         uint64_t duration = static_cast<uint64_t>(data.interval().end() - data.interval().begin());
@@ -1513,6 +1539,8 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
         if ( displayName.contains( QStringLiteral("GPU") ) )
             gpuCounterIndexes.insert( i );
     }
+
+    data.visitThreads( boost::bind( &PerformanceDataManager::hasCudaEvents, instance(), boost::cref(data), boost::cref(gpuCounterIndexes), _1, boost::ref(flags) ) );
 
 #if 0
     if ( sampleCounterNames.isEmpty() ) {

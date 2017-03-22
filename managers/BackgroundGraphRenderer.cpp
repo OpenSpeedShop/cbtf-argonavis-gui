@@ -91,11 +91,10 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
     BackgroundGraphRendererBackend* backend = new BackgroundGraphRendererBackend( clusteringCriteriaName, data );
 
     if ( backend ) {
-
         // emit signal to create QCustomPlot for each cluster
         // NOTE: signal will be handled in the GUI thread were the QCustomPlot instance needs to live
         foreach(const QString& clusterName, clusterNames) {
-            if ( ! clusterName.contains( "(GPU)" ) ) {
+            if ( clusterName.contains( "(GPU)" ) ) {
                 emit createPlotForClustering( clusteringCriteriaName, clusterName );
             }
         }
@@ -132,6 +131,8 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
 void BackgroundGraphRenderer::unloadCudaViews(const QString &clusteringCriteriaName, const QStringList &clusterNames)
 {
     Q_UNUSED(clusteringCriteriaName)
+
+    // remove the associated plots
     QMutableMapIterator< QString, CustomPlot* > piter( m_plot );
     while ( piter.hasNext() ) {
         piter.next();
@@ -218,10 +219,12 @@ void BackgroundGraphRenderer::processDataTransferEvent(const QString& clustering
                                                        const Base::Time &time_origin,
                                                        const CUDA::DataTransfer &details)
 {
-    if ( ! m_plot.contains( clusteringName ) )
+    const QString gpuClusteringName = clusteringName + " (GPU)";
+
+    if ( ! m_plot.contains( gpuClusteringName ) )
         return;
 
-    QCustomPlot* plot = m_plot.value( clusteringName );
+    QCustomPlot* plot = m_plot.value( gpuClusteringName );
 
     if ( Q_NULLPTR == plot )
         return;
@@ -256,10 +259,12 @@ void BackgroundGraphRenderer::processKernelExecutionEvent(const QString& cluster
                                                           const Base::Time &time_origin,
                                                           const CUDA::KernelExecution &details)
 {
-    if ( ! m_plot.contains( clusteringName ) )
+    const QString gpuClusteringName = clusteringName + " (GPU)";
+
+    if ( ! m_plot.contains( gpuClusteringName ) )
         return;
 
-    QCustomPlot* plot = m_plot.value( clusteringName );
+    QCustomPlot* plot = m_plot.value( gpuClusteringName );
 
     if ( Q_NULLPTR == plot )
         return;

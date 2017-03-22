@@ -62,7 +62,7 @@ BackgroundGraphRendererBackend::BackgroundGraphRendererBackend(const QString& cl
  */
 BackgroundGraphRendererBackend::~BackgroundGraphRendererBackend()
 {
-
+    disconnect( this, SIGNAL(signalProcessCudaEventViewStart()), this, SLOT(handleProcessCudaEventView()) );
 }
 
 /**
@@ -111,14 +111,14 @@ void BackgroundGraphRendererBackend::handleProcessCudaEventView()
     qDebug() << "BackgroundGraphRendererBackend::handleProcessCudaEventView: STARTED!!";
 #endif
 
-    m_watcher = new QFutureWatcher<void>();
+    QFutureWatcher<void>* watcher = new QFutureWatcher<void>();
 
-    if ( m_watcher ) {
-        connect( m_watcher, SIGNAL(finished()), this, SIGNAL(signalProcessCudaEventViewDone()) );
-        connect( m_watcher, SIGNAL(finished()), m_watcher, SLOT(deleteLater()) );
+    if ( watcher ) {
+        connect( watcher, SIGNAL(finished()), this, SIGNAL(signalProcessCudaEventViewDone()) );
+        connect( watcher, SIGNAL(finished()), watcher, SLOT(deleteLater()) );
 
-        m_watcher->setFuture( QtConcurrent::run( &m_data, &CUDA::PerformanceData::visitThreads,
-                                                 boost::bind( &BackgroundGraphRendererBackend::processThreadCudaEvents, this, _1 ) ) );
+        watcher->setFuture( QtConcurrent::run( &m_data, &CUDA::PerformanceData::visitThreads,
+                                               boost::bind( &BackgroundGraphRendererBackend::processThreadCudaEvents, this, _1 ) ) );
     }
 }
 

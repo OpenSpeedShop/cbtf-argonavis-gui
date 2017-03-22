@@ -73,8 +73,6 @@ private:
 
     CUDA::PerformanceData m_data;
 
-    QFutureWatcher<void>* m_watcher;
-
 };
 
 

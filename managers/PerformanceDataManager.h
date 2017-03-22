@@ -310,7 +310,12 @@ private:
     bool hasKernelExecutionEvents(const CUDA::KernelExecution& details,
                                   bool& flag);
 
+    bool hasCudaPeriodicSamples(const QSet< int >& gpuCounterIndexes,
+                                const std::vector<uint64_t>& counts,
+                                bool& flag);
+
     bool hasCudaEvents(const ArgoNavis::CUDA::PerformanceData& data,
+                       const QSet< int >& gpuCounterIndexes,
                        const ArgoNavis::Base::ThreadName& thread,
                        QMap< Base::ThreadName, bool >& flags);
 

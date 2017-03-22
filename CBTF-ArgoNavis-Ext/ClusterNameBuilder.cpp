@@ -25,7 +25,7 @@
 
 namespace ArgoNavis { namespace CUDA {
 
-const QString getUniqueClusterName(const Base::ThreadName &thread)
+const QString getUniqueClusterName(const Base::ThreadName& thread)
 {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     QString clusterName = QString::fromStdString( thread.host() );
@@ -41,15 +41,18 @@ const QString getUniqueClusterName(const Base::ThreadName &thread)
 
     // append MPI rank (if any)
     boost::optional<boost::uint32_t> mpiRank = thread.mpi_rank();
-
     if ( mpiRank ) {
         clusterName += ( "-rank-" + QString::number(mpiRank.get()) );
+    }
+    else {
+        boost::uint64_t pid = thread.pid();
+        clusterName += ( "-pid-" + QString::number(pid) );
     }
 
     return clusterName;
 }
 
-const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread &thread)
+const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread& thread)
 {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     QString clusterName = QString::fromStdString( thread.getHost() );
@@ -65,9 +68,12 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread &threa
 
     // append MPI rank (if any)
     std::pair<bool, int> mpiRank = thread.getMPIRank();
-
     if ( mpiRank.first ) {
         clusterName += ( "-rank-" + QString::number(mpiRank.second) );
+    }
+    else {
+        pid_t pid = thread.getProcessId();
+        clusterName += ( "-pid-" + QString::number(pid) );
     }
 
     return clusterName;
