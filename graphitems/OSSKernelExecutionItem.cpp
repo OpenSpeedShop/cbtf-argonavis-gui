@@ -26,7 +26,7 @@
 #include <ArgoNavis/CUDA/stringify.hpp>
 
 #include <QVariant>
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QJsonDocument>
 #include <QJsonObject>
 #endif
