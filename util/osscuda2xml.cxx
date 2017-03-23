@@ -117,7 +117,11 @@ void convert_counters(const CUDA::PerformanceData& data, QTextStream& xml)
     xml << endl;
     for ( std::vector<std::string>::size_type i = 0; i < data.counters().size(); ++i ) {
         xml << "<Counter id=\"" << i << "\">"
+#ifdef HAS_METRIC_TYPES
             << QString::fromStdString( data.counters()[i].name )
+#else
+            << QString::fromStdString( data.counters()[i] )
+#endif
             << "</Counter>\n";
     }
 }

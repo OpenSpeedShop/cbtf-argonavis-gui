@@ -85,6 +85,7 @@ include(OpenSS-CLI.pri)
 
 INCLUDEPATH += $$CBTF_ROOT/include/collectors
 
+DEFINES += HAS_METRIC_TYPES
 #DEFINES += USE_DISCRETE_SAMPLES
 DEFINES += USE_PERIODIC_SAMPLE_AVG
 DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
@@ -159,7 +160,7 @@ SOURCES += \
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
-DEFINES += HAS_OSSCUDA2XML
+#DEFINES += HAS_OSSCUDA2XML
 contains(DEFINES, HAS_OSSCUDA2XML): {
     SOURCES += \
     util/osscuda2xml.cxx \
