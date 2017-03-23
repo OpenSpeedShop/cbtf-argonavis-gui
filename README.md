@@ -24,7 +24,9 @@ export BOOST_ROOT=<the location of Boost development header files and libraries>
 export GRAPHVIZ_ROOT=<the location of GraphViz development header files and libraries>
 ```
 
-If the QtGraph library was not previously built and installed for the particular Qt version for building the developmental Open|SpeedShop GUI, then refer to the QtGraph repository located here: GitHub main page: https://github.com/OpenSpeedShop/QtGraph
+If the QtGraph library was not previously built and installed for the particular Qt version for building the developmental Open|SpeedShop GUI, then refer to the QtGraph repository located here:
+
+https://github.com/OpenSpeedShop/QtGraph
 
 The QtGraph source-code can be obtained as follows:
 
