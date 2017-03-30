@@ -23,7 +23,11 @@
 
 #include <CBTF-ArgoNavis-Ext/ClusterNameBuilder.h>
 
+#include <QMap>
+
 namespace ArgoNavis { namespace CUDA {
+
+QMap< uint64_t, uint16_t> m_tidmap;
 
 const QString getUniqueClusterName(const Base::ThreadName& thread)
 {
@@ -47,6 +51,19 @@ const QString getUniqueClusterName(const Base::ThreadName& thread)
     else {
         boost::uint64_t pid = thread.pid();
         clusterName += ( "-pid-" + QString::number(pid) );
+    }
+
+    boost::optional<uint64_t> tidval = thread.tid();
+    if ( tidval ) {
+        uint64_t tid = tidval.get();
+        uint16_t val;
+        if ( m_tidmap.contains( tid ) ) {
+            val = m_tidmap[tid];
+        }
+        else {
+            val = m_tidmap[tid] = m_tidmap.size();
+        }
+        clusterName += ( "-tid-" + QString::number(val) );
     }
 
     return clusterName;
@@ -74,6 +91,19 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread& threa
     else {
         pid_t pid = thread.getProcessId();
         clusterName += ( "-pid-" + QString::number(pid) );
+    }
+
+    std::pair< bool, pthread_t> tidval = thread.getPosixThreadId();
+    if ( tidval.first ) {
+        uint64_t tid = tidval.second;
+        uint16_t val;
+        if ( m_tidmap.contains( tid ) ) {
+            val = m_tidmap[tid];
+        }
+        else {
+            val = m_tidmap[tid] = m_tidmap.size();
+        }
+        clusterName += ( "-tid-" + QString::number(val) );
     }
 
     return clusterName;
