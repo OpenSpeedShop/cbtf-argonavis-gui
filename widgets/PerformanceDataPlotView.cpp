@@ -351,11 +351,13 @@ void PerformanceDataPlotView::handleItemClick(QCPAbstractItem *item, QMouseEvent
 
 /**
  * @brief PerformanceDataPlotView::handleCudaEventSnapshot
- * @param clusteringCriteriaName
- * @param clusteringName
- * @param lower
- * @param upper
- * @param image
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
+ * @param clusteringName - the cluster group name
+ * @param lower - the new X-axis lower range
+ * @param upper - the new X-axis upper range
+ * @param image - the image containing a snapshot of the CUDA events in the range [lower..upper]
+ *
+ * This method handles updates to the CUDA event snapshot and adds the image to a graphics item in the graph.
  */
 void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage &image)
 {
@@ -442,9 +444,13 @@ const QCPRange PerformanceDataPlotView::getRange(const QVector<double> &values, 
 
 /**
  * @brief PerformanceDataPlotView::getDurationForMetricGroup
- * @param axis
- * @param clusterName
- * @return Duration for metric group
+ * @param axis - the axis of interest
+ * @param clusterName - the cluster group name associated with the axis
+ * @return duration for metric group
+ *
+ * This method returns the graph range for the metric group as the return value of the function.  The method
+ * also determines the axis rect containing the specified axis as the bottom axis and returns the size of the
+ * axis rect and the associated cluster name.
  */
 double PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusterName, QSize& size)
 {
