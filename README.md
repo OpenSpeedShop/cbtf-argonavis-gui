@@ -69,9 +69,9 @@ Features
 
 1. **CUDA Event Timeline (comparison with NVIDIA Visual Performance Profiler)**
 
-![Alt text](/../screenshots/images/Screenshot3.png?raw=true "Calltree View")
-
 ![Alt text](/../screenshots/images/Screenshot4.png?raw=true "Calltree View")
+
+![Alt text](/../screenshots/images/Screenshot3.png?raw=true "Calltree View")
 
 
 2. **Calltree View**
