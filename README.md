@@ -80,7 +80,7 @@ Features
 
 ![Alt text](/../screenshots/images/Screenshot6.png?raw=true "CUDA Kernel Execution Details")
 
-![Alt text](/../screenshots/images/Screenshot6.png?raw=true "CUDA Data Transfer Details")
+![Alt text](/../screenshots/images/Screenshot7.png?raw=true "CUDA Data Transfer Details")
 
 
 2. **Calltree View**
