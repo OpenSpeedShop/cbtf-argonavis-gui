@@ -74,7 +74,7 @@ Features
 ![Alt text](/../screenshots/images/Screenshot3.png?raw=true "NVIDIA Visual Performance Profiler Timeline")
 
 
-1. **CUDA Event Details View**
+2. **CUDA Event Details View**
 
 ![Alt text](/../screenshots/images/Screenshot5.png?raw=true "All CUDA Event Details")
 
@@ -83,11 +83,11 @@ Features
 ![Alt text](/../screenshots/images/Screenshot7.png?raw=true "CUDA Data Transfer Details")
 
 
-2. **Calltree View**
+3. **Calltree View**
 
-![Alt text](/../screenshots/images/Screenshot1.png?raw=true "Calltree View")
+![Alt text](/../screenshots/images/Screenshot1.png?raw=true "Complex Calltree")
 
-![Alt text](/../screenshots/images/Screenshot2.png?raw=true "Calltree View")
+![Alt text](/../screenshots/images/Screenshot2.png?raw=true "Simple Calltree")
 
 
 
