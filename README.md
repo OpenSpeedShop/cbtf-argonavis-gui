@@ -74,6 +74,15 @@ Features
 ![Alt text](/../screenshots/images/Screenshot3.png?raw=true "NVIDIA Visual Performance Profiler Timeline")
 
 
+1. **CUDA Event Details View**
+
+![Alt text](/../screenshots/images/Screenshot5.png?raw=true "All CUDA Event Details")
+
+![Alt text](/../screenshots/images/Screenshot6.png?raw=true "CUDA Kernel Execution Details")
+
+![Alt text](/../screenshots/images/Screenshot6.png?raw=true "CUDA Data Transfer Details")
+
+
 2. **Calltree View**
 
 ![Alt text](/../screenshots/images/Screenshot1.png?raw=true "Calltree View")
