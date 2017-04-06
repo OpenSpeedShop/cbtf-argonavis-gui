@@ -63,3 +63,31 @@ Once the software dependencies have been provided, the following commands can be
 ```
 qmake && make
 ```
+
+Features
+--------
+
+1. **CUDA Event Timeline (comparison with NVIDIA Visual Performance Profiler)**
+
+![Alt text](/../screenshots/images/Screenshot4.png?raw=true "Open|SpeedShop CUDA Event Timeline")
+
+![Alt text](/../screenshots/images/Screenshot3.png?raw=true "NVIDIA Visual Performance Profiler Timeline")
+
+
+2. **CUDA Event Details View**
+
+![Alt text](/../screenshots/images/Screenshot5.png?raw=true "All CUDA Event Details")
+
+![Alt text](/../screenshots/images/Screenshot6.png?raw=true "CUDA Kernel Execution Details")
+
+![Alt text](/../screenshots/images/Screenshot7.png?raw=true "CUDA Data Transfer Details")
+
+
+3. **Calltree View**
+
+![Alt text](/../screenshots/images/Screenshot1.png?raw=true "Complex Calltree")
+
+![Alt text](/../screenshots/images/Screenshot2.png?raw=true "Simple Calltree")
+
+
+
