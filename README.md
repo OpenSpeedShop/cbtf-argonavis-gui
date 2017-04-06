@@ -83,6 +83,11 @@ Features
 ![Alt text](/../screenshots/images/Screenshot7.png?raw=true "CUDA Data Transfer Details")
 
 
+3. **Metric Views Cross-Referenced To Source-Code**
+
+![Alt text](/../screenshots/images/Screenshot8.png?raw=true "Metrics w/Source-Code View")
+
+
 3. **Calltree View**
 
 ![Alt text](/../screenshots/images/Screenshot1.png?raw=true "Complex Calltree")
