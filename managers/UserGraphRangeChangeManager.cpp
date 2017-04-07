@@ -128,6 +128,8 @@ void UserGraphRangeChangeManager::handleTimeout()
     double upper = timer->property( "upper" ).toDouble();
     QSize size = timer->property( "size" ).toSize();
 
+    qDebug() << "UserGraphRangeChangeManager::handleTimeout: clusterName=" << clusterName << " lower=" << lower << " upper=" << upper;
+
     emit timeout( clusterName, lower, upper, size );
 
     cancel( clusterName );
