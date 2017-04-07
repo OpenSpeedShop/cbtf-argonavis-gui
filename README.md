@@ -64,8 +64,8 @@ Once the software dependencies have been provided, the following commands can be
 qmake && make
 ```
 
-Features
---------
+Screenshots
+-----------
 
 1. **CUDA Event Timeline (comparison with NVIDIA Visual Performance Profiler)**
 
@@ -88,7 +88,7 @@ Features
 ![Alt text](/../screenshots/images/Screenshot8.png?raw=true "Metrics w/Source-Code View")
 
 
-3. **Calltree View**
+4. **Calltree View**
 
 ![Alt text](/../screenshots/images/Screenshot1.png?raw=true "Complex Calltree")
 
