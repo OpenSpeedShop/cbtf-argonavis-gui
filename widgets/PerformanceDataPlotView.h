@@ -75,7 +75,7 @@ protected:
 private slots:
 
     void handleAxisRangeChange(const QCPRange &requestedRange);
-    void handleAxisRangeChangeForMetricGroup(const QCPRange &requestedRange);
+    void handleAxisRangeChangeForMetricGroup(QCPAxis *senderAxis, const QCPRange &requestedRange);
     void handleAxisLabelDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part);
     void handleSelectionChanged();
     void handleGraphClicked(QCPAbstractPlottable *plottable);

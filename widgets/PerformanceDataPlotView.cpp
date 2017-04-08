@@ -169,22 +169,19 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
     if ( 0 == size.width() || 0 == size.height() )
         return;
 
-    // temporarily block signals for X Axis
-    xAxis->blockSignals( true );
-
     //qDebug() << "rangeChanged: lower: " << requestedRange.lower << "upper: " << requestedRange.upper;
     // clamp requested range to 0 .. duration but minimum allowed range is 'minXspread'
     const double minXspread = 2.0;
     double upper = qMax( minXspread, qMin( duration, requestedRange.upper ) );
     double lower = qMin( upper - minXspread, qMax( 0.0, requestedRange.lower ) );
 
+    // temporarily block signals for X Axis
+    xAxis->blockSignals( true );
+
     //qDebug() << "requestedRange: lower: " << lower << "upper: " << upper;
     xAxis->setRange( lower, upper );
 
     emit graphRangeChanged( clusterName, lower, upper, size );
-
-    // unblock signals for X Axis
-    xAxis->blockSignals( false );
 
     QCPRange newRange = xAxis->range();
     //qDebug() << "newRange: lower: " << newRange.lower << "upper: " << newRange.upper;
@@ -224,6 +221,11 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
 
     xAxis->setTickVector( mTickVector );
     xAxis->setTickVectorLabels( mTickLabelVector );
+
+    handleAxisRangeChangeForMetricGroup( xAxis, newRange );
+
+    // unblock signals for X Axis
+    xAxis->blockSignals( false );
 }
 
 /**
@@ -232,11 +234,8 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
  *
  * When the range of one axis of a metric group has changed, then all other related axes must have the same range.
  */
-void PerformanceDataPlotView::handleAxisRangeChangeForMetricGroup(const QCPRange &requestedRange)
+void PerformanceDataPlotView::handleAxisRangeChangeForMetricGroup(QCPAxis* senderAxis, const QCPRange &requestedRange)
 {
-    // get the sender axis
-    QCPAxis* senderAxis = qobject_cast< QCPAxis* >( sender() );
-
     // get metric group the axis is associated with
     QVariant metricGroupVar = senderAxis->property( "associatedMetricGroup" );
 
@@ -533,13 +532,10 @@ void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAx
         xAxis->setProperty( "associatedMetricGroup", metricGroupName );
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        connect( xAxis, static_cast<void(QCPAxis::*)(const QCPRange &newRange)>(&QCPAxis::rangeChanged),
-                 this, &PerformanceDataPlotView::handleAxisRangeChangeForMetricGroup );
         // connect slot to handle value axis range changes and regenerate the tick marks appropriately
         connect( xAxis, static_cast<void(QCPAxis::*)(const QCPRange &newRange)>(&QCPAxis::rangeChanged),
                  this, &PerformanceDataPlotView::handleAxisRangeChange );
 #else
-        connect( xAxis, SIGNAL(rangeChanged(QCPRange)), this,SLOT(handleAxisRangeChangeForMetricGroup(QCPRange)) );
         connect( xAxis, SIGNAL(rangeChanged(QCPRange)), this,SLOT(handleAxisRangeChange(QCPRange)) );
 #endif
     }
