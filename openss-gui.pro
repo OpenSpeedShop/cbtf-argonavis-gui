@@ -86,7 +86,7 @@ include(OpenSS-CLI.pri)
 
 INCLUDEPATH += $$CBTF_ROOT/include/collectors
 
-#DEFINES += HAS_METRIC_TYPES
+DEFINES += HAS_METRIC_TYPES
 #DEFINES += USE_DISCRETE_SAMPLES
 DEFINES += USE_PERIODIC_SAMPLE_AVG
 DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW
@@ -97,10 +97,8 @@ DEFINES += HAS_DESTROY_SINGLETONS
 DEFINES += HAS_STRIP_DOMAIN_NAME
 #DEFINES += HAS_REAL_SAMPLE_COUNTER_NAME
 # uncommenting this is experimental
-# NOTE: Normally QWidgets cannot be moved to a thread but when used in this context invoking a method executed with QtConcurrent::run
-#       seems to be working.  Need to investigate this approach further.
 DEFINES += HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
-DEFINES += HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+#DEFINES += HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
 #DEFINES += HAS_TIMER_THREAD_DESTROYED_CHECKING
 
 message("BOOST_ROOT="$$BOOST_ROOT)
