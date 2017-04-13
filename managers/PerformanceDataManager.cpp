@@ -1182,8 +1182,8 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 #endif
             if ( metricName.contains( timeMetric ) && metadata.isType( typeid(double) ) ) {
                 metricList << metricName;
-                metricDescList <<  "% of " + metricDesc;
-                metricDescList <<  metricDesc + " (msec)";
+                metricDescList <<  tr("% of Time");
+                metricDescList <<  tr("Time (msec)");
                 foundOne = true;
             }
             iter++;
