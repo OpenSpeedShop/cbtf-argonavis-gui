@@ -51,6 +51,7 @@ CalltreeGraphView::CalltreeGraphView(QWidget *parent)
     : QGraphicsView( parent )
 {
     setTransformationAnchor( QGraphicsView::AnchorUnderMouse );
+    setRenderHints( QPainter::Antialiasing | QPainter::TextAntialiasing );
 
     // connect performance data manager signals to performance data metric view slots
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
