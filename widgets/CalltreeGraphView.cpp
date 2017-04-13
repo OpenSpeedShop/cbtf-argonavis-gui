@@ -98,6 +98,8 @@ void CalltreeGraphView::handleDisplayGraphView(const QString& graph)
 
     setScene( g );
 
+    centerOn( sceneRect().center() );
+
     if ( currentScene ) {
         delete currentScene;
     }
