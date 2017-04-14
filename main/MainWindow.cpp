@@ -303,8 +303,6 @@ void MainWindow::handleAdjustPlotViewScrollArea(const QString& clusteringCriteri
 
     int numPlots( m_plotsMap.size() );
 
-    qDebug() << "MainWindow::handleAdjustPlotViewScrollArea: num plots=" << numPlots;
-
     int plotSize( 150 );
 
     ui->widget_MetricViewManager->setFixedHeight( numPlots * plotSize );
@@ -325,8 +323,6 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
     m_plotsMap.remove( key );
 
     int numPlots( m_plotsMap.size() );
-
-    qDebug() << "MainWindow::handleRemoveCluster: num plots=" << numPlots;
 
     int plotSize( 150 );
 
