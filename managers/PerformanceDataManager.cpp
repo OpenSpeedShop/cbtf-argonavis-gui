@@ -1643,6 +1643,20 @@ void PerformanceDataManager::sortByFixedComponent(ForwardIterator first, Forward
 }
 #endif
 
+/**
+ * @brief PerformanceDataManager::partition_sort
+ * @param functionName - name of called function
+ * @param linkedObjectName - name of linked object where called function resides
+ * @param callingFunctionName - name of calling function
+ * @param callingLinkedObjectName - name of linked object where calling function resides
+ * @param d - entry in stack frame
+ * @return - Same caller -> callee relationship? true or false
+ *
+ * This is an UnaryPredicate operation for std::partition with additional parameters bound using std::bind.
+ * If the stack entry represented by 'd' matches the caller->callee relationship this method returns true;
+ * otherwise it returns false.  Thus, std::partition will move all the currently processed caller->callee
+ * related stack frames to the top of the container.
+ */
 bool PerformanceDataManager::partition_sort(const std::string& functionName,
                                             const std::string& linkedObjectName,
                                             const std::string& callingFunctionName,
