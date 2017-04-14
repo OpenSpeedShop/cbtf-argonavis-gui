@@ -95,4 +95,14 @@ Screenshots
 ![Alt text](/../screenshots/images/Screenshot2.png?raw=true "Simple Calltree")
 
 
+Miscellaneous Additional Screenshots
+------------------------------------
 
+1. **Open|SpeedShop Experiment of LAMMPS Simulation with KOKKOS package for GPUs**
+
+
+![Alt text](/../screenshots/images/Screenshot10.png?raw=true "Experiment Overview") | ![Alt text](/../screenshots/images/Screenshot11.png?raw=true "Beginning of Experiment View")
+------------ | -------------
+![Alt text](/../screenshots/images/Screenshot12.png?raw=true "Experiment Subrange - CUDA Events") | ![Alt text](/../screenshots/images/Screenshot13.png?raw=true "Experiment Subrange - CUDA Kernel Execution Events")
+![Alt text](/../screenshots/images/Screenshot14.png?raw=true "Experiment Subrange - CUDA Events") | ![Alt text](/../screenshots/images/Screenshot15.png?raw=true "Experiment Subrange - CUDA Events")
+![Alt text](/../screenshots/images/Screenshot16.png?raw=true "Experiment Subrange - CUDA Events") | ![Alt text](/../screenshots/images/Screenshot17.png?raw=true "Experiment Subrange - CUDA Data Transfer Events")
