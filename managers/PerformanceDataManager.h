@@ -128,6 +128,7 @@ signals:
     void addExperiment(const QString& name,
                        const QString& clusteringCriteriaName,
                        const QVector< QString >& clusterNames,
+                       const QVector< bool >& clusterHasGpuSampleCounters,
                        const QVector< QString >& sampleCounterNames);
 
     void addDataTransfer(const QString &clusteringCriteriaName,

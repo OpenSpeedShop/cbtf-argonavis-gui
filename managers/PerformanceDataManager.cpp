@@ -221,6 +221,7 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     qRegisterMetaType< CUDA::DataTransfer >("CUDA::DataTransfer");
     qRegisterMetaType< CUDA::KernelExecution >("CUDA::KernelExecution");
     qRegisterMetaType< QVector< QString > >("QVector< QString >");
+    qRegisterMetaType< QVector< bool > >("QVector< bool >");
 
     m_renderer = new BackgroundGraphRenderer;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
@@ -594,14 +595,7 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
 
         if ( value > 0 && timeStamp > lastTimeStamp ) {
             // only add non-zero periodic sample bins
-            if ( gpuCounterIndexes.contains( i ) ) {
-                // add periodic sample bin to corresponding GPU cluster
-                emit addPeriodicSample( clusteringCriteriaName, clusterName+" (GPU)", lastTimeStamp, timeStamp, value );
-            }
-            else {
-                // add periodic sample bin to corresponding CPU cluster
-                emit addPeriodicSample( clusteringCriteriaName, clusterName, lastTimeStamp, timeStamp, value );
-            }
+            emit addPeriodicSample( clusteringCriteriaName, clusterName, lastTimeStamp, timeStamp, value );
         }
     }
 
@@ -1248,22 +1242,18 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
  */
 void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterName, double lower, double upper)
 {
-    QString shortClusterName = clusterName;
-
-    shortClusterName = shortClusterName.remove( " (GPU)" );
-
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
-    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViews: clusterName=" << shortClusterName << "lower=" << lower << "upper=" << upper;
+    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViews: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
 #endif
 
-    if ( ! m_tableViewInfo.contains( shortClusterName ) || lower >= upper )
+    if ( ! m_tableViewInfo.contains( clusterName ) || lower >= upper )
         return;
 
     // cancel any active processing for this cluster
-    m_userChangeMgr.cancel( shortClusterName );
+    m_userChangeMgr.cancel( clusterName );
 
     // initiate a new timed monitor for this cluster
-    m_userChangeMgr.create( shortClusterName, lower, upper );
+    m_userChangeMgr.create( clusterName, lower, upper );
 }
 
 /**
@@ -1276,18 +1266,14 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusterNam
  */
 void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clusterName, double lower, double upper)
 {
-    QString shortClusterName = clusterName;
-
-    shortClusterName = shortClusterName.remove( " (GPU)" );
-
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
-    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: clusterName=" << shortClusterName << "lower=" << lower << "upper=" << upper;
+    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
 #endif
 
-    if ( ! m_tableViewInfo.contains( shortClusterName ) )
+    if ( ! m_tableViewInfo.contains( clusterName ) )
         return;
 
-    MetricTableViewInfo& info = m_tableViewInfo[ shortClusterName ];
+    MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
     QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
@@ -1332,10 +1318,10 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
             QStringList tokens = metricViewName.split('-');
             if ( 2 == tokens.size() ) {
                 if ( QStringLiteral("Details") == tokens[0] ) {
-                    emit metricViewRangeChanged( shortClusterName, tokens[0], tokens[1], lower, upper );
+                    emit metricViewRangeChanged( clusterName, tokens[0], tokens[1], lower, upper );
                 }
                 else {
-                    emit requestMetricViewComplete( shortClusterName, tokens[0], tokens[1], lower, upper );
+                    emit requestMetricViewComplete( clusterName, tokens[0], tokens[1], lower, upper );
                 }
             }
         }
@@ -1574,20 +1560,25 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     }
 #else
     QMap< Base::ThreadName, Thread>::iterator iter( threads.begin() );
+    QVector< bool > isGpuSampleCounters;
     while ( iter != threads.end() ) {
         Thread thread( *iter );
         QString hostName = ArgoNavis::CUDA::getUniqueClusterName( thread );
         // Due to 4 Oct 2016 change by Bill to move CUPTI metrics and events collection to a separate thread, there are two threads having the same hostname.
         // Determine the GPU thread from the thread set generated earlier
-        if ( flags.value( iter.key(), false ) )
-            clusterNames << ( hostName + " (GPU)" );
-        else
-            clusterNames << hostName;
+        clusterNames << hostName;
+        Base::ThreadName threadName( iter.key() );
+        std::vector< uint64_t> counterValues( data.counts( threadName, data.interval() ) );
+        bool hasGpuCounters( false );
+        for ( int i=0; i<counterValues.size() && ! hasGpuCounters; i++ ) {
+            hasGpuCounters |= ( ( counterValues[i] != 0 ) && gpuCounterIndexes.contains(i) );
+        }
+        isGpuSampleCounters << hasGpuCounters;
         ++iter;
     }
 #endif
 
-    emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, sampleCounterNames );
+    emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, isGpuSampleCounters, sampleCounterNames );
 
     if ( hasCudaCollector ) {
         m_renderer->setPerformanceData( clusteringCriteriaName, clusterNames, data );

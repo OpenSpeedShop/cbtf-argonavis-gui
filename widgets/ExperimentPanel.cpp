@@ -102,7 +102,7 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
  *
  * Add the given experiment to the tree model which will be detected and added to the view.
  */
-void ExperimentPanel::handleAddExperiment(const QString &name, const QString &clusteringCriteriaName, const QVector<QString> &clusterNames, const QVector<QString> &sampleCounterNames)
+void ExperimentPanel::handleAddExperiment(const QString &name, const QString &clusteringCriteriaName, const QVector<QString> &clusterNames, const QVector< bool >& clusterHasGpuSampleCounters, const QVector<QString> &sampleCounterNames)
 {
     // create experiment item and add as child of the root item
     TreeItem* expItem = new TreeItem( QList< QVariant>() << name, m_root );
@@ -112,22 +112,20 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
     TreeItem* expCriteriaItem = new TreeItem( QList< QVariant >() << clusteringCriteriaName, expItem );
     expItem->appendChild( expCriteriaItem );
 
+    int index( 0 );
+
     foreach( const QString& clusterName, clusterNames ) {
         // create new cluster item and add as child of the criteria item
         TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName, expCriteriaItem, true, true, false );
         expCriteriaItem->appendChild( clusterItem );
 
         // is this cluster item associated with a GPU view?
-        bool isGpuCluster( clusterName.contains( QStringLiteral("GPU") ) );
+        bool isGpuCluster( index < clusterHasGpuSampleCounters.size() && clusterHasGpuSampleCounters[ index++ ] );
 
         // add children: experiment sample counters
         foreach( const QString& counterName, sampleCounterNames ) {
             // is this counter a GPU counter?
-#ifdef HAS_CPU_SAMPLE_COUNTER_KLUDGE
-            bool isGpuSampleCounter( isGpuCluster );
-#else
             bool isGpuSampleCounter( counterName.contains( QStringLiteral("GPU") ) );
-#endif
             // if flags match then add the counter to the cluster item
             if ( isGpuCluster == isGpuSampleCounter ) {
                 // create new counter item and add as child of the cluster item

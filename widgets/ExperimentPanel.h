@@ -66,6 +66,7 @@ public slots:
     void handleAddExperiment(const QString& name,
                              const QString& clusteringCriteriaName,
                              const QVector< QString >& clusterNames,
+                             const QVector<bool> &clusterHasGpuSampleCounters,
                              const QVector< QString >& sampleCounterNames);
 
 

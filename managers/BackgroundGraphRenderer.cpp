@@ -94,9 +94,7 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
         // emit signal to create QCustomPlot for each cluster
         // NOTE: signal will be handled in the GUI thread were the QCustomPlot instance needs to live
         foreach(const QString& clusterName, clusterNames) {
-            if ( clusterName.contains( "(GPU)" ) ) {
-                emit createPlotForClustering( clusteringCriteriaName, clusterName );
-            }
+            emit createPlotForClustering( clusteringCriteriaName, clusterName );
         }
 
         // set backend object name to clustering criteria name (so it can be identified in timer handlers) and move to backend thread
@@ -219,12 +217,10 @@ void BackgroundGraphRenderer::processDataTransferEvent(const QString& clustering
                                                        const Base::Time &time_origin,
                                                        const CUDA::DataTransfer &details)
 {
-    const QString gpuClusteringName = clusteringName + " (GPU)";
-
-    if ( ! m_plot.contains( gpuClusteringName ) )
+    if ( ! m_plot.contains( clusteringName ) )
         return;
 
-    QCustomPlot* plot = m_plot.value( gpuClusteringName );
+    QCustomPlot* plot = m_plot.value( clusteringName );
 
     if ( Q_NULLPTR == plot )
         return;
@@ -259,12 +255,10 @@ void BackgroundGraphRenderer::processKernelExecutionEvent(const QString& cluster
                                                           const Base::Time &time_origin,
                                                           const CUDA::KernelExecution &details)
 {
-    const QString gpuClusteringName = clusteringName + " (GPU)";
-
-    if ( ! m_plot.contains( gpuClusteringName ) )
+    if ( ! m_plot.contains( clusteringName ) )
         return;
 
-    QCustomPlot* plot = m_plot.value( gpuClusteringName );
+    QCustomPlot* plot = m_plot.value( clusteringName );
 
     if ( Q_NULLPTR == plot )
         return;
