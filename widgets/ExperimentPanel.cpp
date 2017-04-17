@@ -123,7 +123,11 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
         // add children: experiment sample counters
         foreach( const QString& counterName, sampleCounterNames ) {
             // is this counter a GPU counter?
+#ifdef HAS_CPU_SAMPLE_COUNTER_KLUDGE
+            bool isGpuSampleCounter( isGpuCluster );
+#else
             bool isGpuSampleCounter( counterName.contains( QStringLiteral("GPU") ) );
+#endif
             // if flags match then add the counter to the cluster item
             if ( isGpuCluster == isGpuSampleCounter ) {
                 // create new counter item and add as child of the cluster item

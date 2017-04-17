@@ -759,8 +759,13 @@ void PerformanceDataPlotView::handleAddPeriodicSample(const QString &clusteringC
 
         if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
             QMap< QString, QCPAxisRect* >& axisRects = m_metricGroups[ clusteringCriteriaName ]->axisRects;
-            if ( axisRects.contains( clusterName ) )
-                axisRect = axisRects[ clusterName ];
+            QString longClusterName( clusterName );
+#ifdef HAS_CPU_SAMPLE_COUNTER_KLUDGE
+            if ( ! axisRects.contains( longClusterName ) )
+                longClusterName += QStringLiteral(" (GPU)");
+#endif
+            if ( axisRects.contains( longClusterName ) )
+                axisRect = axisRects[ longClusterName ];
         }
     }
 
