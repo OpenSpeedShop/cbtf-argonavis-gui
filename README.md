@@ -8,6 +8,7 @@ Other collectors with good support so far are:
 
 - usertime
 - mpi
+- pthreads
 
 
 ## Building the developmental Open|SpeedShop GUI
