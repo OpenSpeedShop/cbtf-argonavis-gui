@@ -57,6 +57,7 @@
 #include "collectors/usertime/UserTimeDetail.hxx"
 #include "collectors/cuda/CUDAExecDetail.hxx"
 #include "collectors/mpi/MPIDetail.hxx"
+#include "collectors/pthreads/PthreadsDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -1090,8 +1091,18 @@ void PerformanceDataManager::processCalltreeView(const Collector collector, cons
     else if ( collectorId == "mpi" ) {
         ShowCalltreeDetail< std::vector<Framework::MPIDetail> >( collector, threads, interval, functions, "inclusive_details", metricDesc );
     }
+    else if ( collectorId == "pthreads" ) {
+        ShowCalltreeDetail< std::vector<Framework::PthreadsDetail> >( collector, threads, interval, functions, "inclusive_details", metricDesc );
+    }
 }
 
+/**
+ * @brief PerformanceDataManager::print_details
+ * @param details_name - the details view name
+ * @param details - the array of details information
+ *
+ * This method dumps the contents of the details information array for debugging purposes.
+ */
 void PerformanceDataManager::print_details(const std::string& details_name, const TDETAILS &details) const
 {
     std::string name( details_name );
@@ -1881,6 +1892,27 @@ template <>
 std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::MPIDetail >& detail, const double factor)
 {
     double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::MPIDetail& d) {
+        return sum + d.dm_time;
+    } );
+
+    return std::make_pair( factor, sum / factor * 1000.0 );
+}
+
+/**
+ * @brief PerformanceDataManager::getDetailTotals
+ * @param detail - the OpenSpeedShop::Framework::MPIDetail instance
+ * @param factor - the time factor
+ * @return - a std::pair formed from the 'factor' parameter and the time from the 'detail' instance scaled by the 'factor'
+ *
+ * This is a template specialization for PerformanceDataManager::getDetailTotal which usually works on a type required to have the two public member variables 'dm_count'
+ * and 'dm_time'.  This template specialization works with the OpenSpeedShop::Framework::PthreadsDetail class which doesn't satisfy this requirement as it doesn't have the
+ * 'dm_count' member variable although it does has a pubic 'dm_time' member variable.  Thus, this template specialization works for the special case
+ * of the OpenSpeedShop::Framework::PthreadsDetail implementation.
+ */
+template <>
+std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::PthreadsDetail >& detail, const double factor)
+{
+    double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::PthreadsDetail& d) {
         return sum + d.dm_time;
     } );
 

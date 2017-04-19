@@ -59,10 +59,13 @@ UserGraphRangeChangeManager::~UserGraphRangeChangeManager()
 
 /**
  * @brief UserGraphRangeChangeManager::create
- * @param clusterName
- * @param lower
- * @param upper
- * @param size
+ * @param clusterName - the name of the cluster (thread/process identifier)
+ * @param lower - the lower value of the graph range change
+ * @param upper - the upper value of the graph range change
+ * @param size - the size of the axis rect
+ *
+ * This method creates and starts a timer to delay processing of the graph range change until the timeout threshold has
+ * been reached without further user interaction to change the graph range.
  */
 void UserGraphRangeChangeManager::create(const QString &clusterName, double lower, double upper, const QSize &size)
 {
@@ -98,7 +101,9 @@ void UserGraphRangeChangeManager::create(const QString &clusterName, double lowe
 
 /**
  * @brief UserGraphRangeChangeManager::cancel
- * @param clusterName
+ * @param clusterName - the name of the cluster (thread/process identifier)
+ *
+ * This method cancels the timer associated with the cluster name.
  */
 void UserGraphRangeChangeManager::cancel(const QString &clusterName)
 {
@@ -114,6 +119,8 @@ void UserGraphRangeChangeManager::cancel(const QString &clusterName)
 
 /**
  * @brief UserGraphRangeChangeManager::handleTimeout
+ *
+ * This is the handler for the QTimer::timeout signal for any timer created and started by the UserGraphRangeChangeManager::create method.
  */
 void UserGraphRangeChangeManager::handleTimeout()
 {
@@ -139,6 +146,8 @@ void UserGraphRangeChangeManager::handleTimeout()
 /**
  * @brief UserGraphRangeChangeManager::timerDestroyed
  * @param obj - the QObject instance destroyed
+ *
+ * This is the handler for the QTimer::destroyed signal used for debugging purposes.
  */
 void UserGraphRangeChangeManager::timerDestroyed(QObject* obj)
 {
