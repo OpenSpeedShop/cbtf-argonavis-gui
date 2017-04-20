@@ -24,6 +24,7 @@
 #include "BackgroundGraphRenderer.h"
 
 #include "BackgroundGraphRendererBackend.h"
+#include "ApplicationOverrideCursorManager.h"
 
 #include "QCustomPlot/CustomPlot.h"
 
@@ -120,7 +121,7 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
 }
 
 /**
- * @brief BackgroundGraphRenderer::unloadCudaVie
+ * @brief BackgroundGraphRenderer::unloadCudaViews
  * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @param clusterNames - the list of associated clusters
  *
@@ -186,6 +187,9 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
  */
 void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clusterName, double lower, double upper, const QSize& size)
 {
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+    qDebug() << "BackgroundGraphRenderer::handleGraphRangeChangedTimeout: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
+#endif
     if ( ! m_plot.contains( clusterName ) )
         return;
 
@@ -302,6 +306,10 @@ void BackgroundGraphRenderer::handleProcessCudaEventViewDone()
         while ( iter != m_plot.end() ) {
             CustomPlot* plot( iter.value() );
             if ( plot ) {
+                ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+                if ( cursorManager ) {
+                    cursorManager->startWaitingOperation( QStringLiteral("cuda-events") );
+                }
 #ifdef HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
                 QtConcurrent::run( this, &BackgroundGraphRenderer::processCudaEventSnapshot, plot );
 #else
@@ -375,6 +383,11 @@ void BackgroundGraphRenderer::processCudaEventSnapshot(CustomPlot* plot)
 
             // cleanup painter instance
             delete painter;
+
+            ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+            if ( cursorManager ) {
+                cursorManager->finishWaitingOperation( QStringLiteral("cuda-events") );
+            }
         }
         else {
             qWarning() << "Not able to allocate QCPPainter";

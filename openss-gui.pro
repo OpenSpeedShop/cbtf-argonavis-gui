@@ -155,7 +155,8 @@ SOURCES += \
     managers/CalltreeGraphManager.cpp \
     widgets/CalltreeGraphView.cpp \
     widgets/MetricViewManager.cpp \
-    widgets/MetricViewDelegate.cpp
+    widgets/MetricViewDelegate.cpp \
+    managers/ApplicationOverrideCursorManager.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -195,7 +196,8 @@ HEADERS += \
     managers/CalltreeGraphManager.h \
     widgets/CalltreeGraphView.h \
     widgets/MetricViewManager.h \
-    widgets/MetricViewDelegate.h
+    widgets/MetricViewDelegate.h \
+    managers/ApplicationOverrideCursorManager.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

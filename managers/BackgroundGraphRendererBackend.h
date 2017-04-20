@@ -62,6 +62,7 @@ signals:
 private slots:
 
     void handleProcessCudaEventView();
+    void handleProcessCudaEventViewDone();
 
 private:
 

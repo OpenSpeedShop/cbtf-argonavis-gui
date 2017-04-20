@@ -23,6 +23,8 @@
 
 #include "BackgroundGraphRendererBackend.h"
 
+#include "managers/ApplicationOverrideCursorManager.h"
+
 #include <QtConcurrentRun>
 #include <QFutureSynchronizer>
 #include <QDebug>
@@ -115,10 +117,29 @@ void BackgroundGraphRendererBackend::handleProcessCudaEventView()
 
     if ( watcher ) {
         connect( watcher, SIGNAL(finished()), this, SIGNAL(signalProcessCudaEventViewDone()) );
+        connect( watcher, SIGNAL(finished()), this, SLOT(handleProcessCudaEventViewDone()) );
         connect( watcher, SIGNAL(finished()), watcher, SLOT(deleteLater()) );
+
+        ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+        if ( cursorManager ) {
+            cursorManager->startWaitingOperation( QStringLiteral("backend-cuda-events") );
+        }
 
         watcher->setFuture( QtConcurrent::run( &m_data, &CUDA::PerformanceData::visitThreads,
                                                boost::bind( &BackgroundGraphRendererBackend::processThreadCudaEvents, this, _1 ) ) );
+    }
+}
+
+/**
+ * @brief BackgroundGraphRenderer::handleProcessCudaEventViewDone
+ *
+ * Handler for QFutureWatcher::finished() signal.
+ */
+void BackgroundGraphRendererBackend::handleProcessCudaEventViewDone()
+{
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QStringLiteral("backend-cuda-events") );
     }
 }
 

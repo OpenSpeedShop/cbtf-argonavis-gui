@@ -25,6 +25,7 @@
 #include "ui_mainwindow.h"
 
 #include "managers/PerformanceDataManager.h"
+#include "managers/ApplicationOverrideCursorManager.h"
 #include "SourceView/SourceView.h"
 
 #include "common/config.h"   // auto-generated config header
@@ -198,7 +199,10 @@ void MainWindow::loadExperimentDatabase(const QString& filepath)
     if ( ! dataMgr )
         return;
 
-    QApplication::setOverrideCursor( Qt::WaitCursor );
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QStringLiteral("load-experiment" ) );
+    }
 
     QByteArray normalizedSignature = QMetaObject::normalizedSignature( "asyncLoadCudaViews(QString)" );
     int methodIndex = dataMgr->metaObject()->indexOfMethod( normalizedSignature );
@@ -254,7 +258,10 @@ void MainWindow::unloadOpenSsExperiment()
 
     if ( QMessageBox::Yes == QMessageBox::question( this, tr("Unload Experiment"), tr("Are you sure that you want to unload this experiment?"), QMessageBox::Yes | QMessageBox::No ) ) {
 
-        QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
+        ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+        if ( cursorManager ) {
+            cursorManager->startWaitingOperation( QStringLiteral("unload-experiment" ) );
+        }
 
         QString expName( action->text() );
 
@@ -270,7 +277,9 @@ void MainWindow::unloadOpenSsExperiment()
         ui->menuUnload_OSS_Experiment->setDisabled( true );
         ui->actionLoad_OSS_Experiment->setEnabled( true );
 
-        QApplication::restoreOverrideCursor();
+        if ( cursorManager ) {
+            cursorManager->finishWaitingOperation( QStringLiteral("unload-experiment" ) );
+        }
     }
 }
 
@@ -283,7 +292,10 @@ void MainWindow::unloadOpenSsExperiment()
  */
 void MainWindow::handleLoadComplete()
 {
-    QApplication::restoreOverrideCursor();
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QStringLiteral("load-experiment" ) );
+    }
 }
 
 /**

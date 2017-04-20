@@ -26,6 +26,7 @@
 #include "common/openss-gui-config.h"
 
 #include "managers/BackgroundGraphRenderer.h"
+#include "managers/ApplicationOverrideCursorManager.h"
 #include "CBTF-ArgoNavis-Ext/DataTransferDetails.h"
 #include "CBTF-ArgoNavis-Ext/KernelExecutionDetails.h"
 #include "CBTF-ArgoNavis-Ext/ClusterNameBuilder.h"
@@ -330,8 +331,6 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
     info.metricViewList << metricViewName;
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-    QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
-
     QFutureSynchronizer<void> synchronizer;
 
     QMap< QString, QFuture<void> > futures;
@@ -385,8 +384,6 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
             emit requestMetricViewComplete( clusterName, metricName, viewName, lower, upper );
         }
     }
-
-    QApplication::restoreOverrideCursor();
 }
 
 /**
@@ -1221,10 +1218,11 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
         m_tableViewInfo[ clusterName ] = info;
 
-        QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, collector.get(), experiment.getThreads() );
-        synchronizer.addFuture( future );
+        QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, collector.get(), experiment.getThreads() );
+        synchronizer.addFuture( future1 );
 
-        handleProcessDetailViews( clusterName );
+        QFuture<void> future2 = QtConcurrent::run( this, &PerformanceDataManager::handleProcessDetailViews, clusterName );
+        synchronizer.addFuture( future2 );
 
         const QString functionView = QStringLiteral("Functions");
 
@@ -1287,7 +1285,10 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
     MetricTableViewInfo& info = m_tableViewInfo[ clusterName ];
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-    QApplication::setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QStringLiteral("metric-view" ) );
+    }
 
     QFutureSynchronizer<void> synchronizer;
 
@@ -1342,7 +1343,9 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
 #endif
     }
 
-    QApplication::restoreOverrideCursor();
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QStringLiteral("metric-view" ) );
+    }
 }
 
 /**
