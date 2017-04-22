@@ -199,6 +199,10 @@ void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clus
         if ( axisRect ) {
             QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
             if ( xAxis ) {
+                ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+                if ( cursorManager ) {
+                    cursorManager->startWaitingOperation( QStringLiteral("cuda-events") );
+                }
                 xAxis->setRange( lower, upper );
                 plot->setProperty( "imageWidth", size.width() );
                 plot->setProperty( "imageHeight", size.height() );
@@ -219,8 +223,17 @@ void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clus
  */
 void BackgroundGraphRenderer::processDataTransferEvent(const QString& clusteringName,
                                                        const Base::Time &time_origin,
-                                                       const CUDA::DataTransfer &details)
+                                                       const CUDA::DataTransfer &details,
+                                                       bool last)
 {
+    if ( last ) {
+        ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+        if ( cursorManager ) {
+            cursorManager->finishWaitingOperation( QStringLiteral("backend-cuda-events-")+clusteringName );
+        }
+        return;
+    }
+
     if ( ! m_plot.contains( clusteringName ) )
         return;
 
@@ -257,8 +270,17 @@ void BackgroundGraphRenderer::processDataTransferEvent(const QString& clustering
  */
 void BackgroundGraphRenderer::processKernelExecutionEvent(const QString& clusteringName,
                                                           const Base::Time &time_origin,
-                                                          const CUDA::KernelExecution &details)
+                                                          const CUDA::KernelExecution &details,
+                                                          bool last)
 {
+    if ( last ) {
+        ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+        if ( cursorManager ) {
+            cursorManager->finishWaitingOperation( QStringLiteral("backend-cuda-events-")+clusteringName );
+        }
+        return;
+    }
+
     if ( ! m_plot.contains( clusteringName ) )
         return;
 
@@ -306,10 +328,6 @@ void BackgroundGraphRenderer::handleProcessCudaEventViewDone()
         while ( iter != m_plot.end() ) {
             CustomPlot* plot( iter.value() );
             if ( plot ) {
-                ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
-                if ( cursorManager ) {
-                    cursorManager->startWaitingOperation( QStringLiteral("cuda-events") );
-                }
 #ifdef HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
                 QtConcurrent::run( this, &BackgroundGraphRenderer::processCudaEventSnapshot, plot );
 #else

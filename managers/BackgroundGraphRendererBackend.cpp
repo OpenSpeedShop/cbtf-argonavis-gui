@@ -159,6 +159,11 @@ bool BackgroundGraphRendererBackend::processThreadCudaEvents(const Base::ThreadN
                 "thread=" << QString::number((long long)QThread::currentThread(), 16);
 #endif
 
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QStringLiteral("backend-cuda-events-")+clusterName );
+    }
+
     // concurrently initiate visitations of the CUDA data transfer and kernel execution events
     QFutureSynchronizer<void> synchronizer;
     QFuture<void> future1 = QtConcurrent::run( &m_data, &CUDA::PerformanceData::visitDataTransfers, thread, m_data.interval(),
@@ -177,6 +182,9 @@ bool BackgroundGraphRendererBackend::processThreadCudaEvents(const Base::ThreadN
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRendererBackend::processThreadCudaEvents: DONE: clusterName=" << clusterName;
 #endif
+
+    // dummy event to signal end of processing for cluster
+    emit addDataTransfer( clusterName, Base::Time::Now(), CUDA::DataTransfer(), true );
 
     return true; // continue the visitation
 }

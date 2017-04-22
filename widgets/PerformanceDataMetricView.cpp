@@ -686,7 +686,7 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 
         if ( DETAILS_MODE == m_mode )
             emit signalRequestDetailView( m_clusterName, ui->comboBox_ViewSelection->currentText() );
-        if ( CALLTREE_MODE == m_mode )
+        else if ( CALLTREE_MODE == m_mode )
             emit signalRequestMetricView( m_clusterName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
         else
             emit signalRequestMetricView( m_clusterName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );

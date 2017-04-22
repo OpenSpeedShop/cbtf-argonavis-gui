@@ -71,10 +71,12 @@ private slots:
 
     void processDataTransferEvent(const QString& clusteringName,
                                   const Base::Time &time_origin,
-                                  const CUDA::DataTransfer &details);
+                                  const CUDA::DataTransfer &details,
+                                  bool last = false);
     void processKernelExecutionEvent(const QString& clusteringName,
                                      const Base::Time &time_origin,
-                                     const CUDA::KernelExecution &details);
+                                     const CUDA::KernelExecution &details,
+                                     bool last = false);
     void handleProcessCudaEventViewDone();
     void handleCreatePlotForClustering(const QString& clusteringCriteriaName, const QString& clusteringName);
     void processCudaEventSnapshot();
