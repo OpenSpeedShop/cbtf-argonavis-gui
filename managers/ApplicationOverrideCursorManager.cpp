@@ -23,6 +23,8 @@
 
 #include "ApplicationOverrideCursorManager.h"
 
+#include "common/openss-gui-config.h"
+
 #include <QApplication>
 #include <QDebug>
 
