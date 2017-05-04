@@ -37,7 +37,9 @@ QAtomicPointer< ApplicationOverrideCursorManager > ApplicationOverrideCursorMana
 
 /**
  * @brief ApplicationOverrideCursorManager::ApplicationOverrideCursorManager
- * @param parent
+ * @param parent - the parent QObject instance
+ *
+ * Constructs a ApplicationOverrideCursorManager instance
  */
 ApplicationOverrideCursorManager::ApplicationOverrideCursorManager(QObject *parent)
     : QObject( parent )
@@ -76,7 +78,10 @@ ApplicationOverrideCursorManager *ApplicationOverrideCursorManager::instance()
 
 /**
  * @brief ApplicationOverrideCursorManager::startWaitingOperation
- * @param name
+ * @param name - name of operation causing application busy state
+ *
+ * This method adds an operation to the list of active operations.  If there were no
+ * active operations then the application override cursor is shown.
  */
 void ApplicationOverrideCursorManager::startWaitingOperation(const QString &name)
 {
@@ -93,7 +98,10 @@ void ApplicationOverrideCursorManager::startWaitingOperation(const QString &name
 
 /**
  * @brief ApplicationOverrideCursorManager::finishWaitingOperation
- * @param name
+ * @param name - name of operation that is no longer active
+ *
+ * This method removes the operation from the list of active operations.  If there are no
+ * active operations remaining, then the normal application cursor is restored.
  */
 void ApplicationOverrideCursorManager::finishWaitingOperation(const QString &name)
 {

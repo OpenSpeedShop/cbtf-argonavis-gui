@@ -61,8 +61,8 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
 
     ui->graphView->setNoAntialiasingOnDrag( true );
 
-    ui->graphView->setInteractions( QCP::iRangeDrag | QCP::iRangeZoom |
-                                    QCP::iSelectAxes | QCP::iSelectPlottables | QCP::iSelectItems );
+    ui->graphView->setInteractions( QCP::iRangeDrag | QCP::iRangeZoom );
+    //                              QCP::iSelectAxes | QCP::iSelectPlottables | QCP::iSelectItems );
 
     // connect slot that ties some axis selections together (especially opposite axes):
     connect( ui->graphView, SIGNAL(selectionChangedByUser()), this, SLOT(handleSelectionChanged()) );
@@ -283,13 +283,10 @@ void PerformanceDataPlotView::handleAxisLabelDoubleClick(QCPAxis *axis, QCPAxis:
  */
 void PerformanceDataPlotView::handleSelectionChanged()
 {
-    //qDebug() << "plottable count=" <<  ui->graphView->plottableCount() << "item count=" << ui->graphView->itemCount();
-
     // synchronize selection of graphs with selection of corresponding legend items:
     for ( int i=0; i< ui->graphView->plottableCount(); ++i ) {
         QCPAbstractPlottable* graph =  ui->graphView->plottable(i);
         QCPPlottableLegendItem *item =  ui->graphView->legend->itemWithPlottable( graph );
-        //qDebug() << "graph: " << i << " graph selected: " << graph->selected() << " legend item selected: " << item->selected();
         item->setSelected( item->selected() );
         graph->setSelected( graph->selected() );
     }
@@ -653,8 +650,6 @@ void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringC
             }
         }
     }
-
-    ui->graphView->replot();
 
     if ( axisRect ) {
         QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
