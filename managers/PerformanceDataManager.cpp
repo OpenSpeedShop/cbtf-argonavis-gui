@@ -621,7 +621,21 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::processPerformanceData: cluster name: " << clusterName;
 #endif
-
+#ifdef HAS_RESAMPLED_COUNTERS
+    const Base::TimeInterval duration = data.interval();
+    const Base::Time rate( 1000000 );
+    std::size_t numCounters = data.counters().size();
+    for ( std::size_t counter = 0; counter < numCounters; counter++ ) {
+        Base::PeriodicSamples samples = data.periodic( thread, duration, counter );
+        Base::PeriodicSamples intervalSamples = samples.resample( duration, rate );
+        intervalSamples.visit( duration,
+                               boost::bind( &PerformanceDataManager::processPeriodicSample, instance(),
+                                            boost::cref(duration.begin()), _1, _2,
+                                            boost::cref(gpuCounterIndexes),
+                                            boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
+                               );
+    }
+#else
     data.visitPeriodicSamples(
                 thread, data.interval(),
                 boost::bind( &PerformanceDataManager::processPeriodicSample, instance(),
@@ -629,6 +643,7 @@ bool PerformanceDataManager::processPerformanceData(const CUDA::PerformanceData&
                              boost::cref(gpuCounterIndexes),
                              boost::cref(clusterName), boost::cref(clusteringCriteriaName) )
                 );
+#endif
 
     return true; // continue the visitation
 }
