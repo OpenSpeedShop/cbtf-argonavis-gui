@@ -163,8 +163,6 @@ signals:
 
     void metricViewRangeChanged(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
 
-    void replotCompleted();
-
     void loadComplete();
 
     void requestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);

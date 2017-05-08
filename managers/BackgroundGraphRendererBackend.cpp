@@ -113,9 +113,6 @@ void BackgroundGraphRendererBackend::handleProcessCudaEventView()
     qDebug() << "BackgroundGraphRendererBackend::handleProcessCudaEventView: STARTED!!";
 #endif
 
-    // disconnect the signal to prevent duplicate processing here
-    disconnect( this, SIGNAL(signalProcessCudaEventViewStart()), this, SLOT(handleProcessCudaEventView()) );
-
     QFutureWatcher<void>* watcher = new QFutureWatcher<void>();
 
     if ( watcher ) {
@@ -186,8 +183,9 @@ bool BackgroundGraphRendererBackend::processThreadCudaEvents(const Base::ThreadN
     qDebug() << "BackgroundGraphRendererBackend::processThreadCudaEvents: DONE: clusterName=" << clusterName;
 #endif
 
-    // dummy event to signal end of processing for cluster
-    emit addDataTransfer( clusterName, Base::Time::Now(), CUDA::DataTransfer(), true );
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QStringLiteral("backend-cuda-events-")+clusterName );
+    }
 
     return true; // continue the visitation
 }

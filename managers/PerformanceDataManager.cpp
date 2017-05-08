@@ -31,7 +31,7 @@
 #include "CBTF-ArgoNavis-Ext/KernelExecutionDetails.h"
 #include "CBTF-ArgoNavis-Ext/ClusterNameBuilder.h"
 
-#include <algorithm>
+#include <numeric>
 #include <utility>
 #include <iostream>
 #include <iomanip>
@@ -234,13 +234,13 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 #endif
 #endif
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    connect( this, &PerformanceDataManager::replotCompleted, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
+    connect( this, &PerformanceDataManager::loadComplete, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
     connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
     connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
     connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
     connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeout, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
 #else
-    connect( this, SIGNAL(replotCompleted()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
+    connect( this, SIGNAL(loadComplete()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
     connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,double,double,QSize)) );
     connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,double,double)) );
     connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
@@ -564,6 +564,8 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
                                                    const QString& clusterName,
                                                    const QString& clusteringCriteriaName)
 {
+    Q_UNUSED( gpuCounterIndexes )
+
     double timeStamp = static_cast<uint64_t>( time - time_origin ) / 1000000.0;
     double lastTimeStamp;
 
@@ -1129,7 +1131,7 @@ void PerformanceDataManager::print_details(const std::string& details_name, cons
         for ( uint32_t i=0; i<std::get<3>(d); ++i ) oss << '>';
         const Function func( std::get<2>(d) );
 #else
-    for ( int i=0; i<details.size(); i++ ) {
+    for ( std::size_t i=0; i<details.size(); i++ ) {
         const details_data_t& d = details[i];
         std::cout << "\t" << std::left << std::setw(20) << std::fixed << std::setprecision(6) << boost::get<1>(d) << std::setw(20) << boost::get<0>(d) << "   ";
         std::ostringstream oss;
@@ -1599,7 +1601,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
         Base::ThreadName threadName( iter.key() );
         std::vector< uint64_t> counterValues( data.counts( threadName, data.interval() ) );
         bool hasGpuCounters( false );
-        for ( int i=0; i<counterValues.size() && ! hasGpuCounters; i++ ) {
+        for ( std::size_t i=0; i<counterValues.size() && ! hasGpuCounters; i++ ) {
             hasGpuCounters |= ( ( counterValues[i] != 0 ) && gpuCounterIndexes.contains(i) );
         }
         isGpuSampleCounters << hasGpuCounters;
@@ -2011,7 +2013,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
 
             int64_t num_calls = ( subExtents.begin() == subExtents.end() ) ? 1 : stack_contains_N_calls( stacktrace, subExtents );
 
-            int index;
+            std::size_t index;
             for ( index=0; index<stacktrace.size(); index++ ) {
                 std::pair< bool, Function > result = stacktrace.getFunctionAt( index );
                 if ( result.first && result.second == function )

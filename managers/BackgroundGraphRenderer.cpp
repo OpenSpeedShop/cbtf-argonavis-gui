@@ -223,17 +223,8 @@ void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clus
  */
 void BackgroundGraphRenderer::processDataTransferEvent(const QString& clusteringName,
                                                        const Base::Time &time_origin,
-                                                       const CUDA::DataTransfer &details,
-                                                       bool last)
+                                                       const CUDA::DataTransfer &details)
 {
-    if ( last ) {
-        ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
-        if ( cursorManager ) {
-            cursorManager->finishWaitingOperation( QStringLiteral("backend-cuda-events-")+clusteringName );
-        }
-        return;
-    }
-
     if ( ! m_plot.contains( clusteringName ) )
         return;
 
@@ -270,17 +261,8 @@ void BackgroundGraphRenderer::processDataTransferEvent(const QString& clustering
  */
 void BackgroundGraphRenderer::processKernelExecutionEvent(const QString& clusteringName,
                                                           const Base::Time &time_origin,
-                                                          const CUDA::KernelExecution &details,
-                                                          bool last)
+                                                          const CUDA::KernelExecution &details)
 {
-    if ( last ) {
-        ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
-        if ( cursorManager ) {
-            cursorManager->finishWaitingOperation( QStringLiteral("backend-cuda-events-")+clusteringName );
-        }
-        return;
-    }
-
     if ( ! m_plot.contains( clusteringName ) )
         return;
 

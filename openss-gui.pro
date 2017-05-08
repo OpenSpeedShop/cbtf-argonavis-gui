@@ -18,6 +18,9 @@ DEFINES += APP_BUILD_VERSION=0000
 greaterThan(QT_MAJOR_VERSION, 4): CONFIG += c++11
 else: QMAKE_CXXFLAGS += -std=c++11
 
+# uncomment when need to look for deprecated declarations within this source-code
+QMAKE_CXXFLAGS += -Wno-deprecated-declarations
+
 TARGET = openss-gui
 TEMPLATE = app
 
@@ -87,6 +90,7 @@ include(OpenSS-CLI.pri)
 INCLUDEPATH += $$CBTF_ROOT/include/collectors
 
 DEFINES += HAS_METRIC_TYPES
+DEFINES += HAS_RESAMPLED_COUNTERS
 #DEFINES += USE_DISCRETE_SAMPLES
 DEFINES += USE_PERIODIC_SAMPLE_AVG
 DEFINES += HAS_PARALLEL_PROCESS_METRIC_VIEW

@@ -56,7 +56,7 @@ public:
         using namespace boost;
 #endif
 
-        for(int i=0; i<m_pmap[v].metricValues.size(); i++) {
+        for(std::size_t i=0; i<m_pmap[v].metricValues.size(); i++) {
             tuple< std::string, std::string > nameValuePair = m_pmap[v].metricValues[i];
             out << "\", " << get<0>(nameValuePair) << "=\"" << get<1>(nameValuePair);
         }
