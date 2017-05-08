@@ -113,6 +113,9 @@ void BackgroundGraphRendererBackend::handleProcessCudaEventView()
     qDebug() << "BackgroundGraphRendererBackend::handleProcessCudaEventView: STARTED!!";
 #endif
 
+    // disconnect the signal to prevent duplicate processing here
+    disconnect( this, SIGNAL(signalProcessCudaEventViewStart()), this, SLOT(handleProcessCudaEventView()) );
+
     QFutureWatcher<void>* watcher = new QFutureWatcher<void>();
 
     if ( watcher ) {
