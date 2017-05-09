@@ -96,6 +96,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::addCluster, this, &MainWindow::handleAdjustPlotViewScrollArea );
         connect( dataMgr, &PerformanceDataManager::removeCluster, this, &MainWindow::handleRemoveCluster );
         connect( dataMgr, &PerformanceDataManager::signalSetDefaultMetricView, ui->widget_MetricViewManager, &MetricViewManager::handleSwitchView );
+        connect( dataMgr, &PerformanceDataManager::signalSetDefaultMetricView, this, &MainWindow::handleSetDefaultMetricView );
 #else
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)),
@@ -108,7 +109,8 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestMetricView(QString,QString,QString)), dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
-        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );
+        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );  
+        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), this, SLOT(handleSetDefaultMetricViewMetricViewTypes) );
 #endif
     }
 
@@ -203,6 +205,9 @@ void MainWindow::loadExperimentDatabase(const QString& filepath)
     if ( cursorManager ) {
         cursorManager->startWaitingOperation( QStringLiteral("load-experiment" ) );
     }
+
+    // enable the metric mode in the Metric Table View
+    ui->widget_MetricTableView->setAvailableMetricModes( PerformanceDataMetricView::METRIC_MODE );
 
     QByteArray normalizedSignature = QMetaObject::normalizedSignature( "asyncLoadCudaViews(QString)" );
     int methodIndex = dataMgr->metaObject()->indexOfMethod( normalizedSignature );
@@ -339,6 +344,23 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
     int plotSize( 150 );
 
     ui->widget_MetricViewManager->setFixedHeight( numPlots * plotSize );
+}
+
+/**
+ * @brief MainWindow::handleSetDefaultMetricView
+ * @param view - the default view
+ *
+ * The choice of default view is used to determine which modes the user can choose from in the Metric Table View.
+ */
+void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view)
+{
+    PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE | PerformanceDataMetricView::CALLTREE_MODE );
+
+    if ( CUDA_VIEW == view ) {
+        modes |= PerformanceDataMetricView::DETAILS_MODE;
+    }
+
+    ui->widget_MetricTableView->setAvailableMetricModes( modes );
 }
 
 /**

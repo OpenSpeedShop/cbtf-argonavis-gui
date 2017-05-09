@@ -29,6 +29,8 @@
 
 #include "common/openss-gui-config.h"
 
+#include "widgets/MetricViewManager.h"
+
 // Forward Declarations
 
 namespace Ui {
@@ -66,6 +68,7 @@ private slots:
     void addUnloadOpenSsExperimentMenuItem(const QString& filePath);
     void handleAdjustPlotViewScrollArea(const QString& clusteringCriteriaName, const QString& clusterName);
     void handleRemoveCluster(const QString& clusteringCriteriaName, const QString& clusterName);
+    void handleSetDefaultMetricView(const MetricViewTypes& view);
     void shutdownApplication();
     void handleViewQuickStartGuide();
     void handleViewReferenceGuide();

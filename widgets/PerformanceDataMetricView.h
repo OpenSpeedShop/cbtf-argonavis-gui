@@ -65,6 +65,12 @@ public:
 
     void deleteAllModelsViews();
 
+    typedef enum { DETAILS_MODE = 1, METRIC_MODE = 2, CALLTREE_MODE = 4 } ModeType;
+
+    Q_DECLARE_FLAGS( ModeTypes, ModeType )
+
+    void setAvailableMetricModes(const ModeTypes& modes);
+
 signals:
 
     void signalRequestMetricView(const QString& clusterName, const QString& metricName, const QString& viewName);
@@ -109,7 +115,6 @@ private:
 
     QStackedLayout* m_viewStack;                            // vertical layout holding current view
 
-    typedef enum { DETAILS_MODE, METRIC_MODE, CALLTREE_MODE } ModeType;
     ModeType m_mode;
 
     QStandardItemModel m_metricViewModel;                   // snapshot of view combobox model for metric mode

@@ -49,23 +49,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox_ModeSelection">
-        <item>
-         <property name="text">
-          <string>Metric</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Details</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>CallTree</string>
-         </property>
-        </item>
-       </widget>
+       <widget class="QComboBox" name="comboBox_ModeSelection"/>
       </item>
       <item>
        <spacer name="horizontalSpacer_TopSelector_Left">

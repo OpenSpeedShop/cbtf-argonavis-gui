@@ -203,7 +203,27 @@ void PerformanceDataMetricView::deleteAllModelsViews()
 
     ui->comboBox_ViewSelection->setCurrentIndex( 0 );
 
+    ui->comboBox_ModeSelection->clear();
+
     m_clusterName = QString();
+}
+
+/**
+ * @brief PerformanceDataMetricView::setAvailableMetricModes
+ * @param modes - set of modes available to the user
+ *
+ * This method adds an item to the "Mode:" combobox for each desired mode.
+ */
+void PerformanceDataMetricView::setAvailableMetricModes(const ModeTypes &modes)
+{
+    if ( modes.testFlag( METRIC_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Metric") ) ) )
+        ui->comboBox_ModeSelection->addItem( QStringLiteral("Metric") );
+
+    if ( modes.testFlag( DETAILS_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Details") ) ) )
+        ui->comboBox_ModeSelection->addItem( QStringLiteral("Details") );
+
+    if ( modes.testFlag( CALLTREE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("CallTree") ) ) )
+        ui->comboBox_ModeSelection->addItem( QStringLiteral("CallTree") );
 }
 
 /**
