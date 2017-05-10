@@ -341,7 +341,7 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
 
     int numPlots( m_plotsMap.size() );
 
-    int plotSize( 150 );
+    const int plotSize( 150 );
 
     ui->widget_MetricViewManager->setFixedHeight( numPlots * plotSize );
 }
