@@ -110,7 +110,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );  
-        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), this, SLOT(handleSetDefaultMetricViewMetricViewTypes) );
+        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes)) );
 #endif
     }
 
