@@ -129,6 +129,7 @@ int ShowDeviceDetailsDialog::exec()
 
         const int device = data.toInt();
 
+        // hide last viewed device
         if ( m_lastDevice != -1 ) {
             ui->treeView->setRowHidden( m_lastDevice, QModelIndex(), true );
         }
@@ -139,11 +140,14 @@ int ShowDeviceDetailsDialog::exec()
             const QModelIndex rootIndex = model->index( device, 0 );
             const QModelIndex attributeItemIndex = model->index( 0, 0, rootIndex );
 
-            // expand the sub-tree associated with the specified device
+            // show the device
             ui->treeView->setRowHidden( device, QModelIndex(), false );
-            ui->treeView->collapseAll();
+
+            // expand the sub-tree associated with the specified device
             ui->treeView->expand( rootIndex );
             ui->treeView->expand( attributeItemIndex );
+
+            // save the device to hide it later
             m_lastDevice = device;
         }
     }

@@ -1647,7 +1647,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
                                      QString(ArgoNavis::CUDA::stringify<>(device.threads_per_warp).c_str()) );
             attributes << qMakePair( QStringLiteral("Core Clock Rate"),
                                      QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ClockRate>(024ULL * device.core_clock_rate).c_str()) );
-            attributes << qMakePair( QStringLiteral("Number of Memcpy Engines"),
+            attributes << qMakePair( QStringLiteral("Number of Async Engines"),
                                      QString(ArgoNavis::CUDA::stringify<>(device.memcpy_engines).c_str()) );
             attributes << qMakePair( QStringLiteral("Number of Multiprocessors"),
                                      QString(ArgoNavis::CUDA::stringify<>(device.multiprocessors).c_str()) );
@@ -1655,13 +1655,13 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
             // build maximum limits name/values list
             NameValueList maximumLimits;
             maximumLimits << qMakePair( QStringLiteral("Max Grid Dimensions"),
-                                        QString("( %1x%2x%3 )").arg(device.max_grid.get<0>())
-                                                                 .arg(device.max_grid.get<1>())
-                                                                 .arg(device.max_grid.get<2>()) );
+                                        QString("%1x%2x%3").arg(device.max_grid.get<0>())
+                                                            .arg(device.max_grid.get<1>())
+                                                            .arg(device.max_grid.get<2>()) );
             maximumLimits << qMakePair( QStringLiteral("Max Block Dimensions"),
-                                        QString("( %1, %2, %3 )").arg(device.max_block.get<0>())
-                                                                 .arg(device.max_block.get<1>())
-                                                                 .arg(device.max_block.get<2>()) );
+                                        QString("%1, %2, %3").arg(device.max_block.get<0>())
+                                                             .arg(device.max_block.get<1>())
+                                                             .arg(device.max_block.get<2>()) );
             maximumLimits << qMakePair( QStringLiteral("Max IPC"),
                                         QString(ArgoNavis::CUDA::stringify<>(device.max_ipc).c_str()) );
             maximumLimits << qMakePair( QStringLiteral("Max Warps Per Multiprocessor"),
