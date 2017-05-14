@@ -60,7 +60,9 @@ using namespace boost;
 #include "Collector.hxx"
 
 #include "UserGraphRangeChangeManager.h"
+#include "CBTF-ArgoNavis-Ext/NameValueDefines.h"
 #include "widgets/MetricViewManager.h"
+#include "widgets/ShowDeviceDetailsDialog.h"
 #include "managers/CalltreeGraphManager.h"
 
 namespace OpenSpeedShop {
@@ -130,6 +132,8 @@ signals:
                        const QVector< QString >& clusterNames,
                        const QVector< bool >& clusterHasGpuSampleCounters,
                        const QVector< QString >& sampleCounterNames);
+
+    void addDevice(const int deviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
 
     void addDataTransfer(const QString &clusteringCriteriaName,
                          const QString &clusterName,

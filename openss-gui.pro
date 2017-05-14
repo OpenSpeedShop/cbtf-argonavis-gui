@@ -161,7 +161,8 @@ SOURCES += \
     widgets/CalltreeGraphView.cpp \
     widgets/MetricViewManager.cpp \
     widgets/MetricViewDelegate.cpp \
-    managers/ApplicationOverrideCursorManager.cpp
+    managers/ApplicationOverrideCursorManager.cpp \
+    widgets/ShowDeviceDetailsDialog.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -202,13 +203,16 @@ HEADERS += \
     widgets/CalltreeGraphView.h \
     widgets/MetricViewManager.h \
     widgets/MetricViewDelegate.h \
-    managers/ApplicationOverrideCursorManager.h
+    managers/ApplicationOverrideCursorManager.h \
+    widgets/ShowDeviceDetailsDialog.h \
+    CBTF-ArgoNavis-Ext/NameValueDefines.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \
     widgets/PerformanceDataMetricView.ui \
     SourceView/ModifyPathSubstitutionsDialog.ui \
-    widgets/MetricViewManager.ui
+    widgets/MetricViewManager.ui \
+    widgets/ShowDeviceDetailsDialog.ui
 
 RESOURCES += \
     openss-gui.qrc

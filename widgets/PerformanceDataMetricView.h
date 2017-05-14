@@ -30,6 +30,8 @@
 #include <QMap>
 #include <QStandardItemModel>
 
+#include "CBTF-ArgoNavis-Ext/NameValueDefines.h"
+
 // [ Forward Declarations ]
 
 namespace Ui {
@@ -46,6 +48,7 @@ namespace ArgoNavis { namespace GUI {
 
 
 class ModifyPathSubstitutionsDialog;
+class ShowDeviceDetailsDialog;
 
 
 /*!
@@ -55,6 +58,8 @@ class ModifyPathSubstitutionsDialog;
 class PerformanceDataMetricView : public QWidget
 {
     Q_OBJECT
+
+    typedef enum { MENU_TYPE_UNDEFINED, DEFINE_PATH_MAPPINGS, SHOW_DEVICE_DETAILS } DetailsMenuTypes;
 
 public:
 
@@ -73,6 +78,7 @@ public:
 
 signals:
 
+    void signalAddDevice(const int deviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
     void signalRequestMetricView(const QString& clusterName, const QString& metricName, const QString& viewName);
     void signalRequestDetailView(const QString& clusterName, const QString& detailName);
     void signalClearSourceView();
@@ -91,7 +97,7 @@ private slots:
     void handleViewModeChanged(const QString &text);
     void handleMetricViewChanged(const QString &text);
     void handleRequestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
-    void showContextMenu(const QVariant& index, const QPoint& globalPos);
+    void showContextMenu(const DetailsMenuTypes menuType, const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);
 
@@ -106,6 +112,7 @@ private:
     Ui::PerformanceDataMetricView *ui;
 
     static QString s_functionTitle;
+    static QString s_deviceTitle;
 
     QString m_clusterName;                                  // cluster name associated to metric views
     QMutex m_mutex;                                         // mutex for the following QMap objects
@@ -122,6 +129,7 @@ private:
     QStandardItemModel m_calltreeViewModel;                 // empty combobox model for calltree mode
 
     ModifyPathSubstitutionsDialog* m_modifyPathsDialog;
+    ShowDeviceDetailsDialog* m_deviceDetailsDialog;
 
 };
 

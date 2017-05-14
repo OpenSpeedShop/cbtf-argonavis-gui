@@ -1626,6 +1626,58 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
             emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs );
         }
 
+        for ( std::vector<CUDA::Device>::size_type i = 0; i < data.devices().size(); ++i ) {
+            const CUDA::Device& device = data.devices()[i];
+
+            // build attribute name/values list
+            NameValueList attributes;
+            attributes << qMakePair( QStringLiteral("Name"), QString(device.name.c_str()) );
+            attributes << qMakePair( QStringLiteral("ComputeCapability"),
+                                     QString("%1.%2").arg(device.compute_capability.get<0>())
+                                                     .arg(device.compute_capability.get<1>()) );
+            attributes << qMakePair( QStringLiteral("Global Memory Bandwidth"),
+                                     QString("%1/sec").arg(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(1024ULL * device.global_memory_bandwidth).c_str()) );
+            attributes << qMakePair( QStringLiteral("Global Memory Size"),
+                                     QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(device.global_memory_size).c_str()) );
+            attributes << qMakePair( QStringLiteral("Constant Memory Size"),
+                                     QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(device.constant_memory_size).c_str()) );
+            attributes << qMakePair( QStringLiteral("L2 Cache Size"),
+                                     QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(device.l2_cache_size).c_str()) );
+            attributes << qMakePair( QStringLiteral("Threads Per Warp"),
+                                     QString(ArgoNavis::CUDA::stringify<>(device.threads_per_warp).c_str()) );
+            attributes << qMakePair( QStringLiteral("Core Clock Rate"),
+                                     QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ClockRate>(024ULL * device.core_clock_rate).c_str()) );
+            attributes << qMakePair( QStringLiteral("Number of Memcpy Engines"),
+                                     QString(ArgoNavis::CUDA::stringify<>(device.memcpy_engines).c_str()) );
+            attributes << qMakePair( QStringLiteral("Number of Multiprocessors"),
+                                     QString(ArgoNavis::CUDA::stringify<>(device.multiprocessors).c_str()) );
+
+            // build maximum limits name/values list
+            NameValueList maximumLimits;
+            maximumLimits << qMakePair( QStringLiteral("Max Grid Dimensions"),
+                                        QString("( %1x%2x%3 )").arg(device.max_grid.get<0>())
+                                                                 .arg(device.max_grid.get<1>())
+                                                                 .arg(device.max_grid.get<2>()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Block Dimensions"),
+                                        QString("( %1, %2, %3 )").arg(device.max_block.get<0>())
+                                                                 .arg(device.max_block.get<1>())
+                                                                 .arg(device.max_block.get<2>()) );
+            maximumLimits << qMakePair( QStringLiteral("Max IPC"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_ipc).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Warps Per Multiprocessor"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_warps_per_multiprocessor).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Blocks Per Multiprocessor"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_blocks_per_multiprocessor).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Registers Per Block"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_registers_per_block).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Shared Memory Per Block"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_shared_memory_per_block).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Threads Per Block"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_threads_per_block).c_str()) );
+
+            emit addDevice( i, attributes, maximumLimits );
+        }
+
         // clear temporary data structures used during thread visitation
         m_sampleKeys.clear();
         m_sampleValues.clear();

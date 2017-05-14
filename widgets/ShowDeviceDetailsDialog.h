@@ -1,5 +1,5 @@
 /*!
-   \file ViewSortFilterProxyModel.h
+   \file ShowDeviceDetailsDialog.h
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
@@ -21,44 +21,57 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef VIEWSORTFILTERPROXYMODEL_H
-#define VIEWSORTFILTERPROXYMODEL_H
+#ifndef SHOWDEVICEDETAILSDIALOG_H
+#define SHOWDEVICEDETAILSDIALOG_H
 
-#include <QSortFilterProxyModel>
+#include <QDialog>
 
 #include "common/openss-gui-config.h"
+#include "CBTF-ArgoNavis-Ext/NameValueDefines.h"
 
-#include <QString>
-#include <QSet>
+namespace Ui {
+class ShowDeviceDetailsDialog;
+}
 
 
 namespace ArgoNavis { namespace GUI {
 
 
-class ViewSortFilterProxyModel : public QSortFilterProxyModel
+// [ Forward Declarations ]
+class TreeModel;
+class TreeItem;
+
+
+class ShowDeviceDetailsDialog : public QDialog
 {
     Q_OBJECT
 
 public:
 
-    explicit ViewSortFilterProxyModel(const QString& type = "*", QObject* parent = Q_NULLPTR);
-    virtual ~ViewSortFilterProxyModel();
+    explicit ShowDeviceDetailsDialog(QWidget *parent = 0);
+    ~ShowDeviceDetailsDialog();
 
-    void setFilterRange(double lower, double upper);
-    void setColumnHeaders(const QStringList& columnHeaders);
+    void clearAllDevices();
 
 protected:
 
-    bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
-    bool filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
+    int exec() Q_DECL_OVERRIDE;
 
 private:
 
-    QString m_type;
-    double m_lower;
-    double m_upper;
+    void createModel();
 
-    QSet< int > m_columns;
+private slots:
+
+    void handleAddDevice(const int deviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
+
+private:
+
+    Ui::ShowDeviceDetailsDialog *ui;
+
+    TreeItem* m_root;
+
+    int m_lastDevice;
 
 };
 
@@ -66,4 +79,4 @@ private:
 } // GUI
 } // ArgoNavis
 
-#endif // VIEWSORTFILTERPROXYMODEL_H
+#endif // SHOWDEVICEDETAILSDIALOG_H

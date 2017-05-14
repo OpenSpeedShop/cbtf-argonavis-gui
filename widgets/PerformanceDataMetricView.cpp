@@ -30,6 +30,7 @@
 
 #include "managers/PerformanceDataManager.h"
 #include "SourceView/ModifyPathSubstitutionsDialog.h"
+#include "widgets/ShowDeviceDetailsDialog.h"
 
 #include <QStackedLayout>
 #include <QHeaderView>
@@ -44,6 +45,7 @@ namespace ArgoNavis { namespace GUI {
 
 
 QString PerformanceDataMetricView::s_functionTitle( tr("Function (defining location)") );
+QString PerformanceDataMetricView::s_deviceTitle( tr("Device") );
 
 
 /**
@@ -138,6 +140,12 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     // create modify path substitutions dialog
     m_modifyPathsDialog = new ModifyPathSubstitutionsDialog( this );
 
+    // create show device details dialog
+    m_deviceDetailsDialog = new ShowDeviceDetailsDialog( this );
+
+    // connect signal/slot for handling adding device information to show device details dialog
+    connect( this, SIGNAL(signalAddDevice(int,NameValueList,NameValueList)), m_deviceDetailsDialog, SLOT(handleAddDevice(int,NameValueList,NameValueList)) );
+
     // re-emit 'signalAddPathSubstitution' signal so it can be handled externally
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( m_modifyPathsDialog, &ModifyPathSubstitutionsDialog::signalAddPathSubstitution, this, &PerformanceDataMetricView::signalAddPathSubstitution );
@@ -204,6 +212,8 @@ void PerformanceDataMetricView::deleteAllModelsViews()
     ui->comboBox_ViewSelection->setCurrentIndex( 0 );
 
     ui->comboBox_ModeSelection->clear();
+
+    m_deviceDetailsDialog->clearAllDevices();
 
     m_clusterName = QString();
 }
@@ -521,8 +531,18 @@ void PerformanceDataMetricView::processCustomContextMenuRequested(QTreeView* vie
     if ( view ) {
         QAbstractItemModel* model = view->model();
         if ( model ) {
-            QModelIndex index = view->indexAt( pos );
-            showContextMenu( model->data( index ), view->viewport()->mapToGlobal( pos ) );
+            const QModelIndex index = view->indexAt( pos );
+            const QVariant columnHeader = view->model()->headerData( index.column(), Qt::Horizontal );
+            DetailsMenuTypes menuType( MENU_TYPE_UNDEFINED );
+            if ( columnHeader.toString() == s_functionTitle ) {
+                menuType = DEFINE_PATH_MAPPINGS;
+            }
+            else if ( columnHeader.toString() == s_deviceTitle ) {
+                menuType = SHOW_DEVICE_DETAILS;
+            }
+            if ( menuType != MENU_TYPE_UNDEFINED ) {
+                showContextMenu( menuType, model->data( index ), view->viewport()->mapToGlobal( pos ) );
+            }
         }
     }
 }
@@ -786,21 +806,33 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
  *
  * Prepare and show the context menu.
  */
-void PerformanceDataMetricView::showContextMenu(const QVariant& data, const QPoint &globalPos)
+void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType, const QVariant& data, const QPoint &globalPos)
 {
     QMenu menu;
 
     // setup action for modifying path substitutions
-    QAction* action = menu.addAction( tr("&Modify Path Substitutions"), m_modifyPathsDialog, SLOT(exec()) );
+    QAction* action;
 
-    QString filename;
-    int lineNumber;
+    if ( DEFINE_PATH_MAPPINGS == menuType ) {
+        action = menu.addAction( tr("&Modify Path Substitutions"), m_modifyPathsDialog, SLOT(exec()) );
 
-    extractFilenameAndLine( data.toString(), filename, lineNumber );
+        QString filename;
+        int lineNumber;
 
-    QFileInfo fileInfo( filename );
+        extractFilenameAndLine( data.toString(), filename, lineNumber );
 
-    action->setData( fileInfo.path() );
+        QFileInfo fileInfo( filename );
+
+        action->setData( fileInfo.path() );
+    }
+    else if ( SHOW_DEVICE_DETAILS == menuType ) {
+        action = menu.addAction( tr("&Show Device Info"), m_deviceDetailsDialog, SLOT(exec()) );
+
+        action->setData( data );
+    }
+    else {
+        return;
+    }
 
     menu.exec( globalPos );
 }

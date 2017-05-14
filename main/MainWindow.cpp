@@ -97,6 +97,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::removeCluster, this, &MainWindow::handleRemoveCluster );
         connect( dataMgr, &PerformanceDataManager::signalSetDefaultMetricView, ui->widget_MetricViewManager, &MetricViewManager::handleSwitchView );
         connect( dataMgr, &PerformanceDataManager::signalSetDefaultMetricView, this, &MainWindow::handleSetDefaultMetricView );
+        connect( dataMgr, &PerformanceDataManager::addDevice, ui->widget_MetricTableView, &PerformanceDataMetricView::signalAddDevice );
 #else
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)),
@@ -111,6 +112,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );  
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes)) );
+        connect( dataMgr, SIGNAL(addDevice(int,NameValueList,NameValueList)), ui->widget_MetricTableView, SIGNAL(signalAddDevice(int,NameValueList,NameValueList)) );
 #endif
     }
 

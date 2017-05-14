@@ -25,6 +25,8 @@
 
 #include "ui_MetricViewManager.h"
 
+#include "CBTF-ArgoNavis-Ext/NameValueDefines.h"
+
 #include <QDebug>
 
 
