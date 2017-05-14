@@ -53,9 +53,9 @@ public:
 
     void clearAllDevices();
 
-protected:
+public slots:
 
-    int exec() Q_DECL_OVERRIDE;
+    int exec();
 
 private:
 
