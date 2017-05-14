@@ -105,7 +105,7 @@ void ShowDeviceDetailsDialog::clearAllDevices()
 void ShowDeviceDetailsDialog::createModel()
 {
     QList<QVariant> rootData;
-    rootData << "Devices";
+    rootData << QString();
     m_root = new TreeItem( rootData );
 
     TreeModel* model = new TreeModel( m_root );
