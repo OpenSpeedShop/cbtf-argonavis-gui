@@ -26,6 +26,9 @@
 
 #include <QDialog>
 
+#include <QMutex>
+#include <vector>
+
 #include "common/openss-gui-config.h"
 #include "CBTF-ArgoNavis-Ext/NameValueDefines.h"
 
@@ -35,11 +38,6 @@ class ShowDeviceDetailsDialog;
 
 
 namespace ArgoNavis { namespace GUI {
-
-
-// [ Forward Declarations ]
-class TreeModel;
-class TreeItem;
 
 
 class ShowDeviceDetailsDialog : public QDialog
@@ -57,21 +55,19 @@ public slots:
 
     int exec();
 
-private:
-
-    void createModel();
-
-private slots:
-
-    void handleAddDevice(const int deviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
+    void handleAddDevice(const int deviceNumber, const int definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
 
 private:
 
     Ui::ShowDeviceDetailsDialog *ui;
 
-    TreeItem* m_root;
+    QMutex m_mutex;
 
     int m_lastDevice;
+
+    std::vector<NameValueList> m_attributes;
+    std::vector<NameValueList> m_limits;
+    std::vector<int> m_deviceMap;
 
 };
 

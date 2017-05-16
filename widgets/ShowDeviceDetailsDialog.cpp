@@ -24,9 +24,7 @@
 #include "ShowDeviceDetailsDialog.h"
 #include "ui_ShowDeviceDetailsDialog.h"
 
-#include "TreeModel.h"
-#include "TreeItem.h"
-
+#include <QMutexLocker>
 
 namespace ArgoNavis { namespace GUI {
 
@@ -45,32 +43,6 @@ ShowDeviceDetailsDialog::ShowDeviceDetailsDialog(QWidget *parent)
     ui->setupUi( this );
 
     qRegisterMetaType< NameValueList >("NameValueList");
-
-    // Create the data model
-    createModel();
-
-    // Configure tree view
-    ui->treeView->resizeColumnToContents( 0 );
-    ui->treeView->setEditTriggers( QAbstractItemView::NoEditTriggers );
-    ui->treeView->setSelectionMode( QAbstractItemView::NoSelection );
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    ui->treeView->setSizeAdjustPolicy( QAbstractItemView::AdjustToContents );
-#endif
-    ui->treeView->setStyleSheet("QTreeView {"
-                                "   font: 14px;"
-                                "}"
-                                " "
-                                "QTreeView::branch:has-children:!has-siblings:closed,"
-                                "QTreeView::branch:closed:has-children:has-siblings {"
-                                "        border-image: none;"
-                                "        image: url(:/images/branch-closed);"
-                                "}"
-                                " "
-                                "QTreeView::branch:open:has-children:!has-siblings,"
-                                "QTreeView::branch:open:has-children:has-siblings  {"
-                                "        border-image: none;"
-                                "        image: url(:/images/branch-open);"
-                                "}");
 }
 
 /**
@@ -80,7 +52,7 @@ ShowDeviceDetailsDialog::ShowDeviceDetailsDialog(QWidget *parent)
  */
 ShowDeviceDetailsDialog::~ShowDeviceDetailsDialog()
 {
-    delete ui->treeView->model();
+    clearAllDevices();
 
     delete ui;
 }
@@ -92,25 +64,13 @@ ShowDeviceDetailsDialog::~ShowDeviceDetailsDialog()
  */
 void ShowDeviceDetailsDialog::clearAllDevices()
 {
-    delete ui->treeView->model();
+    QMutexLocker guard( &m_mutex );
 
-    createModel();
-}
+    m_attributes.clear();
+    m_limits.clear();
+    m_deviceMap.clear();
 
-/**
- * @brief ShowDeviceDetailsDialog::createModel
- *
- * Create data model.
- */
-void ShowDeviceDetailsDialog::createModel()
-{
-    QList<QVariant> rootData;
-    rootData << QString();
-    m_root = new TreeItem( rootData );
-
-    TreeModel* model = new TreeModel( m_root );
-
-    ui->treeView->setModel( model );
+    m_lastDevice = -1;
 }
 
 /**
@@ -124,32 +84,56 @@ int ShowDeviceDetailsDialog::exec()
 {
     QAction* action = qobject_cast< QAction* >( sender() );
 
-    if ( action ) {
-        QVariant data = action->data();
+    // determine which action was the signal sender
+    if ( ! action )
+        return QDialog::Rejected;
 
-        const int device = data.toInt();
+    // get action data containing device number
+    QVariant data = action->data();
 
-        // hide last viewed device
-        if ( m_lastDevice != -1 ) {
-            ui->treeView->setRowHidden( m_lastDevice, QModelIndex(), true );
-        }
+    // get device number
+    const int device = data.toInt();
 
-        QAbstractItemModel* model = ui->treeView->model();
+    if ( m_lastDevice != device ) {
+        QMutexLocker guard( &m_mutex );
 
-        if ( model ) {
-            const QModelIndex rootIndex = model->index( device, 0 );
-            const QModelIndex attributeItemIndex = model->index( 0, 0, rootIndex );
+        // check whether device map has value for device
+        if ( device < 0 || device >= m_deviceMap.size() )
+            return QDialog::Rejected;
 
-            // show the device
-            ui->treeView->setRowHidden( device, QModelIndex(), false );
+        // get defined device number
+        const int definedDevice = m_deviceMap[ device ];
 
-            // expand the sub-tree associated with the specified device
-            ui->treeView->expand( rootIndex );
-            ui->treeView->expand( attributeItemIndex );
+        // check whether attributes and limits vectors have values for defined device
+        if ( definedDevice < 0 || definedDevice >= m_attributes.size() || definedDevice >= m_limits.size() )
+            return QDialog::Rejected;
 
-            // save the device to hide it later
-            m_lastDevice = device;
-        }
+        // class state valid at this point for specified 'device' and 'definedDevice' values
+
+        // clear tree view
+        ui->treeView->clear();
+
+        // set header title to indicate device number
+        ui->treeView->setHeaderLabel( QString("Device: %1").arg(device) );
+
+        const NameValueList& attributes = m_attributes[ definedDevice ];
+        const NameValueList& limits = m_limits[ definedDevice ];
+
+        QTreeWidgetItem* attributeItem = new QTreeWidgetItem( (QTreeWidget*)0, QStringList(QStringLiteral("Attributes")) );
+        for (int i = 0; i < attributes.size(); ++i)
+            attributeItem->addChild( new QTreeWidgetItem( QStringList(QString("%1: %2").arg(attributes[i].first).arg(attributes[i].second)) ) );
+
+        QTreeWidgetItem* limitItem = new QTreeWidgetItem( (QTreeWidget*)0, QStringList(QStringLiteral("Maximum Limits")) );
+        for (int i = 0; i < limits.size(); ++i)
+            limitItem->addChild( new QTreeWidgetItem( QStringList(QString("%1: %2").arg(attributes[i].first).arg(attributes[i].second)) ) );
+
+        QList<QTreeWidgetItem * > items;
+        items << attributeItem << limitItem;
+        ui->treeView->insertTopLevelItems( 0, items );
+
+        ui->treeView->expandAll();
+
+        m_lastDevice = device;
     }
 
     return QDialog::exec();
@@ -163,44 +147,25 @@ int ShowDeviceDetailsDialog::exec()
  *
  * This method adds device information to the data model.
  */
-void ShowDeviceDetailsDialog::handleAddDevice(const int deviceNumber, const NameValueList &attributes, const NameValueList &maximumLimits)
+void ShowDeviceDetailsDialog::handleAddDevice(const int deviceNumber, const int definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits)
 {
-    // get current model row count which is the index of the new device to be added
-    QAbstractItemModel* model = ui->treeView->model();
+    QMutexLocker guard( &m_mutex );
 
-    if ( ! model )
-        return;
-
-    const int deviceCount = model->rowCount();
-
-    // create device item and add as child of the root item
-    TreeItem* deviceNameItem = new TreeItem( QList< QVariant>() << QString("Device: %1").arg(deviceNumber), m_root );
-    m_root->appendChild( deviceNameItem );
-
-    // create attribute item and add as child of the device item
-    TreeItem* attributeItem = new TreeItem( QList< QVariant >() << "Attributes", deviceNameItem );
-    deviceNameItem->appendChild( attributeItem );
-
-    // add each attribute name/value pair to the attribute section
-    foreach( NameValuePair nameValue, attributes ) {
-        // create new attribute name/value item and add as child of the attribute item
-        TreeItem* item = new TreeItem( QList< QVariant >() << QString("%1: %2").arg(nameValue.first).arg(nameValue.second), attributeItem );
-        attributeItem->appendChild( item );
+    if ( ! attributes.isEmpty() ) {
+        if ( m_attributes.size() <= definedDeviceNumber )
+            m_attributes.resize( definedDeviceNumber+1 );
+        m_attributes[ definedDeviceNumber ] = attributes;
     }
 
-    // create limits item and add as child of the device item
-    TreeItem* limitsItem = new TreeItem( QList< QVariant >() << "Maximum Limits", deviceNameItem );
-    deviceNameItem->appendChild( limitsItem );
-
-    // add each maximum limits name/value pair to the maximum limits section
-    foreach( NameValuePair nameValue, maximumLimits ) {
-        // create new maximum limits name/value item and add as child of the maximum limits item
-        TreeItem* item = new TreeItem( QList< QVariant >() << QString("%1: %2").arg(nameValue.first).arg(nameValue.second), limitsItem );
-        limitsItem->appendChild( item );
+    if ( ! maximumLimits.isEmpty() ) {
+        if ( m_limits.size() <= definedDeviceNumber )
+            m_limits.resize( definedDeviceNumber+1 );
+        m_limits[ definedDeviceNumber ] = maximumLimits;
     }
 
-    // hide the new device index
-    ui->treeView->setRowHidden( deviceCount, QModelIndex(), true );
+    if ( m_deviceMap.size() <= deviceNumber )
+        m_deviceMap.resize( deviceNumber+1, -1 );
+    m_deviceMap[ deviceNumber ] = definedDeviceNumber;
 }
 
 

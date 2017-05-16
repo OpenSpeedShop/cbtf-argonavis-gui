@@ -144,7 +144,7 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_deviceDetailsDialog = new ShowDeviceDetailsDialog( this );
 
     // connect signal/slot for handling adding device information to show device details dialog
-    connect( this, SIGNAL(signalAddDevice(int,NameValueList,NameValueList)), m_deviceDetailsDialog, SLOT(handleAddDevice(int,NameValueList,NameValueList)) );
+    connect( this, SIGNAL(signalAddDevice(int,int,NameValueList,NameValueList)), m_deviceDetailsDialog, SLOT(handleAddDevice(int,int,NameValueList,NameValueList)) );
 
     // re-emit 'signalAddPathSubstitution' signal so it can be handled externally
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))

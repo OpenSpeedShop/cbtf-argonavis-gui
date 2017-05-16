@@ -133,7 +133,7 @@ signals:
                        const QVector< bool >& clusterHasGpuSampleCounters,
                        const QVector< QString >& sampleCounterNames);
 
-    void addDevice(const int deviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
+    void addDevice(const int deviceNumber, const int definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
 
     void addDataTransfer(const QString &clusteringCriteriaName,
                          const QString &clusterName,
