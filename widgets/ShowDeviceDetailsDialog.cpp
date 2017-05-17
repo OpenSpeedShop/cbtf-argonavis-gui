@@ -125,7 +125,7 @@ int ShowDeviceDetailsDialog::exec()
 
         QTreeWidgetItem* limitItem = new QTreeWidgetItem( (QTreeWidget*)0, QStringList(QStringLiteral("Maximum Limits")) );
         for (int i = 0; i < limits.size(); ++i)
-            limitItem->addChild( new QTreeWidgetItem( QStringList(QString("%1: %2").arg(attributes[i].first).arg(attributes[i].second)) ) );
+            limitItem->addChild( new QTreeWidgetItem( QStringList(QString("%1: %2").arg(limits[i].first).arg(limits[i].second)) ) );
 
         QList<QTreeWidgetItem * > items;
         items << attributeItem << limitItem;

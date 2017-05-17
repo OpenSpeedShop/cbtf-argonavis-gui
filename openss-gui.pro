@@ -162,7 +162,8 @@ SOURCES += \
     widgets/MetricViewManager.cpp \
     widgets/MetricViewDelegate.cpp \
     managers/ApplicationOverrideCursorManager.cpp \
-    widgets/ShowDeviceDetailsDialog.cpp
+    widgets/ShowDeviceDetailsDialog.cpp \
+    CBTF-ArgoNavis-Ext/CudaDeviceHelper.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -205,7 +206,8 @@ HEADERS += \
     widgets/MetricViewDelegate.h \
     managers/ApplicationOverrideCursorManager.h \
     widgets/ShowDeviceDetailsDialog.h \
-    CBTF-ArgoNavis-Ext/NameValueDefines.h
+    CBTF-ArgoNavis-Ext/NameValueDefines.h \
+    CBTF-ArgoNavis-Ext/CudaDeviceHelper.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \
