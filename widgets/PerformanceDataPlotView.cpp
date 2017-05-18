@@ -561,6 +561,103 @@ void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAx
 }
 
 /**
+ * @brief PerformanceDataPlotView::addLegend
+ * @param axisRect - the axis rect
+ *
+ * Add a legend for the CUDA events (kernel executions and data transfers) and the periodic sample histogram.
+ */
+void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
+{
+    // add legend items on the first axis rect
+    QCPItemRect* kernelExecutionLegendItem = new QCPItemRect( ui->graphView );
+    kernelExecutionLegendItem->setClipAxisRect( axisRect );
+    kernelExecutionLegendItem->topLeft->setTypeX( QCPItemPosition::ptAbsolute );
+    kernelExecutionLegendItem->topLeft->setTypeY( QCPItemPosition::ptAxisRectRatio );
+    kernelExecutionLegendItem->topLeft->setCoords( 50.0, 0.0 );
+    kernelExecutionLegendItem->topLeft->setAxisRect( axisRect );
+    kernelExecutionLegendItem->topLeft->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
+    kernelExecutionLegendItem->bottomRight->setTypeX( QCPItemPosition::ptAbsolute );
+    kernelExecutionLegendItem->bottomRight->setTypeY( QCPItemPosition::ptAxisRectRatio );
+    kernelExecutionLegendItem->bottomRight->setCoords( 70.0, 0.1 );
+    kernelExecutionLegendItem->bottomRight->setAxisRect( axisRect );
+    kernelExecutionLegendItem->bottomRight->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
+    kernelExecutionLegendItem->setBrush( QColor( 0xaf, 0xdb, 0xaf ) );
+    kernelExecutionLegendItem->setPen( QColor( 0xaf, 0xdb, 0xaf ) );
+    ui->graphView->addItem( kernelExecutionLegendItem );
+
+    QCPItemText *textLabel = new QCPItemText( ui->graphView );;
+    textLabel->setClipAxisRect( axisRect );
+    textLabel->setPadding( QMargins(0,-2,0,0) );
+    textLabel->setPositionAlignment( Qt::AlignTop|Qt::AlignLeft );
+    textLabel->position->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
+    textLabel->position->setTypeX( QCPItemPosition::ptAbsolute );
+    textLabel->position->setTypeY( QCPItemPosition::ptAxisRectRatio );
+    textLabel->position->setCoords( 74.0, 0.0 );
+    textLabel->position->setAxisRect( axisRect );
+    textLabel->setText( tr("Kernel Execution") );
+    textLabel->setFont( QFont(font().family(), 8) );
+    ui->graphView->addItem( textLabel );
+
+    QCPItemRect* dataTransferLegendItem = new QCPItemRect( ui->graphView );;
+    dataTransferLegendItem->setClipAxisRect( axisRect );
+    dataTransferLegendItem->topLeft->setTypeX( QCPItemPosition::ptAbsolute );
+    dataTransferLegendItem->topLeft->setTypeY( QCPItemPosition::ptAxisRectRatio );
+    dataTransferLegendItem->topLeft->setCoords( 50.0, 0.11 );
+    dataTransferLegendItem->topLeft->setAxisRect( axisRect );
+    dataTransferLegendItem->topLeft->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
+    dataTransferLegendItem->bottomRight->setTypeX( QCPItemPosition::ptAbsolute );
+    dataTransferLegendItem->bottomRight->setTypeY( QCPItemPosition::ptAxisRectRatio );
+    dataTransferLegendItem->bottomRight->setCoords( 70.0, 0.21 );
+    dataTransferLegendItem->bottomRight->setAxisRect( axisRect );
+    dataTransferLegendItem->bottomRight->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
+    dataTransferLegendItem->setBrush( QColor( 0xff, 0xbf, 0xbf ) );
+    dataTransferLegendItem->setPen( QColor( 0xff, 0xbf, 0xbf ) );
+    ui->graphView->addItem( dataTransferLegendItem );
+
+    textLabel = new QCPItemText( ui->graphView );;
+    textLabel->setClipAxisRect( axisRect );
+    textLabel->setPadding( QMargins(0,-2,0,0) );
+    textLabel->setPositionAlignment( Qt::AlignTop|Qt::AlignLeft );
+    textLabel->position->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
+    textLabel->position->setTypeX( QCPItemPosition::ptAbsolute );
+    textLabel->position->setTypeY( QCPItemPosition::ptAxisRectRatio );
+    textLabel->position->setCoords( 74.0, 0.11 );
+    textLabel->position->setAxisRect( axisRect );
+    textLabel->setText( tr("Data Transfer") );
+    textLabel->setFont( QFont(font().family(), 8) );
+    ui->graphView->addItem( textLabel );
+
+    QCPItemRect* periodicSampleLegendItem = new QCPItemRect( ui->graphView );;
+    periodicSampleLegendItem->setClipAxisRect( axisRect );
+    periodicSampleLegendItem->topLeft->setTypeX( QCPItemPosition::ptAbsolute );
+    periodicSampleLegendItem->topLeft->setTypeY( QCPItemPosition::ptAxisRectRatio );
+    periodicSampleLegendItem->topLeft->setCoords( 50.0, 0.22 );
+    periodicSampleLegendItem->topLeft->setAxisRect( axisRect );
+    periodicSampleLegendItem->topLeft->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
+    periodicSampleLegendItem->bottomRight->setTypeX( QCPItemPosition::ptAbsolute );
+    periodicSampleLegendItem->bottomRight->setTypeY( QCPItemPosition::ptAxisRectRatio );
+    periodicSampleLegendItem->bottomRight->setCoords( 70.0, 0.32 );
+    periodicSampleLegendItem->bottomRight->setAxisRect( axisRect );
+    periodicSampleLegendItem->bottomRight->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
+    periodicSampleLegendItem->setBrush( QColor( 140, 140, 140, 80 ) );
+    periodicSampleLegendItem->setPen( QColor( 140, 140, 140, 80 ) );
+    ui->graphView->addItem( periodicSampleLegendItem );
+
+    textLabel = new QCPItemText( ui->graphView );;
+    textLabel->setClipAxisRect( axisRect );
+    textLabel->setPadding( QMargins(0,-2,0,0) );
+    textLabel->setPositionAlignment( Qt::AlignTop|Qt::AlignLeft );
+    textLabel->position->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
+    textLabel->position->setTypeX( QCPItemPosition::ptAbsolute );
+    textLabel->position->setTypeY( QCPItemPosition::ptAxisRectRatio );
+    textLabel->position->setCoords( 74.0, 0.22 );
+    textLabel->position->setAxisRect( axisRect );
+    textLabel->setText( tr("Sample Counts") );
+    textLabel->setFont( QFont(font().family(), 8) );
+    ui->graphView->addItem( textLabel );
+}
+
+/**
  * @brief PerformanceDataPlotView::handleAddCluster
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterName - the cluster name
@@ -580,6 +677,10 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
         return;
 
     QMutexLocker guard( &m_mutex );
+
+    if ( 0 == m_metricGroups.size() ) {
+        addLegend( axisRect );
+    }
 
     MetricGroup* metricGroup( Q_NULLPTR );
     if ( ! m_metricGroups.contains( clusteringCriteriaName ) ) {

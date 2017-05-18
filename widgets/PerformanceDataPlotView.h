@@ -104,6 +104,7 @@ private slots:
 
 private:
 
+    void addLegend(QCPAxisRect *axisRect);
     void initPlotView(const QString& metricGroupName, QCPAxisRect* axisRect);
     QList< QCPAxis* > getAxesForMetricGroup(const QCPAxis::AxisType axisType, const QString& metricGroupName);
     const QCPRange getRange(const QVector<double> &values, bool sortHint = false);
