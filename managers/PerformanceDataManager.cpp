@@ -1602,6 +1602,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
 #else
     QMap< Base::ThreadName, Thread>::iterator iter( threads.begin() );
     QVector< bool > isGpuSampleCounters;
+    QMap< QString, bool > isGpuSampleCounterPercentage;
     while ( iter != threads.end() ) {
         Thread thread( *iter );
         QString hostName = ArgoNavis::CUDA::getUniqueClusterName( thread );
@@ -1611,10 +1612,16 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
         Base::ThreadName threadName( iter.key() );
         std::vector< uint64_t> counterValues( data.counts( threadName, data.interval() ) );
         bool hasGpuCounters( false );
+        bool hasGpuPercentageCounter( false );
         for ( std::size_t i=0; i<counterValues.size() && ! hasGpuCounters; i++ ) {
             hasGpuCounters |= ( ( counterValues[i] != 0 ) && gpuCounterIndexes.contains(i) );
+#ifdef HAS_METRIC_TYPES
+            if ( hasGpuCounters && gpuCounterIndexes.contains(i) ) {
+                hasGpuPercentageCounter |= ( data.counters()[i].kind == Percentage );
+            }
+#endif
         }
-        isGpuSampleCounters << hasGpuCounters;
+        isGpuSampleCounterPercentage[ hostName ] = hasGpuPercentageCounter;
         ++iter;
     }
 #endif
@@ -1633,7 +1640,8 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
                                boost::cref(data), _1, boost::cref(gpuCounterIndexes), boost::cref(clusteringCriteriaName) ) );
 
         foreach( const QString& clusterName, clusterNames ) {
-            emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs );
+            bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
+            emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs, hasGpuPercentageCounter);
         }
 
         std::vector<CUDA::Device> devices;

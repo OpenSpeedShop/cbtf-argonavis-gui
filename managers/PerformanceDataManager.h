@@ -161,7 +161,7 @@ signals:
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
     void removeCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
-    void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration);
+    void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisPercentage);
 
     void graphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size);
 

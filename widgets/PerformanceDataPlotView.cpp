@@ -93,7 +93,7 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( this, &PerformanceDataPlotView::graphRangeChanged, dataMgr, &PerformanceDataManager::graphRangeChanged );
 #else
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAddCluster(QString,QString)), Qt::QueuedConnection );
-        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double)), this, SLOT(handleSetMetricDuration(QString,QString,double)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double)), this, SLOT(handleSetMetricDuration(QString,QString,double,bool)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), this, SLOT(handleAddDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addPeriodicSample(QString,QString,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,QString,double,double,double)), Qt::QueuedConnection );
@@ -733,7 +733,7 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
  *
  * This method sets the upper value of the visible range of data in the graph view.  Also cause update of metric graph by calling QCustomPlot::replot method.
  */
-void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration)
+void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisPercentage)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
@@ -754,6 +754,9 @@ void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringC
         QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
         QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
 
+        if ( yAxisPercentage ) {
+            yAxis->setRange( 0.0, 100.0 );
+        }
         yAxis->setLabel( clusterName );
         yAxis->setVisible( true );
 

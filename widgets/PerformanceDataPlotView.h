@@ -83,7 +83,7 @@ private slots:
 
     void handleAddCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
-    void handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration);
+    void handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisPercentage);
 
     void handleAddDataTransfer(const QString &clusteringCriteriaName,
                                const QString &clusterName,
