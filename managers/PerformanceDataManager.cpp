@@ -55,6 +55,7 @@
 #include <ArgoNavis/CUDA/DataTransfer.hpp>
 #include <ArgoNavis/CUDA/KernelExecution.hpp>
 #include <ArgoNavis/CUDA/stringify.hpp>
+#include <ArgoNavis/CUDA/CounterKind.hpp>
 
 #include "collectors/usertime/UserTimeDetail.hxx"
 #include "collectors/cuda/CUDAExecDetail.hxx"
@@ -1617,7 +1618,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
             hasGpuCounters |= ( ( counterValues[i] != 0 ) && gpuCounterIndexes.contains(i) );
 #ifdef HAS_METRIC_TYPES
             if ( hasGpuCounters && gpuCounterIndexes.contains(i) ) {
-                hasGpuPercentageCounter |= ( data.counters()[i].kind == Percentage );
+                hasGpuPercentageCounter |= ( data.counters()[i].kind == CUDA::kPercentage );
             }
 #endif
         }
