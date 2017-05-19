@@ -1643,7 +1643,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
 
             int definedDevice = -1;
 
-            for (int d=0; d<devices.size(); d++ ) {
+            for (std::size_t d=0; d<devices.size(); d++ ) {
                 if ( devices[d] == device ) {
                     definedDevice = d;
                     break;
