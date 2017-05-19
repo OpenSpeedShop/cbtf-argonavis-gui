@@ -1621,6 +1621,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
             }
 #endif
         }
+        isGpuSampleCounters << hasGpuCounters;
         isGpuSampleCounterPercentage[ hostName ] = hasGpuPercentageCounter;
         ++iter;
     }
