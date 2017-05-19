@@ -329,6 +329,11 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
     if ( info.metricViewList.contains( metricViewName ) )
         return;
 
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QString("generate-%1").arg(metricViewName) );
+    }
+
     info.metricViewList << metricViewName;
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
@@ -384,6 +389,10 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusterName,
 
             emit requestMetricViewComplete( clusterName, metricName, viewName, lower, upper );
         }
+    }
+
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
     }
 }
 
