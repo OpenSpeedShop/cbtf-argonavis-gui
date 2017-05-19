@@ -678,9 +678,7 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
 
     QMutexLocker guard( &m_mutex );
 
-    if ( 0 == m_metricGroups.size() ) {
-        addLegend( axisRect );
-    }
+    const bool needLegend( 0 == m_metricGroups.size() );
 
     MetricGroup* metricGroup( Q_NULLPTR );
     if ( ! m_metricGroups.contains( clusteringCriteriaName ) ) {
@@ -723,6 +721,10 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
     axisRect->setMargins( QMargins( 0, 0, 0, 0 ) );
 
     initPlotView( clusteringCriteriaName, axisRect );
+
+    if ( needLegend ) {
+        addLegend( axisRect );
+    }
 }
 
 /**
