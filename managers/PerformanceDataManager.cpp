@@ -1476,6 +1476,8 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
         m_tableViewInfo.remove( clusterName );
         emit removeCluster( clusteringCriteriaName, clusterName );
     }
+
+    ArgoNavis::CUDA::resetThreadMap();
 }
 
 /**
@@ -1644,6 +1646,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
         foreach( const QString& clusterName, clusterNames ) {
             bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
             emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs, hasGpuPercentageCounter);
+            qDebug() << "CLUSTER NAME: " << clusterName << " PERCENTAGE SAMPLE COUNTER? " << hasGpuPercentageCounter;
         }
 
         std::vector<CUDA::Device> devices;

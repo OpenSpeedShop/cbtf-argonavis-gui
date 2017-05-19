@@ -31,6 +31,8 @@
 
 namespace ArgoNavis { namespace CUDA {
 
+    void resetThreadMap();
+
     const QString getUniqueClusterName(const Base::ThreadName& thread);
 
     const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread& thread);

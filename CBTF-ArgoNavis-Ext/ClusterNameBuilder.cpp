@@ -109,5 +109,10 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread& threa
     return clusterName;
 }
 
+void resetThreadMap()
+{
+    m_tidmap.clear();
+}
+
 } // CUDA
 } // ArgoNavis
