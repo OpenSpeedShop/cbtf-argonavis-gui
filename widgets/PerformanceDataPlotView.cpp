@@ -93,7 +93,7 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( this, &PerformanceDataPlotView::graphRangeChanged, dataMgr, &PerformanceDataManager::graphRangeChanged );
 #else
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAddCluster(QString,QString)), Qt::QueuedConnection );
-        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double)), this, SLOT(handleSetMetricDuration(QString,QString,double,bool)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double,bool)), this, SLOT(handleSetMetricDuration(QString,QString,double,bool)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), this, SLOT(handleAddDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addPeriodicSample(QString,QString,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,QString,double,double,double)), Qt::QueuedConnection );
