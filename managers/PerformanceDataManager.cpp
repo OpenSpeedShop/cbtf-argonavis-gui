@@ -1771,26 +1771,26 @@ void PerformanceDataManager::sortByFixedComponent(ForwardIterator first, Forward
  * otherwise it returns false.  Thus, std::partition will move all the currently processed caller->callee
  * related stack frames to the top of the container.
  */
-bool PerformanceDataManager::partition_sort(const std::string& functionName,
-                                            const std::string& linkedObjectName,
-                                            const std::string& callingFunctionName,
-                                            const std::string& callingLinkedObjectName,
+bool PerformanceDataManager::partition_sort(const Function& function,
+                                            const std::set< Function >& callingFunctionSet,
                                             const all_details_data_t& d)
 {
     const Function& func( get<2>(d) );
-    const std::set< Function >& callingFunction( get<3>(d) );
-    std::string cfuncName;
-    std::string cfuncLinkedObjectName;
-    if ( ! callingFunction.empty() ) {
-        const Function cfunc( *(callingFunction.begin()) );
-        cfuncName = cfunc.getName();
-        cfuncLinkedObjectName = cfunc.getLinkedObject().getPath();
+    const std::set< Function >& callingFuncSet( get<3>(d) );
+
+    if ( ! callingFunctionSet.empty() ) {
+        const Function& callingFunction( *callingFunctionSet.begin() );
+        if ( ! callingFuncSet.empty() ) {
+            const Function& callingFunc( *callingFuncSet.begin() );
+            // Same caller -> callee relationship?  This is determined by comparing the caller function and
+            // linked object name and callee function and linked object name to the current function and linked
+            // object name of the current item in the caller function list being processed.
+            return ( ( func == function ) && ( callingFunction == callingFunc ) );
+        }
+        return false;
     }
-    // Same caller -> callee relationship?  This is determined by comparing the caller function and
-    // linked object name and callee function and linked object name to the current function and linked
-    // object name of the current item in the caller function list being processed.
-    return func.getName() == functionName && func.getLinkedObject().getPath() == linkedObjectName &&
-            callingFunctionName == cfuncName && callingLinkedObjectName == cfuncLinkedObjectName;
+
+    return callingFuncSet.empty();
 }
 
 /**
@@ -1829,25 +1829,18 @@ void PerformanceDataManager::detail_reduction(
 
         // getting called function name and linked object name
         Function function = get<1>(elem);
-        std::string functionName( function.getName() );
-        std::string linkedObjectName( function.getLinkedObject().getPath() );
+
+        // get call depth
         uint32_t depth = ( call_depth_map.find( function ) != call_depth_map.end() ) ? call_depth_map[ function ] : 0;
 
         // getting caller function name and linked object name
-        std::string callingFunctionName;
-        std::string callingLinkedObjectName;
         std::set< Function > caller = get<0>(elem);
-        if ( ! caller.empty() ) {
-            const Function callingFunction( *(caller.begin()) );
-            callingFunctionName = callingFunction.getName();
-            callingLinkedObjectName = callingFunction.getLinkedObject().getPath();
-        }
 
         // partition remaining raw details per caller->callee relationships for current caller being processed in the caller function list
         TALLDETAILS::iterator eiter = std::partition(
                     siter, all_details.end(),
                     boost::bind( &PerformanceDataManager::partition_sort, this,
-                                 boost::cref(functionName), boost::cref(linkedObjectName), boost::cref(callingFunctionName), boost::cref(callingLinkedObjectName), _1 ) );
+                                 boost::cref(function), boost::cref(caller), _1 ) );
 
         // exit when reached end of raw details
         if ( siter == all_details.end() )

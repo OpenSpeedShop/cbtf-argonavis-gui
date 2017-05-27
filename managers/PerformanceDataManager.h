@@ -241,10 +241,8 @@ private:
     template <int N, typename BinaryPredicate, typename ForwardIterator>
     void sortByFixedComponent (ForwardIterator first, ForwardIterator last);
 
-    bool partition_sort(const std::string& functionName,
-                        const std::string& linkedObjectName,
-                        const std::string& callingFunctionName,
-                        const std::string& callingLinkedObjectName,
+    bool partition_sort(const OpenSpeedShop::Framework::Function &function,
+                        const std::set<OpenSpeedShop::Framework::Function> &callingFunctionSet,
                         const all_details_data_t& d);
 
     void print_details(const std::string& details_name, const TDETAILS &details) const;
