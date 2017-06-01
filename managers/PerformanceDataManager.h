@@ -34,6 +34,7 @@
 #include <QAtomicPointer>
 #include <QFutureSynchronizer>
 #include <QMutex>
+#include <QThread>
 
 #include <vector>
 // use either std::tuple or boost::tuple
@@ -98,7 +99,11 @@ namespace GUI {
 class BackgroundGraphRenderer;
 
 
+#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+class PerformanceDataManager : public QThread
+#else
 class PerformanceDataManager : public QObject
+#endif
 {
     Q_OBJECT
     Q_DISABLE_COPY(PerformanceDataManager)
@@ -334,11 +339,6 @@ private:
     QMap< int, QVector<double> > m_rawValues;
 
     BackgroundGraphRenderer* m_renderer;
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
-    // thread for BackgroundGraphRenderer instance
-    QThread m_thread;
-#endif
 
     typedef struct {
         QStringList metricList;

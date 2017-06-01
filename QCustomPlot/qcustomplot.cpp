@@ -6391,7 +6391,7 @@ void QCPAxisPainterPrivate::placeTickLabel(QCPPainter *painter, double position,
       cachedLabel = new CachedLabel;
       TickLabelData labelData = getTickLabelData(painter->font(), text);
       cachedLabel->offset = getTickLabelDrawOffset(labelData)+labelData.rotatedTotalBounds.topLeft();
-      cachedLabel->pixmap = QPixmap(labelData.rotatedTotalBounds.size());
+      cachedLabel->pixmap = QImage(labelData.rotatedTotalBounds.size(), QImage::Format_ARGB32);
       cachedLabel->pixmap.fill(Qt::transparent);
       QCPPainter cachePainter(&cachedLabel->pixmap);
       cachePainter.setPen(painter->pen());
@@ -6408,7 +6408,7 @@ void QCPAxisPainterPrivate::placeTickLabel(QCPPainter *painter, double position,
     }
     if (!labelClippedByBorder)
     {
-      painter->drawPixmap(labelAnchor+cachedLabel->offset, cachedLabel->pixmap);
+      painter->drawImage(labelAnchor+cachedLabel->offset, cachedLabel->pixmap);
       finalSize = cachedLabel->pixmap.size();
     }
     mLabelCache.insert(text, cachedLabel); // return label to cache or insert for the first time if newly created
@@ -9034,7 +9034,7 @@ QCustomPlot::QCustomPlot(QWidget *parent) :
   mCurrentLayer(0),
   mPlottingHints(QCP::phCacheLabels|QCP::phForceRepaint),
   mMultiSelectModifier(Qt::ControlModifier),
-  mPaintBuffer(size()),
+  mPaintBuffer(size(),QImage::Format_ARGB32),
   mMouseEventElement(0),
   mReplotting(false)
 {
@@ -9381,10 +9381,10 @@ void QCustomPlot::setViewport(const QRect &rect)
 
   \see setBackgroundScaled, setBackgroundScaledMode
 */
-void QCustomPlot::setBackground(const QPixmap &pm)
+void QCustomPlot::setBackground(const QImage &pm)
 {
   mBackgroundPixmap = pm;
-  mScaledBackgroundPixmap = QPixmap();
+  mScaledBackgroundPixmap = QImage();
 }
 
 /*!
@@ -9412,10 +9412,10 @@ void QCustomPlot::setBackground(const QBrush &brush)
 
   \see setBackground(const QPixmap &pm), setBackgroundScaled, setBackgroundScaledMode
 */
-void QCustomPlot::setBackground(const QPixmap &pm, bool scaled, Qt::AspectRatioMode mode)
+void QCustomPlot::setBackground(const QImage &pm, bool scaled, Qt::AspectRatioMode mode)
 {
   mBackgroundPixmap = pm;
-  mScaledBackgroundPixmap = QPixmap();
+  mScaledBackgroundPixmap = QImage();
   mBackgroundScaled = scaled;
   mBackgroundScaledMode = mode;
 }
@@ -10658,7 +10658,7 @@ void QCustomPlot::paintEvent(QPaintEvent *event)
 {
   Q_UNUSED(event);
   QPainter painter(this);
-  painter.drawPixmap(0, 0, mPaintBuffer);
+  painter.drawImage(0, 0, mPaintBuffer);
 }
 
 /*! \internal
@@ -10670,7 +10670,7 @@ void QCustomPlot::paintEvent(QPaintEvent *event)
 void QCustomPlot::resizeEvent(QResizeEvent *event)
 {
   // resize and repaint the buffer:
-  mPaintBuffer = QPixmap(event->size());
+  mPaintBuffer = QImage(event->size(), QImage::Format_ARGB32);
   setViewport(rect());
   replot(rpQueued); // queued update is important here, to prevent painting issues in some contexts
 }
@@ -10940,10 +10940,10 @@ void QCustomPlot::drawBackground(QCPPainter *painter)
       scaledSize.scale(mViewport.size(), mBackgroundScaledMode);
       if (mScaledBackgroundPixmap.size() != scaledSize)
         mScaledBackgroundPixmap = mBackgroundPixmap.scaled(mViewport.size(), mBackgroundScaledMode, Qt::SmoothTransformation);
-      painter->drawPixmap(mViewport.topLeft(), mScaledBackgroundPixmap, QRect(0, 0, mViewport.width(), mViewport.height()) & mScaledBackgroundPixmap.rect());
+      painter->drawImage(mViewport.topLeft(), mScaledBackgroundPixmap, QRect(0, 0, mViewport.width(), mViewport.height()) & mScaledBackgroundPixmap.rect());
     } else
     {
-      painter->drawPixmap(mViewport.topLeft(), mBackgroundPixmap, QRect(0, 0, mViewport.width(), mViewport.height()));
+      painter->drawImage(mViewport.topLeft(), mBackgroundPixmap, QRect(0, 0, mViewport.width(), mViewport.height()));
     }
   }
 }
@@ -12190,10 +12190,10 @@ void QCPAxisRect::draw(QCPPainter *painter)
   
   \see setBackgroundScaled, setBackgroundScaledMode, setBackground(const QBrush &brush)
 */
-void QCPAxisRect::setBackground(const QPixmap &pm)
+void QCPAxisRect::setBackground(const QImage &pm)
 {
   mBackgroundPixmap = pm;
-  mScaledBackgroundPixmap = QPixmap();
+  mScaledBackgroundPixmap = QImage();
 }
 
 /*! \overload
@@ -12221,10 +12221,10 @@ void QCPAxisRect::setBackground(const QBrush &brush)
 
   \see setBackground(const QPixmap &pm), setBackgroundScaled, setBackgroundScaledMode
 */
-void QCPAxisRect::setBackground(const QPixmap &pm, bool scaled, Qt::AspectRatioMode mode)
+void QCPAxisRect::setBackground(const QImage &pm, bool scaled, Qt::AspectRatioMode mode)
 {
   mBackgroundPixmap = pm;
-  mScaledBackgroundPixmap = QPixmap();
+  mScaledBackgroundPixmap = QImage();
   mBackgroundScaled = scaled;
   mBackgroundScaledMode = mode;
 }
@@ -12410,10 +12410,10 @@ void QCPAxisRect::drawBackground(QCPPainter *painter)
       scaledSize.scale(mRect.size(), mBackgroundScaledMode);
       if (mScaledBackgroundPixmap.size() != scaledSize)
         mScaledBackgroundPixmap = mBackgroundPixmap.scaled(mRect.size(), mBackgroundScaledMode, Qt::SmoothTransformation);
-      painter->drawPixmap(mRect.topLeft()+QPoint(0, -1), mScaledBackgroundPixmap, QRect(0, 0, mRect.width(), mRect.height()) & mScaledBackgroundPixmap.rect());
+      painter->drawImage(mRect.topLeft()+QPoint(0, -1), mScaledBackgroundPixmap, QRect(0, 0, mRect.width(), mRect.height()) & mScaledBackgroundPixmap.rect());
     } else
     {
-      painter->drawPixmap(mRect.topLeft()+QPoint(0, -1), mBackgroundPixmap, QRect(0, 0, mRect.width(), mRect.height()));
+      painter->drawImage(mRect.topLeft()+QPoint(0, -1), mBackgroundPixmap, QRect(0, 0, mRect.width(), mRect.height()));
     }
   }
 }
@@ -20294,7 +20294,7 @@ void QCPColorMap::updateLegendIcon(Qt::TransformationMode transformMode, const Q
   {
     bool mirrorX = (keyAxis()->orientation() == Qt::Horizontal ? keyAxis() : valueAxis())->rangeReversed();
     bool mirrorY = (valueAxis()->orientation() == Qt::Vertical ? valueAxis() : keyAxis())->rangeReversed();
-    mLegendIcon = QPixmap::fromImage(mMapImage.mirrored(mirrorX, mirrorY)).scaled(thumbSize, Qt::KeepAspectRatio, transformMode);
+    mLegendIcon = mMapImage.mirrored(mirrorX, mirrorY).scaled(thumbSize, Qt::KeepAspectRatio, transformMode);
   }
 }
 
@@ -20476,10 +20476,10 @@ void QCPColorMap::drawLegendIcon(QCPPainter *painter, const QRectF &rect) const
   // draw map thumbnail:
   if (!mLegendIcon.isNull())
   {
-    QPixmap scaledIcon = mLegendIcon.scaled(rect.size().toSize(), Qt::KeepAspectRatio, Qt::FastTransformation);
+    QImage scaledIcon = mLegendIcon.scaled(rect.size().toSize(), Qt::KeepAspectRatio, Qt::FastTransformation);
     QRectF iconRect = QRectF(0, 0, scaledIcon.width(), scaledIcon.height());
     iconRect.moveCenter(rect.center());
-    painter->drawPixmap(iconRect.topLeft(), scaledIcon);
+    painter->drawImage(iconRect.topLeft(), scaledIcon);
   }
   /*
   // draw frame:
@@ -22756,7 +22756,7 @@ QCPItemPixmap::~QCPItemPixmap()
 /*!
   Sets the pixmap that will be displayed.
 */
-void QCPItemPixmap::setPixmap(const QPixmap &pixmap)
+void QCPItemPixmap::setPixmap(const QImage &pixmap)
 {
   mPixmap = pixmap;
   mScaledPixmapInvalidated = true;
@@ -22817,7 +22817,7 @@ void QCPItemPixmap::draw(QCPPainter *painter)
   if (boundingRect.intersects(clipRect()))
   {
     updateScaledPixmap(rect, flipHorz, flipVert);
-    painter->drawPixmap(rect.topLeft(), mScaled ? mScaledPixmap : mPixmap);
+    painter->drawImage(rect.topLeft(), mScaled ? mScaledPixmap : mPixmap);
     QPen pen = mainPen();
     if (pen.style() != Qt::NoPen)
     {
@@ -22881,10 +22881,10 @@ void QCPItemPixmap::updateScaledPixmap(QRect finalRect, bool flipHorz, bool flip
     {
       mScaledPixmap = mPixmap.scaled(finalRect.size(), mAspectRatioMode, mTransformationMode);
       if (flipHorz || flipVert)
-        mScaledPixmap = QPixmap::fromImage(mScaledPixmap.toImage().mirrored(flipHorz, flipVert));
+        mScaledPixmap = mScaledPixmap.mirrored(flipHorz, flipVert);
     }
   } else if (!mScaledPixmap.isNull())
-    mScaledPixmap = QPixmap();
+    mScaledPixmap = QImage();
   mScaledPixmapInvalidated = false;
 }
 

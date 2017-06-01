@@ -1362,7 +1362,7 @@ protected:
   struct CachedLabel
   {
     QPointF offset;
-    QPixmap pixmap;
+    QImage pixmap;
   };
   struct TickLabelData
   {
@@ -1682,7 +1682,7 @@ class QCP_LIB_DECL QCustomPlot : public QWidget
   Q_OBJECT
   /// \cond INCLUDE_QPROPERTIES
   Q_PROPERTY(QRect viewport READ viewport WRITE setViewport)
-  Q_PROPERTY(QPixmap background READ background WRITE setBackground)
+  Q_PROPERTY(QImage background READ background WRITE setBackground)
   Q_PROPERTY(bool backgroundScaled READ backgroundScaled WRITE setBackgroundScaled)
   Q_PROPERTY(Qt::AspectRatioMode backgroundScaledMode READ backgroundScaledMode WRITE setBackgroundScaledMode)
   Q_PROPERTY(QCPLayoutGrid* plotLayout READ plotLayout)
@@ -1717,7 +1717,7 @@ public:
   
   // getters:
   QRect viewport() const { return mViewport; }
-  QPixmap background() const { return mBackgroundPixmap; }
+  QImage background() const { return mBackgroundPixmap; }
   bool backgroundScaled() const { return mBackgroundScaled; }
   Qt::AspectRatioMode backgroundScaledMode() const { return mBackgroundScaledMode; }
   QCPLayoutGrid *plotLayout() const { return mPlotLayout; }
@@ -1732,8 +1732,8 @@ public:
 
   // setters:
   void setViewport(const QRect &rect);
-  void setBackground(const QPixmap &pm);
-  void setBackground(const QPixmap &pm, bool scaled, Qt::AspectRatioMode mode=Qt::KeepAspectRatioByExpanding);
+  void setBackground(const QImage &pm);
+  void setBackground(const QImage &pm, bool scaled, Qt::AspectRatioMode mode=Qt::KeepAspectRatioByExpanding);
   void setBackground(const QBrush &brush);
   void setBackgroundScaled(bool scaled);
   void setBackgroundScaledMode(Qt::AspectRatioMode mode);
@@ -1855,8 +1855,8 @@ protected:
   int mSelectionTolerance;
   bool mNoAntialiasingOnDrag;
   QBrush mBackgroundBrush;
-  QPixmap mBackgroundPixmap;
-  QPixmap mScaledBackgroundPixmap;
+  QImage mBackgroundPixmap;
+  QImage mScaledBackgroundPixmap;
   bool mBackgroundScaled;
   Qt::AspectRatioMode mBackgroundScaledMode;
   QCPLayer *mCurrentLayer;
@@ -1864,7 +1864,7 @@ protected:
   Qt::KeyboardModifier mMultiSelectModifier;
   
   // non-property members:
-  QPixmap mPaintBuffer;
+  QImage mPaintBuffer;
   QPoint mMousePressPos;
   QPointer<QCPLayoutElement> mMouseEventElement;
   bool mReplotting;
@@ -1973,7 +1973,7 @@ class QCP_LIB_DECL QCPAxisRect : public QCPLayoutElement
 {
   Q_OBJECT
   /// \cond INCLUDE_QPROPERTIES
-  Q_PROPERTY(QPixmap background READ background WRITE setBackground)
+  Q_PROPERTY(QImage background READ background WRITE setBackground)
   Q_PROPERTY(bool backgroundScaled READ backgroundScaled WRITE setBackgroundScaled)
   Q_PROPERTY(Qt::AspectRatioMode backgroundScaledMode READ backgroundScaledMode WRITE setBackgroundScaledMode)
   Q_PROPERTY(Qt::Orientations rangeDrag READ rangeDrag WRITE setRangeDrag)
@@ -1984,7 +1984,7 @@ public:
   virtual ~QCPAxisRect();
   
   // getters:
-  QPixmap background() const { return mBackgroundPixmap; }
+  QImage background() const { return mBackgroundPixmap; }
   bool backgroundScaled() const { return mBackgroundScaled; }
   Qt::AspectRatioMode backgroundScaledMode() const { return mBackgroundScaledMode; }
   Qt::Orientations rangeDrag() const { return mRangeDrag; }
@@ -1994,8 +1994,8 @@ public:
   double rangeZoomFactor(Qt::Orientation orientation);
   
   // setters:
-  void setBackground(const QPixmap &pm);
-  void setBackground(const QPixmap &pm, bool scaled, Qt::AspectRatioMode mode=Qt::KeepAspectRatioByExpanding);
+  void setBackground(const QImage &pm);
+  void setBackground(const QImage &pm, bool scaled, Qt::AspectRatioMode mode=Qt::KeepAspectRatioByExpanding);
   void setBackground(const QBrush &brush);
   void setBackgroundScaled(bool scaled);
   void setBackgroundScaledMode(Qt::AspectRatioMode mode);
@@ -2042,8 +2042,8 @@ public:
 protected:
   // property members:
   QBrush mBackgroundBrush;
-  QPixmap mBackgroundPixmap;
-  QPixmap mScaledBackgroundPixmap;
+  QImage mBackgroundPixmap;
+  QImage mScaledBackgroundPixmap;
   bool mBackgroundScaled;
   Qt::AspectRatioMode mBackgroundScaledMode;
   QCPLayoutInset *mInsetLayout;
@@ -3100,7 +3100,7 @@ protected:
   QPointer<QCPColorScale> mColorScale;
   // non-property members:
   QImage mMapImage, mUndersampledMapImage;
-  QPixmap mLegendIcon;
+  QImage mLegendIcon;
   bool mMapImageInvalidated;
   
   // introduced virtual methods:
@@ -3571,7 +3571,7 @@ class QCP_LIB_DECL QCPItemPixmap : public QCPAbstractItem
 {
   Q_OBJECT
   /// \cond INCLUDE_QPROPERTIES
-  Q_PROPERTY(QPixmap pixmap READ pixmap WRITE setPixmap)
+  Q_PROPERTY(QImage pixmap READ pixmap WRITE setPixmap)
   Q_PROPERTY(bool scaled READ scaled WRITE setScaled)
   Q_PROPERTY(Qt::AspectRatioMode aspectRatioMode READ aspectRatioMode)
   Q_PROPERTY(Qt::TransformationMode transformationMode READ transformationMode)
@@ -3583,7 +3583,7 @@ public:
   virtual ~QCPItemPixmap();
   
   // getters:
-  QPixmap pixmap() const { return mPixmap; }
+  QImage pixmap() const { return mPixmap; }
   bool scaled() const { return mScaled; }
   Qt::AspectRatioMode aspectRatioMode() const { return mAspectRatioMode; }
   Qt::TransformationMode transformationMode() const { return mTransformationMode; }
@@ -3591,7 +3591,7 @@ public:
   QPen selectedPen() const { return mSelectedPen; }
   
   // setters;
-  void setPixmap(const QPixmap &pixmap);
+  void setPixmap(const QImage &pixmap);
   void setScaled(bool scaled, Qt::AspectRatioMode aspectRatioMode=Qt::KeepAspectRatio, Qt::TransformationMode transformationMode=Qt::SmoothTransformation);
   void setPen(const QPen &pen);
   void setSelectedPen(const QPen &pen);
@@ -3612,8 +3612,8 @@ protected:
   enum AnchorIndex {aiTop, aiTopRight, aiRight, aiBottom, aiBottomLeft, aiLeft};
   
   // property members:
-  QPixmap mPixmap;
-  QPixmap mScaledPixmap;
+  QImage mPixmap;
+  QImage mScaledPixmap;
   bool mScaled;
   bool mScaledPixmapInvalidated;
   Qt::AspectRatioMode mAspectRatioMode;
