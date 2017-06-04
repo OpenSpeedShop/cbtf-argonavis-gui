@@ -61,6 +61,7 @@
 #include "collectors/cuda/CUDAExecDetail.hxx"
 #include "collectors/mpi/MPIDetail.hxx"
 #include "collectors/pthreads/PthreadsDetail.hxx"
+#include "collectors/omptp/OmptPDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -218,7 +219,11 @@ struct ltST {
  * Private constructor to construct a singleton PerformanceDataManager instance.
  */
 PerformanceDataManager::PerformanceDataManager(QObject *parent)
+#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+    : QThread( parent )
+#else
     : QObject( parent )
+#endif
     , m_renderer( Q_NULLPTR )
 {
     qRegisterMetaType< Base::Time >("Base::Time");
@@ -228,13 +233,11 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     qRegisterMetaType< QVector< bool > >("QVector< bool >");
 
     m_renderer = new BackgroundGraphRenderer;
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
-    m_thread.start();
-    m_renderer->moveToThread( &m_thread );
-#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
-    qDebug() << "PerformanceDataManager::PerformanceDataManager: &m_thread=" << QString::number((long long)&m_thread, 16);
+#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+    start();
+    m_renderer->moveToThread( this );
 #endif
-#endif
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( this, &PerformanceDataManager::loadComplete, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
     connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
@@ -257,9 +260,9 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
  */
 PerformanceDataManager::~PerformanceDataManager()
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
-    m_thread.quit();
-    m_thread.wait();
+#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+    quit();
+    wait();
 #endif
     delete m_renderer;
 }
@@ -1118,6 +1121,9 @@ void PerformanceDataManager::processCalltreeView(const Collector collector, cons
     }
     else if ( collectorId == "pthreads" ) {
         ShowCalltreeDetail< std::vector<Framework::PthreadsDetail> >( collector, threads, interval, functions, "inclusive_details", metricDesc );
+    }
+    else if ( collectorId == "omptp" ) {
+        ShowCalltreeDetail< Framework::OmptPDetail >( collector, threads, interval, functions, "inclusive_detail", metricDesc );
     }
 }
 
