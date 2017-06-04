@@ -219,11 +219,7 @@ struct ltST {
  * Private constructor to construct a singleton PerformanceDataManager instance.
  */
 PerformanceDataManager::PerformanceDataManager(QObject *parent)
-#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
-    : QThread( parent )
-#else
     : QObject( parent )
-#endif
     , m_renderer( Q_NULLPTR )
 {
     qRegisterMetaType< Base::Time >("Base::Time");
@@ -234,8 +230,8 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 
     m_renderer = new BackgroundGraphRenderer;
 #if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
-    start();
-    m_renderer->moveToThread( this );
+    m_thread.start();
+    m_renderer->moveToThread( &m_thread );
 #endif
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -261,8 +257,8 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 PerformanceDataManager::~PerformanceDataManager()
 {
 #if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
-    quit();
-    wait();
+    m_thread.quit();
+    m_thread.wait();
 #endif
     delete m_renderer;
 }

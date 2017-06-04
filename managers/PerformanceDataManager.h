@@ -335,7 +335,7 @@ private:
 
     BackgroundGraphRenderer* m_renderer;
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
     // thread for BackgroundGraphRenderer instance
     QThread m_thread;
 #endif
