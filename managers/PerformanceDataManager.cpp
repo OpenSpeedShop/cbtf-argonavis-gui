@@ -61,6 +61,7 @@
 #include "collectors/cuda/CUDAExecDetail.hxx"
 #include "collectors/mpi/MPIDetail.hxx"
 #include "collectors/pthreads/PthreadsDetail.hxx"
+#include "collectors/omptp/OmptPDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -1120,6 +1121,9 @@ void PerformanceDataManager::processCalltreeView(const Collector collector, cons
     }
     else if ( collectorId == "pthreads" ) {
         ShowCalltreeDetail< std::vector<Framework::PthreadsDetail> >( collector, threads, interval, functions, "inclusive_details", metricDesc );
+    }
+    else if ( collectorId == "omptp" ) {
+        ShowCalltreeDetail< Framework::OmptPDetail >( collector, threads, interval, functions, "inclusive_detail", metricDesc );
     }
 }
 

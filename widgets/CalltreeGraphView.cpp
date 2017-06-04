@@ -79,7 +79,7 @@ void CalltreeGraphView::handleDisplayGraphView(const QString& graph)
     if ( ! graph.isEmpty() ) {
         // set graph attributes
         QGraphCanvas::NameValueList graphAttributeList;
-        graphAttributeList.push_back( qMakePair( QStringLiteral("nodesep"), QStringLiteral("0.4") ) );;
+        graphAttributeList.push_back( qMakePair( QStringLiteral("nodesep"), QStringLiteral("0.5") ) );
 
         // set default node attributes
         QGraphCanvas::NameValueList nodeAttributeList;
