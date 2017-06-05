@@ -26,6 +26,9 @@
 
 #include <QMutexLocker>
 
+#include <limits>
+
+
 namespace ArgoNavis { namespace GUI {
 
 
@@ -38,7 +41,7 @@ namespace ArgoNavis { namespace GUI {
 ShowDeviceDetailsDialog::ShowDeviceDetailsDialog(QWidget *parent)
     : QDialog( parent )
     , ui( new Ui::ShowDeviceDetailsDialog )
-    , m_lastDevice( -1 )
+    , m_lastDevice( std::numeric_limits< std::size_t >::max() )
 {
     ui->setupUi( this );
 
@@ -70,7 +73,7 @@ void ShowDeviceDetailsDialog::clearAllDevices()
     m_limits.clear();
     m_deviceMap.clear();
 
-    m_lastDevice = -1;
+    m_lastDevice = std::numeric_limits< std::size_t >::max();
 }
 
 /**
@@ -92,20 +95,20 @@ int ShowDeviceDetailsDialog::exec()
     QVariant data = action->data();
 
     // get device number
-    const int device = data.toInt();
+    const std::size_t device = data.toInt();
 
     if ( m_lastDevice != device ) {
         QMutexLocker guard( &m_mutex );
 
         // check whether device map has value for device
-        if ( device < 0 || device >= m_deviceMap.size() )
+        if ( device >= m_deviceMap.size() )
             return QDialog::Rejected;
 
         // get defined device number
-        const int definedDevice = m_deviceMap[ device ];
+        const std::size_t definedDevice = m_deviceMap[ device ];
 
         // check whether attributes and limits vectors have values for defined device
-        if ( definedDevice < 0 || definedDevice >= m_attributes.size() || definedDevice >= m_limits.size() )
+        if ( definedDevice >= m_attributes.size() || definedDevice >= m_limits.size() )
             return QDialog::Rejected;
 
         // class state valid at this point for specified 'device' and 'definedDevice' values
@@ -147,7 +150,7 @@ int ShowDeviceDetailsDialog::exec()
  *
  * This method adds device information to the data model.
  */
-void ShowDeviceDetailsDialog::handleAddDevice(const int deviceNumber, const int definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits)
+void ShowDeviceDetailsDialog::handleAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits)
 {
     QMutexLocker guard( &m_mutex );
 

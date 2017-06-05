@@ -112,7 +112,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );  
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes)) );
-        connect( dataMgr, SIGNAL(addDevice(int,int,NameValueList,NameValueList)), ui->widget_MetricTableView, SIGNAL(signalAddDevice(int,int,NameValueList,NameValueList)) );
+        connect( dataMgr, SIGNAL(addDevice(quint32,quint32,NameValueList,NameValueList)), ui->widget_MetricTableView, SIGNAL(signalAddDevice(quint32,quint32,NameValueList,NameValueList)) );
 #endif
     }
 
