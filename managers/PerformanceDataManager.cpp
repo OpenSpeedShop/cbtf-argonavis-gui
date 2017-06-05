@@ -61,6 +61,7 @@
 #include "collectors/cuda/CUDAExecDetail.hxx"
 #include "collectors/mpi/MPIDetail.hxx"
 #include "collectors/pthreads/PthreadsDetail.hxx"
+#include "collectors/omptp/OmptPDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -219,7 +220,9 @@ struct ltST {
  */
 PerformanceDataManager::PerformanceDataManager(QObject *parent)
     : QObject( parent )
-    , m_renderer( Q_NULLPTR )
+#if defined(ALLOW_GPL_COMPONENTS)
+    , m_renderer( new BackgroundGraphRenderer )
+#endif
 {
     qRegisterMetaType< Base::Time >("Base::Time");
     qRegisterMetaType< CUDA::DataTransfer >("CUDA::DataTransfer");
@@ -227,8 +230,8 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     qRegisterMetaType< QVector< QString > >("QVector< QString >");
     qRegisterMetaType< QVector< bool > >("QVector< bool >");
 
-    m_renderer = new BackgroundGraphRenderer;
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+#if defined(ALLOW_GPL_COMPONENTS)
+#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
     m_thread.start();
     m_renderer->moveToThread( &m_thread );
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
@@ -238,14 +241,18 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( this, &PerformanceDataManager::loadComplete, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
     connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
-    connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
     connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
-    connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeout, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
 #else
     connect( this, SIGNAL(loadComplete()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
     connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,double,double,QSize)) );
-    connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,double,double)) );
     connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
+#endif
+#endif
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
+    connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeout, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
+#else
+    connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,double,double)) );
     connect( &m_userChangeMgr, SIGNAL(timeout(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
 #endif
 }
@@ -257,11 +264,13 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
  */
 PerformanceDataManager::~PerformanceDataManager()
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)) && defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+#if defined(ALLOW_GPL_COMPONENTS)
+#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
     m_thread.quit();
     m_thread.wait();
 #endif
     delete m_renderer;
+#endif
 }
 
 /**
@@ -1119,6 +1128,9 @@ void PerformanceDataManager::processCalltreeView(const Collector collector, cons
     else if ( collectorId == "pthreads" ) {
         ShowCalltreeDetail< std::vector<Framework::PthreadsDetail> >( collector, threads, interval, functions, "inclusive_details", metricDesc );
     }
+    else if ( collectorId == "omptp" ) {
+        ShowCalltreeDetail< Framework::OmptPDetail >( collector, threads, interval, functions, "inclusive_detail", metricDesc );
+    }
 }
 
 /**
@@ -1468,9 +1480,11 @@ void PerformanceDataManager::loadCudaMetricViews(
  */
 void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaName, const QStringList &clusterNames)
 {
+#if defined(ALLOW_GPL_COMPONENTS)
     if ( m_renderer ) {
         m_renderer->unloadCudaViews( clusteringCriteriaName, clusterNames );
     }
+#endif
 
     foreach( const QString& clusterName, clusterNames ) {
         m_tableViewInfo.remove( clusterName );
@@ -1633,7 +1647,9 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const C
     emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, isGpuSampleCounters, sampleCounterNames );
 
     if ( hasCudaCollector ) {
+#if defined(ALLOW_GPL_COMPONENTS)
         m_renderer->setPerformanceData( clusteringCriteriaName, clusterNames, data );
+#endif
 
         foreach( const QString& clusterName, clusterNames ) {
             emit addCluster( clusteringCriteriaName, clusterName );

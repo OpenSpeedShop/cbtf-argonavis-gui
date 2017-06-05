@@ -32,11 +32,16 @@
  * this CustomPlot becomes a child window inside parent. The new CustomPlot is deleted when its parent is deleted.
  */
 CustomPlot::CustomPlot(QWidget *parent)
+#if defined(ALLOW_GPL_COMPONENTS)
     : QCustomPlot( parent )
+#else
+    : QWidget( parent )
+#endif
 {
 
 }
 
+#if defined(ALLOW_GPL_COMPONENTS)
 /**
  * @brief CustomPlot::resizeEvent
  * @param event - the pointer to the resize event
@@ -52,3 +57,4 @@ void CustomPlot::resizeEvent(QResizeEvent *event)
     if ( newSize.width() > 0 && newSize.height() > 0 )
         QCustomPlot::resizeEvent( event );
 }
+#endif

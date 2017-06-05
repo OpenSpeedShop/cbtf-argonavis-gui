@@ -131,16 +131,32 @@ LIBS += -L$$QTGRAPHLIB_ROOT/lib64/$$QT_VERSION -lQtGraph
 
 message("LD_LIBRARY_PATH="$$LD_LIBRARY_PATH)
 
+contains(DEFINES, ALLOW_GPL_COMPONENTS): {
+HEADERS += \
+    graphitems/OSSDataTransferItem.h \
+    graphitems/OSSKernelExecutionItem.h \
+    graphitems/OSSEventItem.h \
+    graphitems/OSSPeriodicSampleItem.h \
+    graphitems/OSSEventsSummaryItem.h \
+    managers/BackgroundGraphRendererBackend.h \
+    managers/BackgroundGraphRenderer.h \
+    QCustomPlot/qcustomplot.h
+
 SOURCES += \
-    QCustomPlot/qcustomplot.cpp \
-    QCustomPlot/CustomPlot.cpp \
-    main/main.cpp \
-    main/MainWindow.cpp \
     graphitems/OSSDataTransferItem.cpp \
     graphitems/OSSKernelExecutionItem.cpp \
     graphitems/OSSEventItem.cpp \
     graphitems/OSSPeriodicSampleItem.cpp \
     graphitems/OSSEventsSummaryItem.cpp \
+    managers/BackgroundGraphRendererBackend.cpp \
+    managers/BackgroundGraphRenderer.cpp \
+    QCustomPlot/qcustomplot.cpp
+}
+
+SOURCES += \
+    QCustomPlot/CustomPlot.cpp \
+    main/main.cpp \
+    main/MainWindow.cpp \
     widgets/TreeItem.cpp \
     widgets/TreeModel.cpp \
     widgets/ExperimentPanel.cpp \
@@ -149,8 +165,6 @@ SOURCES += \
     SourceView/SourceView.cpp \
     SourceView/SyntaxHighlighter.cpp \
     managers/PerformanceDataManager.cpp \
-    managers/BackgroundGraphRendererBackend.cpp \
-    managers/BackgroundGraphRenderer.cpp \
     managers/UserGraphRangeChangeManager.cpp \
     SourceView/ModifyPathSubstitutionsDialog.cpp \
     CBTF-ArgoNavis-Ext/DataTransferDetails.cpp \
@@ -176,14 +190,8 @@ contains(DEFINES, HAS_OSSCUDA2XML): {
 
 HEADERS += \
     common/openss-gui-config.h \
-    QCustomPlot/qcustomplot.h \
     QCustomPlot/CustomPlot.h \
     main/MainWindow.h \
-    graphitems/OSSDataTransferItem.h \
-    graphitems/OSSKernelExecutionItem.h \
-    graphitems/OSSEventItem.h \
-    graphitems/OSSPeriodicSampleItem.h \
-    graphitems/OSSEventsSummaryItem.h \
     widgets/TreeItem.h \
     widgets/TreeModel.h \
     widgets/ExperimentPanel.h \
@@ -192,8 +200,6 @@ HEADERS += \
     SourceView/SourceView.h \
     SourceView/SyntaxHighlighter.h \
     managers/PerformanceDataManager.h \
-    managers/BackgroundGraphRendererBackend.h \
-    managers/BackgroundGraphRenderer.h \
     managers/UserGraphRangeChangeManager.h \
     SourceView/ModifyPathSubstitutionsDialog.h \
     CBTF-ArgoNavis-Ext/DataTransferDetails.h \

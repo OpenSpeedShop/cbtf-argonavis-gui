@@ -27,7 +27,13 @@
 #include <QWidget>
 #include <QMutex>
 
+#if defined(ALLOW_GPL_COMPONENTS)
 #include "qcustomplot.h"
+
+namespace GUI {
+class OSSEventsSummaryItem;
+}
+#endif
 
 #include "common/openss-gui-config.h"
 
@@ -47,9 +53,9 @@ class DataTransfer;
 class KernelExecution;
 }
 
+
 namespace GUI {
 
-class OSSEventsSummaryItem;
 
 class PerformanceDataPlotView : public QWidget
 {
@@ -62,7 +68,9 @@ public:
 
     void unloadExperimentDataFromView(const QString& experimentName);
 
+#if defined(ALLOW_GPL_COMPONENTS)
     QList< QCPAxisRect* > getAxisRectsForMetricGroup(const QString& metricGroupName);
+#endif
 
 signals:
 
@@ -72,6 +80,7 @@ protected:
 
     QSize sizeHint() const Q_DECL_OVERRIDE;
 
+#if defined(ALLOW_GPL_COMPONENTS)
 private slots:
 
     void handleAxisRangeChange(const QCPRange &requestedRange);
@@ -109,11 +118,13 @@ private:
     QList< QCPAxis* > getAxesForMetricGroup(const QCPAxis::AxisType axisType, const QString& metricGroupName);
     const QCPRange getRange(const QVector<double> &values, bool sortHint = false);
     double getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusterName, QSize& size);
+#endif
 
 private:
 
     Ui::PerformanceDataPlotView *ui;
 
+#if defined(ALLOW_GPL_COMPONENTS)
     typedef struct {
         double duration;                          // duration for metric group
         QCPLayoutGrid* layout;                    // layout for the axis rects
@@ -126,6 +137,7 @@ private:
     QMap< QString, MetricGroup* > m_metricGroups; // defines each metric group
 
     QMutex m_mutex;
+#endif
 
     int m_metricCount;
 

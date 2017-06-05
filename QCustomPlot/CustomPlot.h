@@ -24,10 +24,18 @@
 #ifndef CUSTOMPLOT_H
 #define CUSTOMPLOT_H
 
+#include "common/openss-gui-config.h"
+
+#if defined(ALLOW_GPL_COMPONENTS)
 #include "qcustomplot.h"
 
 
 class CustomPlot : public QCustomPlot
+#else
+#include <QWidget>
+
+class CustomPlot : public QWidget
+#endif
 {
     Q_OBJECT
 
@@ -37,7 +45,9 @@ public:
 
 protected:
 
-    virtual void resizeEvent(QResizeEvent *event);
+#if defined(ALLOW_GPL_COMPONENTS)
+    virtual void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
+#endif
 
 };
 

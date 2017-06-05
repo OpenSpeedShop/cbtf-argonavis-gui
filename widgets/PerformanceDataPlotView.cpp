@@ -27,15 +27,18 @@
 #include "managers/PerformanceDataManager.h"
 #include "common/openss-gui-config.h"
 
+#if defined(ALLOW_GPL_COMPONENTS)
 #include "graphitems/OSSDataTransferItem.h"
 #include "graphitems/OSSKernelExecutionItem.h"
 #include "graphitems/OSSPeriodicSampleItem.h"
 #include "graphitems/OSSEventsSummaryItem.h"
+#endif
 
 #include <QtGlobal>
 #include <qmath.h>
 #include <QPen>
 #include <QInputDialog>
+#include <QDateTime>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -57,6 +60,7 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
 
     ui->setupUi( this );
 
+#if defined(ALLOW_GPL_COMPONENTS)
     ui->graphView->plotLayout()->clear(); // remove the default axis rect
 
     ui->graphView->setNoAntialiasingOnDrag( true );
@@ -102,6 +106,7 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), dataMgr, SIGNAL(graphRangeChanged(QString,double,double,QSize)) );
 #endif
     }
+#endif
 }
 
 /**
@@ -115,6 +120,17 @@ PerformanceDataPlotView::~PerformanceDataPlotView()
 }
 
 /**
+ * @brief PerformanceDataPlotView::sizeHint
+ * @return - the recommended size for the PerformanceDataPlotView instance
+ *
+ * Overrides the QWidget::sizeHint method.  Returns the recommended size for the PerformanceDataPlotView instance.
+ */
+QSize PerformanceDataPlotView::sizeHint() const
+{
+    return QSize( QWIDGETSIZE_MAX, QWIDGETSIZE_MAX );
+}
+
+/**
  * @brief PerformanceDataPlotView::unloadExperimentDataFromView
  * @param experimentName - the name of the experiment to remove from view
  *
@@ -124,6 +140,7 @@ void PerformanceDataPlotView::unloadExperimentDataFromView(const QString &experi
 {
     Q_UNUSED( experimentName );  // for now until view supports more than one experiment
 
+#if defined(ALLOW_GPL_COMPONENTS)
     ui->graphView->clearGraphs();
     ui->graphView->clearItems();
     ui->graphView->clearPlottables();
@@ -147,6 +164,33 @@ void PerformanceDataPlotView::unloadExperimentDataFromView(const QString &experi
     m_metricGroups.clear();
 
     m_metricCount = 0;
+#endif
+}
+
+#if defined(ALLOW_GPL_COMPONENTS)
+/**
+ * @brief PerformanceDataPlotView::getAxisRectsForMetricGroup
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @return - the list of axis rects for the metric group (if any or names a valid metric group)
+ *
+ * Determines the list of axis rects for the metric group, if any, or names a valid metric group.
+ */
+QList<QCPAxisRect *> PerformanceDataPlotView::getAxisRectsForMetricGroup(const QString &clusteringCriteriaName)
+{
+    QList<QCPAxisRect *> axisRects;
+
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
+        MetricGroup* group = m_metricGroups[ clusteringCriteriaName ];
+
+        foreach( const QString& metricName, group->metricList ) {
+            if ( group->axisRects.contains( metricName ) )
+                axisRects << group->axisRects.value( metricName );
+        }
+    }
+
+    return axisRects;
 }
 
 /**
@@ -880,42 +924,6 @@ void PerformanceDataPlotView::handleAddPeriodicSample(const QString &clusteringC
 
 /**
  * @brief PerformanceDataPlotView::getAxisRectsForMetricGroup
- * @param clusteringCriteriaName - the clustering criteria name
- * @return - the list of axis rects for the metric group (if any or names a valid metric group)
- *
- * Determines the list of axis rects for the metric group, if any, or names a valid metric group.
- */
-QList<QCPAxisRect *> PerformanceDataPlotView::getAxisRectsForMetricGroup(const QString &clusteringCriteriaName)
-{
-    QList<QCPAxisRect *> axisRects;
-
-    QMutexLocker guard( &m_mutex );
-
-    if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
-        MetricGroup* group = m_metricGroups[ clusteringCriteriaName ];
-
-        foreach( const QString& metricName, group->metricList ) {
-            if ( group->axisRects.contains( metricName ) )
-                axisRects << group->axisRects.value( metricName );
-        }
-    }
-
-    return axisRects;
-}
-
-/**
- * @brief PerformanceDataPlotView::sizeHint
- * @return - the recommended size for the PerformanceDataPlotView instance
- *
- * Overrides the QWidget::sizeHint method.  Returns the recommended size for the PerformanceDataPlotView instance.
- */
-QSize PerformanceDataPlotView::sizeHint() const
-{
-    return QSize( QWIDGETSIZE_MAX, QWIDGETSIZE_MAX );
-}
-
-/**
- * @brief PerformanceDataPlotView::getAxisRectsForMetricGroup
  * @param axisType - the axis type desired
  * @param metricGroupName - the metric group name
  * @return - the list of matching axis instances
@@ -946,6 +954,7 @@ QList<QCPAxis *> PerformanceDataPlotView::getAxesForMetricGroup(const QCPAxis::A
 
     return axes;
 }
+#endif
 
 
 } // GUI
