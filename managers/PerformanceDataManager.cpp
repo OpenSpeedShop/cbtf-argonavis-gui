@@ -1224,6 +1224,8 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
     }
 
     if ( collector ) {
+        bool hasCudaCollector( "cuda" == collector.get().getMetadata().getUniqueId() );
+
         QFutureSynchronizer<void> synchronizer;
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -1247,12 +1249,14 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         info.interval = interval;
 
         m_tableViewInfo[ clusterName ] = info;
-
+        
         QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, collector.get(), experiment.getThreads() );
         synchronizer.addFuture( future1 );
 
-        QFuture<void> future2 = QtConcurrent::run( this, &PerformanceDataManager::handleProcessDetailViews, clusterName );
-        synchronizer.addFuture( future2 );
+        if ( hasCudaCollector ) {
+            QFuture<void> future2 = QtConcurrent::run( this, &PerformanceDataManager::handleProcessDetailViews, clusterName );
+            synchronizer.addFuture( future2 );
+        }
 
         const QString functionView = QStringLiteral("Functions");
 
