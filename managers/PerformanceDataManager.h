@@ -99,11 +99,7 @@ namespace GUI {
 class BackgroundGraphRenderer;
 
 
-#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
-class PerformanceDataManager : public QThread
-#else
 class PerformanceDataManager : public QObject
-#endif
 {
     Q_OBJECT
     Q_DISABLE_COPY(PerformanceDataManager)
@@ -339,6 +335,10 @@ private:
     QMap< int, QVector<double> > m_rawValues;
 
     BackgroundGraphRenderer* m_renderer;
+
+#if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+    QThread m_thread;
+#endif
 
     typedef struct {
         QStringList metricList;
