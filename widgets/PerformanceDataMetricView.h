@@ -78,7 +78,7 @@ public:
 
 signals:
 
-    void signalAddDevice(const int deviceNumber, const int definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
+    void signalAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
     void signalRequestMetricView(const QString& clusterName, const QString& metricName, const QString& viewName);
     void signalRequestDetailView(const QString& clusterName, const QString& detailName);
     void signalClearSourceView();

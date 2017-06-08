@@ -10370,7 +10370,7 @@ void QCustomPlot::replot(QCustomPlot::RefreshPriority refreshPriority)
   mReplotting = true;
   emit beforeReplot();
   
-  mPaintBuffer.fill(mBackgroundBrush.style() == Qt::SolidPattern ? mBackgroundBrush.color() : Qt::transparent);
+  mPaintBuffer.fill(mBackgroundBrush.style() == Qt::SolidPattern ? mBackgroundBrush.color().rgb() : Qt::transparent);
   QCPPainter painter;
   painter.begin(&mPaintBuffer);
   if (painter.isActive())

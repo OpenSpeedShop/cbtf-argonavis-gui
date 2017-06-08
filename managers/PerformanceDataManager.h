@@ -134,7 +134,7 @@ signals:
                        const QVector< bool >& clusterHasGpuSampleCounters,
                        const QVector< QString >& sampleCounterNames);
 
-    void addDevice(const int deviceNumber, const int definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
+    void addDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
 
     void addDataTransfer(const QString &clusteringCriteriaName,
                          const QString &clusterName,
@@ -337,6 +337,7 @@ private:
     BackgroundGraphRenderer* m_renderer;
 
 #if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
+    // thread for BackgroundGraphRenderer instance
     QThread m_thread;
 #endif
 

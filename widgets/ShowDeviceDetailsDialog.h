@@ -55,7 +55,7 @@ public slots:
 
     int exec();
 
-    void handleAddDevice(const int deviceNumber, const int definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
+    void handleAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
 
 private:
 
@@ -63,7 +63,7 @@ private:
 
     QMutex m_mutex;
 
-    int m_lastDevice;
+    std::size_t m_lastDevice;
 
     std::vector<NameValueList> m_attributes;
     std::vector<NameValueList> m_limits;
