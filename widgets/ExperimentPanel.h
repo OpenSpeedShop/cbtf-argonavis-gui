@@ -60,6 +60,7 @@ public:
 signals:
 
     void criteriaSelectionUpdate();
+    void signalSelectedClustersChanged(const QString& criteriaName, const QSet< QString >& selected);
 
 public slots:
 
@@ -72,11 +73,16 @@ public slots:
 
     void handleRemoveExperiment(const QString& name);
 
+private slots:
+
+    void handleCheckedChanged(bool value);
+
 private:
 
     QTreeView m_expView;
     TreeModel* m_expModel;
     TreeItem* m_root;
+    QSet< QString > m_selectedClusters;
 
 };
 

@@ -153,10 +153,10 @@ signals:
 
     void addCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
 
-    void addMetricView(const QString& clusterName, const QString& metricName, const QString& viewName, const QStringList& metrics);
-    void addAssociatedMetricView(const QString& clusterName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
+    void addMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void addAssociatedMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
 
-    void addMetricViewData(const QString& clusterName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
+    void addMetricViewData(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
 
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
     void removeCluster(const QString& clusteringCriteriaName, const QString& clusterName);
@@ -165,19 +165,23 @@ signals:
 
     void graphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size);
 
-    void metricViewRangeChanged(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void metricViewRangeChanged(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
 
     void loadComplete();
 
-    void requestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void requestMetricViewComplete(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
 
     void signalDisplayCalltreeGraph(const QString& graph);
 
+    void signalSelectedClustersChanged(const QString& criteriaName, const QSet< QString >& selected);
+
 private slots:
 
-    void handleLoadCudaMetricViews(const QString& clusterName, double lower, double upper);
+    void handleLoadCudaMetricViews(const QString& clusteringCriteriaName, double lower, double upper);
 
-    void handleLoadCudaMetricViewsTimeout(const QString& clusterName, double lower, double upper);
+    void handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, double lower, double upper);
+
+    void handleSelectedClustersChanged(const QString& criteriaName, const QSet< QString >& selected);
 
 private:
 
@@ -191,6 +195,7 @@ private:
                             CUDA::PerformanceData& data);
 
     void loadCudaView(const QString& experimentName,
+                      const QString& clusteringCriteriaName,
                       const OpenSpeedShop::Framework::Collector& collector,
                       const OpenSpeedShop::Framework::ThreadGroup& all_threads);
 
@@ -199,6 +204,7 @@ private:
                              QFutureSynchronizer<void>& synchronizer,
                              QMap< QString, QFuture<void> >& futures,
                              #endif
+                             const QString &clusteringCriteriaName,
                              const QStringList& metricList,
                              const QStringList& viewList,
                              QStringList metricDescList,
@@ -210,6 +216,7 @@ private:
     void processMetricView(const OpenSpeedShop::Framework::Collector collector,
                            const OpenSpeedShop::Framework::ThreadGroup& threads,
                            const OpenSpeedShop::Framework::TimeInterval& interval,
+                           const QString &clusteringCriteriaName,
                            const QString &metric,
                            const QStringList &metricDesc);
 
@@ -358,6 +365,8 @@ private:
             return ( get<3>(lhs) < get<3>(rhs) ) || ( get<3>(lhs) == get<3>(rhs) && get<1>(lhs) > get<1>(rhs) );
         }
     } details_compare;
+
+    QMap< QString, QSet< QString > > m_selectedClusters;
 
 };
 

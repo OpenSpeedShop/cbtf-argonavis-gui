@@ -215,7 +215,7 @@ void PerformanceDataMetricView::deleteAllModelsViews()
 
     m_deviceDetailsDialog->clearAllDevices();
 
-    m_clusterName = QString();
+    m_clusteringCritieriaName = QString();
 }
 
 /**
@@ -238,19 +238,19 @@ void PerformanceDataMetricView::setAvailableMetricModes(const ModeTypes &modes)
 
 /**
  * @brief PerformanceDataMetricView::handleInitModel
- * @param clusterName - cluster name associated to the metric view
+ * @param clusteringCriteriaName - clustering criteria name associated to the metric view
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param metrics - list of metrics for setting column headers
  *
  * Create and initialize the model and view for the new metric view.
  */
-void PerformanceDataMetricView::handleInitModel(const QString& clusterName, const QString& metricName, const QString& viewName, const QStringList &metrics)
+void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList &metrics)
 {
-    if ( m_clusterName.isEmpty() )
-        m_clusterName = clusterName;
+    if ( m_clusteringCritieriaName.isEmpty() )
+        m_clusteringCritieriaName = clusteringCriteriaName;
 
-    if ( m_clusterName != clusterName )
+    if ( m_clusteringCritieriaName != clusteringCriteriaName )
         return;
 
     const QString metricViewName = metricName + "-" + viewName;
@@ -360,7 +360,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
 
 /**
  * @brief PerformanceDataMetricView::handleInitModelView
- * @param clusterName - cluster name associated to the metric view
+ * @param clusteringCriteriaName - clustering criteria name associated to the metric view
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param attachedMetricViewName - name of metric view whose model should also be attached to this new metric view
@@ -368,12 +368,12 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusterName, cons
  *
  * Create and initialize the model and view for the new metric view.  Attach the view to the model associated with the attached metric view.
  */
-void PerformanceDataMetricView::handleInitModelView(const QString &clusterName, const QString &metricName, const QString &viewName, const QString &attachedMetricViewName, const QStringList &metrics)
+void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QString &attachedMetricViewName, const QStringList &metrics)
 {
-    if ( m_clusterName.isEmpty() )
-        m_clusterName = clusterName;
+    if ( m_clusteringCritieriaName.isEmpty() )
+        m_clusteringCritieriaName = clusteringCriteriaName;
 
-    if ( m_clusterName != clusterName )
+    if ( m_clusteringCritieriaName != clusteringCriteriaName )
         return;
 
     const QString metricViewName = metricName + "-" + viewName;
@@ -580,7 +580,7 @@ void PerformanceDataMetricView::extractFilenameAndLine(const QString& text, QStr
 
 /**
  * @brief PerformanceDataMetricView::handleAddData
- * @param clusterName - cluster name associated to the metric view
+ * @param clusteringCriteriaName - clustering criteria name associated to the metric view
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param data - the data to add to the model
@@ -588,9 +588,9 @@ void PerformanceDataMetricView::extractFilenameAndLine(const QString& text, QStr
  *
  * Inserts a row into the model of the specified metric view.
  */
-void PerformanceDataMetricView::handleAddData(const QString& clusterName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList &columnHeaders)
+void PerformanceDataMetricView::handleAddData(const QString& clusteringCriteriaName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList &columnHeaders)
 {
-    if ( m_clusterName != clusterName || ( ! columnHeaders.isEmpty() && data.size() != columnHeaders.size() ) )
+    if ( m_clusteringCritieriaName != clusteringCriteriaName || ( ! columnHeaders.isEmpty() && data.size() != columnHeaders.size() ) )
         return;
 
     const QString metricViewName = metricName + "-" + viewName;
@@ -633,7 +633,7 @@ void PerformanceDataMetricView::handleAddData(const QString& clusterName, const 
 
 /**
  * @brief PerformanceDataMetricView::handleRangeChanged
- * @param clusterName - cluster name associated to the metric view
+ * @param clusteringCriteriaName - clustering criteria name associated to the metric view
  * @param metricName - name of metric view having a time range change
  * @param viewName - name of the view having a time range change
  * @param lower - lower value of range to actually view
@@ -642,9 +642,9 @@ void PerformanceDataMetricView::handleAddData(const QString& clusterName, const 
  * After a details view was requested and the model, proxy model and view are created and initialized, this method will handle changes to the time range
  * of data shown in the details view as the user changes the graph timeline.
  */
-void PerformanceDataMetricView::handleRangeChanged(const QString &clusterName, const QString &metricName, const QString &viewName, double lower, double upper)
+void PerformanceDataMetricView::handleRangeChanged(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, double lower, double upper)
 {
-    if ( m_clusterName != clusterName )
+    if ( m_clusteringCritieriaName != clusteringCriteriaName )
         return;
 
     const QString metricViewName = metricName + "-" + viewName;
@@ -725,11 +725,11 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         showBlankView();
 
         if ( DETAILS_MODE == m_mode )
-            emit signalRequestDetailView( m_clusterName, ui->comboBox_ViewSelection->currentText() );
+            emit signalRequestDetailView( m_clusteringCritieriaName, ui->comboBox_ViewSelection->currentText() );
         else if ( CALLTREE_MODE == m_mode )
-            emit signalRequestMetricView( m_clusterName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
+            emit signalRequestMetricView( m_clusteringCritieriaName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
         else
-            emit signalRequestMetricView( m_clusterName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+            emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
     }
     else {
         // display existing metric view
@@ -739,7 +739,7 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 
 /**
  * @brief PerformanceDataMetricView::handleRequestMetricViewComplete
- * @param clusterName - cluster name associated to the metric view
+ * @param clusteringCriteriaName - the name of the cluster criteria
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param lower - lower value of range to actually view
@@ -748,11 +748,11 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
  * Once a handled request metric or detail view signal ('signalRequestMetricView' or 'signalRequestDetailView') is completed,
  * this method will insure the currently selected view is shown.
  */
-void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &clusterName, const QString &metricName, const QString &viewName, double lower, double upper)
+void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, double lower, double upper)
 {
-    qDebug() << "PerformanceDataMetricView::handleRequestMetricViewComplete: clusterName=" << clusterName << "metricName=" << metricName << "viewName=" << viewName;
+    qDebug() << "PerformanceDataMetricView::handleRequestMetricViewComplete: clusteringCriteriaName=" << clusteringCriteriaName << "metricName=" << metricName << "viewName=" << viewName;
 
-    if ( m_clusterName != clusterName || metricName.isEmpty() || viewName.isEmpty() )
+    if ( m_clusteringCritieriaName != clusteringCriteriaName || metricName.isEmpty() || viewName.isEmpty() )
         return;
 
     QTreeView* view( Q_NULLPTR );
@@ -785,7 +785,7 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
         }
     }
 
-    handleRangeChanged( clusterName, metricName, viewName, lower, upper );
+    handleRangeChanged( clusteringCriteriaName, metricName, viewName, lower, upper );
 
     QString currentMetricViewName;
 

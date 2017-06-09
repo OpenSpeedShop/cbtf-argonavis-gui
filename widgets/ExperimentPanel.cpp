@@ -94,6 +94,29 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
 }
 
 /**
+ * @brief ExperimentPanel::handleCheckedChanged
+ * @param value
+ */
+void ExperimentPanel::handleCheckedChanged(bool value)
+{
+    TreeItem* item = qobject_cast< TreeItem* >( sender() );
+    if ( item ) {
+        const std::size_t size = m_selectedClusters.size();
+        const QString clusterName = item->data( 0 ).toString();
+        qDebug() << Q_FUNC_INFO << clusterName << " = " << value;
+        if ( value )
+            m_selectedClusters.insert( clusterName );
+        else
+            m_selectedClusters.remove( clusterName );
+        if ( size != m_selectedClusters.size() ) {
+            TreeItem* parent = item->parentItem();
+            const QString clusteringCriteriaName = parent->data( 0 ).toString();
+            emit signalSelectedClustersChanged( clusteringCriteriaName, m_selectedClusters );
+        }
+    }
+}
+
+/**
  * @brief ExperimentPanel::handleAddExperiment
  * @param name - the experiment name
  * @param clusteringCriteriaName - the clustering criteria name
@@ -117,7 +140,10 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
 
     foreach( const QString& clusterName, clusterNames ) {
         // create new cluster item and add as child of the criteria item
-        TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName, expCriteriaItem, true, true, false );
+        TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName, expCriteriaItem, true, true );
+        connect( clusterItem, &TreeItem::checkedChanged, this, &ExperimentPanel::handleCheckedChanged );
+        clusterItem->setChecked( true );
+
         expCriteriaItem->appendChild( clusterItem );
 
         // is this cluster item associated with a GPU view?

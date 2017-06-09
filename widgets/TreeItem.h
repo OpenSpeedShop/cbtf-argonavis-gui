@@ -49,12 +49,22 @@ class TreeItem : public QObject
 
 public:
 
-    explicit TreeItem(const QList<QVariant> &data, TreeItem *parent = 0, bool checkable = false, bool checked = false, bool enabled = true);
+    explicit TreeItem(const QList<QVariant> &data, TreeItem *parent = 0, bool checkable = false, bool enabled = true);
     virtual ~TreeItem();
 
     // child manipulators
     void appendChild(TreeItem *child);
     void removeChild(TreeItem *child);
+
+    // data accesor
+    QVariant data(int column) const;
+
+    // check state setter/getter
+    void setChecked(bool set){ if ( m_enabled) { m_checked = set; emit checkedChanged( set ); } }
+    bool isChecked() const { return m_checked; }
+
+    // parent accesor
+    TreeItem *parentItem();
 
 signals:
 
@@ -67,12 +77,7 @@ protected:
     TreeItem *child(int row);
     int childCount() const;
     int columnCount() const;
-    QVariant data(int column) const;
     int row() const;
-    TreeItem *parentItem();
-    // check state setter/getter
-    void setChecked(bool set){ if ( m_enabled) { m_checked = set; emit checkedChanged( set ); } }
-    bool isChecked() const { return m_checked; }
     // checkable state setter/getter
     void setCheckable(bool set) { m_checkable = set; emit checkableChanged( set ); }
     bool isCheckable() const { return m_checkable; }
