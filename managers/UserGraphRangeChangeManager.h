@@ -50,13 +50,13 @@ public:
     explicit UserGraphRangeChangeManager(QObject *parent = 0);
     virtual ~UserGraphRangeChangeManager();
 
-    void create(const QString& clusterName, double lower, double upper, const QSize& size = QSize() );
+    void create(const QString &clusteringCriteriaName, const QString &clusterName, double lower, double upper, const QSize& size = QSize() );
 
     void cancel(const QString& clusterName);
 
 signals:
 
-    void timeout(const QString& clusterName, double lower, double upper, const QSize& size);
+    void timeout(const QString &clusteringCriteriaName, const QString& clusterName, double lower, double upper, const QSize& size);
 
 private slots:
 

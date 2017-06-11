@@ -99,9 +99,14 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
  */
 void ExperimentPanel::handleCheckedChanged(bool value)
 {
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_loadedExperiments.isEmpty() )
+        return;
+
     TreeItem* item = qobject_cast< TreeItem* >( sender() );
     if ( item ) {
-        const std::size_t size = m_selectedClusters.size();
+        const QSet<QString>::size_type size = m_selectedClusters.size();
         const QString clusterName = item->data( 0 ).toString();
         qDebug() << Q_FUNC_INFO << clusterName << " = " << value;
         if ( value )
@@ -141,7 +146,11 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
     foreach( const QString& clusterName, clusterNames ) {
         // create new cluster item and add as child of the criteria item
         TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName, expCriteriaItem, true, true );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( clusterItem, &TreeItem::checkedChanged, this, &ExperimentPanel::handleCheckedChanged );
+#else
+        connect( clusterItem, SIGNAL(checkedChanged(bool)), this, SLOT(handleCheckedChanged(bool)) );
+#endif
         clusterItem->setChecked( true );
 
         expCriteriaItem->appendChild( clusterItem );
@@ -164,6 +173,14 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
 
     m_expView.resizeColumnToContents( 0 );
     m_expView.expandAll();
+
+    QMutexLocker guard( &m_mutex );
+
+    m_loadedExperiments << name;
+
+    foreach( QString name, clusterNames ) {
+        m_selectedClusters.insert( name );
+    }
 }
 
 /**
@@ -181,6 +198,12 @@ void ExperimentPanel::handleRemoveExperiment(const QString &name)
             break;
         }
     }
+
+    QMutexLocker guard( &m_mutex );
+
+    m_loadedExperiments.removeOne( name );
+
+    m_selectedClusters.clear();
 }
 
 

@@ -28,6 +28,7 @@
 #include <QTreeView>
 #include <QVector>
 #include <QString>
+#include <QMutex>
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
 
@@ -82,7 +83,10 @@ private:
     QTreeView m_expView;
     TreeModel* m_expModel;
     TreeItem* m_root;
+
+    QMutex m_mutex;
     QSet< QString > m_selectedClusters;
+    QStringList m_loadedExperiments;
 
 };
 

@@ -163,7 +163,7 @@ signals:
 
     void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisPercentage);
 
-    void graphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size);
+    void graphRangeChanged(const QString& clusteringCriteriaName,const QString& clusterName, double lower, double upper, const QSize& size);
 
     void metricViewRangeChanged(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
 
@@ -175,11 +175,13 @@ signals:
 
     void signalSelectedClustersChanged(const QString& criteriaName, const QSet< QString >& selected);
 
+    void signalRequestMetricTableViewUpdate();
+
 private slots:
 
-    void handleLoadCudaMetricViews(const QString& clusteringCriteriaName, double lower, double upper);
+    void handleLoadCudaMetricViews(const QString& clusteringCriteriaName, const QString &clusterName, double lower, double upper);
 
-    void handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, double lower, double upper);
+    void handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, const QString &clusterName, double lower, double upper);
 
     void handleSelectedClustersChanged(const QString& criteriaName, const QSet< QString >& selected);
 
@@ -213,12 +215,11 @@ private:
                              const OpenSpeedShop::Framework::TimeInterval& interval);
 
     template <typename TS>
-    void processMetricView(const OpenSpeedShop::Framework::Collector collector,
-                           const OpenSpeedShop::Framework::ThreadGroup& threads,
-                           const OpenSpeedShop::Framework::TimeInterval& interval,
+    void processMetricView(const OpenSpeedShop::Framework::Experiment &experiment,
+                           const OpenSpeedShop::Framework::TimeInterval &interval,
                            const QString &clusteringCriteriaName,
-                           const QString &metric,
-                           const QStringList &metricDesc);
+                           QString metric,
+                           QStringList metricDesc);
 
     template <typename TS>
     std::set<TS> getThreadSet(const OpenSpeedShop::Framework::ThreadGroup& threads) { }

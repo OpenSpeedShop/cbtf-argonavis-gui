@@ -59,6 +59,7 @@ UserGraphRangeChangeManager::~UserGraphRangeChangeManager()
 
 /**
  * @brief UserGraphRangeChangeManager::create
+ * @param clusteringCriteriaName - the name of the cluster criteria
  * @param clusterName - the name of the cluster (thread/process identifier)
  * @param lower - the lower value of the graph range change
  * @param upper - the upper value of the graph range change
@@ -67,7 +68,7 @@ UserGraphRangeChangeManager::~UserGraphRangeChangeManager()
  * This method creates and starts a timer to delay processing of the graph range change until the timeout threshold has
  * been reached without further user interaction to change the graph range.
  */
-void UserGraphRangeChangeManager::create(const QString &clusterName, double lower, double upper, const QSize &size)
+void UserGraphRangeChangeManager::create(const QString &clusteringCriteriaName, const QString &clusterName, double lower, double upper, const QSize &size)
 {
     QTimer* timer = new QTimer;
     if ( timer ) {
@@ -82,6 +83,7 @@ void UserGraphRangeChangeManager::create(const QString &clusterName, double lowe
         // move timer to thread to let signals manage timer start/stop state
         timer->moveToThread( &m_thread );
         // setup the timer expiry handler to process the graph range change only if the waiting period completes
+        timer->setProperty( "clusteringCriteriaName", clusteringCriteriaName );
         timer->setProperty( "clusterName", clusterName );
         timer->setProperty( "lower", lower );
         timer->setProperty( "upper", upper );
@@ -129,6 +131,7 @@ void UserGraphRangeChangeManager::handleTimeout()
     if ( ! timer )
         return;
 
+    QString clusteringCriteriaName = timer->property( "clusteringCriteriaName" ).toString();
     QString clusterName = timer->property( "clusterName" ).toString();
 
     double lower = timer->property( "lower" ).toDouble();
@@ -137,7 +140,7 @@ void UserGraphRangeChangeManager::handleTimeout()
 
     qDebug() << "UserGraphRangeChangeManager::handleTimeout: clusterName=" << clusterName << " lower=" << lower << " upper=" << upper;
 
-    emit timeout( clusterName, lower, upper, size );
+    emit timeout( clusteringCriteriaName, clusterName, lower, upper, size );
 
     cancel( clusterName );
 }

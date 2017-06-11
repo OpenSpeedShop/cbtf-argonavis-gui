@@ -220,7 +220,7 @@ struct ltST {
  */
 PerformanceDataManager::PerformanceDataManager(QObject *parent)
     : QObject( parent )
-    , m_renderer( Q_NULLPTR )
+    , m_renderer( new BackgroundGraphRenderer )
 {
     qRegisterMetaType< Base::Time >("Base::Time");
     qRegisterMetaType< CUDA::DataTransfer >("CUDA::DataTransfer");
@@ -228,7 +228,6 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     qRegisterMetaType< QVector< QString > >("QVector< QString >");
     qRegisterMetaType< QVector< bool > >("QVector< bool >");
 
-    m_renderer = new BackgroundGraphRenderer;
 #if defined(HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE)
     m_thread.start();
     m_renderer->moveToThread( &m_thread );
@@ -243,10 +242,10 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     connect( this, &PerformanceDataManager::signalSelectedClustersChanged, this, &PerformanceDataManager::handleSelectedClustersChanged );
 #else
     connect( this, SIGNAL(loadComplete()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
-    connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,double,double,QSize)) );
-    connect( this, SIGNAL(graphRangeChanged(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,double,double)) );
+    connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,QString,double,double,QSize)) );
+    connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,QString,double,double)) );
     connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
-    connect( &m_userChangeMgr, SIGNAL(timeout(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
+    connect( &m_userChangeMgr, SIGNAL(timeout(QString,QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,QString,double,double)) );
     connect( this, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)), this, SLOT(handleSelectedClustersChanged(QString,QSet<QString>)) );
 #endif
 }
@@ -328,15 +327,13 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
 
     const QString metricViewName = metricName + "-" + viewName;
 
-    if ( info.metricViewList.contains( metricViewName ) )
-        return;
-
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
         cursorManager->startWaitingOperation( QString("generate-%1").arg(metricViewName) );
     }
 
-    info.metricViewList << metricViewName;
+    if ( ! info.metricViewList.contains( metricViewName ) )
+        info.metricViewList << metricViewName;
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
     QFutureSynchronizer<void> synchronizer;
@@ -402,7 +399,7 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
 
 /**
  * @brief PerformanceDataManager::handleProcessDetailViews
- * @param clusterName - the cluster group name
+ * @param clusterName - the clustering criteria name
  *
  * This method handles a request for a new detail view.  After building the ArgoNavis::CUDA::PerformanceData object for threads of interest,
  * it will begin processing of the all CUDA event types by executing the visitor methods in a separate thread (via QtConcurrent::run) over
@@ -1000,8 +997,7 @@ QString PerformanceDataManager::getViewName<Loop>() const
 
 /**
  * @brief PerformanceDataManager::processMetricView
- * @param collector - a copy of the cuda collector
- * @param threads - all threads known by the cuda collector
+ * @param experiment - a reference to the experiment object
  * @param interval - the time interval of interest
  * @param clusteringCriteriaName - the name of the clustering criteria
  * @param metric - the metric to generate data for
@@ -1011,9 +1007,9 @@ QString PerformanceDataManager::getViewName<Loop>() const
  * NOTE: must be metrics providing time information.
  */
 template <typename TS>
-void PerformanceDataManager::processMetricView(const Collector collector, const ThreadGroup& threads, const TimeInterval& interval, const QString &clusteringCriteriaName, const QString &metric, const QStringList &metricDesc)
+void PerformanceDataManager::processMetricView(const Experiment &experiment, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric, QStringList metricDesc)
 {
-    const QString viewName = getViewName<TS>();
+    const CollectorGroup collectors = experiment.getCollectors();
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView STARTED" << metric;
@@ -1021,6 +1017,27 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
 #if defined(HAS_CONCURRENT_PROCESSING_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView: thread=" << QString::number((long long)QThread::currentThread(), 16);
 #endif
+
+    if ( 0 == collectors.size() || ! m_selectedClusters.contains( clusteringCriteriaName ) )
+        return;
+
+    const QString viewName = getViewName<TS>();
+    const Collector collector( *collectors.begin() );
+    const ThreadGroup group( experiment.getThreads() );
+
+    ThreadGroup threadGroup;
+
+    const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
+
+    for ( ThreadGroup::iterator iter = group.begin(); iter != group.end(); ++iter ) {
+        const Thread thread( *iter );
+        if ( selected.contains( ArgoNavis::CUDA::getUniqueClusterName( thread ) ) ) {
+            threadGroup.insert( thread );
+        }
+    }
+
+    if ( threadGroup.empty() )
+        return;
 
     // Evaluate the first collector's time metric for all functions
     SmartPtr<std::map<TS, std::map<Thread, double> > > individual;
@@ -1032,8 +1049,8 @@ void PerformanceDataManager::processMetricView(const Collector collector, const 
     Queries::GetMetricValues( collector,
                               metricStr,
                               interval,
-                              threads,
-                              getThreadSet<TS>( threads ),
+                              threadGroup,
+                              getThreadSet<TS>( threadGroup ),
                               individual );
     SmartPtr<std::map<TS, double> > data =
             Queries::Reduction::Apply( individual, Queries::Reduction::Summation );
@@ -1264,7 +1281,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         info.experimentFilename = experimentFilename;
         info.interval = interval;
 
-        m_tableViewInfo[ clusterName ] = info;
+        m_tableViewInfo[ clusteringCriteriaName ] = info;
         
         QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment.getThreads() );
         synchronizer.addFuture( future1 );
@@ -1277,7 +1294,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         const QString functionView = QStringLiteral("Functions");
 
         foreach ( const QString& metricName, metricList ) {
-            handleRequestMetricView( clusterName, metricName, functionView );
+            handleRequestMetricView( clusteringCriteriaName, metricName, functionView );
         }
 
         synchronizer.waitForFinished();
@@ -1292,6 +1309,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
 /**
  * @brief PerformanceDataManager::handleLoadCudaMetricViews
+ * @param clusteringCriteriaName - the name of the clustering criteria
  * @param clusterName - the cluster name
  * @param lower - the lower value of the interval to process
  * @param upper - the upper value of the interval to process
@@ -1299,31 +1317,32 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
  * Handles graph range change - initiates a timed monitor to actually process the graph range change if user hasn't
  * continued to update the graph range within a threshold period.
  */
-void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusteringCriteriaName, double lower, double upper)
+void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusteringCriteriaName, const QString& clusterName, double lower, double upper)
 {
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
-    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViews: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
+    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViews: clusteringCriteriaName=" << clusteringCriteriaName << "lower=" << lower << "upper=" << upper;
 #endif
 
     if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) || lower >= upper )
         return;
 
     // cancel any active processing for this cluster
-    m_userChangeMgr.cancel( clusteringCriteriaName );
+    m_userChangeMgr.cancel( clusterName );
 
     // initiate a new timed monitor for this cluster
-    m_userChangeMgr.create( clusteringCriteriaName, lower, upper );
+    m_userChangeMgr.create( clusteringCriteriaName, clusterName, lower, upper );
 }
 
 /**
  * @brief PerformanceDataManager::handleLoadCudaMetricViewsTimeout
  * @param clusteringCriteriaName - the clustering criteria name
+ * @param clusterName - the cluster name
  * @param lower - the lower value of the interval to process
  * @param upper - the upper value of the interval to process
  *
  * This handler in invoked when the waiting period has benn reached and actual processing of the CUDA metric view can proceed.
  */
-void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, double lower, double upper)
+void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, const QString& clusterName, double lower, double upper)
 {
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: clusteringCriteriaName=" << clusteringCriteriaName << "lower=" << lower << "upper=" << upper;
@@ -1416,18 +1435,7 @@ void PerformanceDataManager::handleSelectedClustersChanged(const QString &criter
 {
     m_selectedClusters[ criteriaName ] = selected;
 
-    if ( m_selectedClusters.contains( criteriaName ) ) {
-        const QSet< QString >& selected = m_selectedClusters[ criteriaName ];
-
-        if ( ! selected.isEmpty() ) {
-            const QString clusterName = *( selected.begin() );
-
-            const QString metric = tr("exec_time");
-            const QString view = tr("Functions");
-
-            handleRequestMetricView( clusterName, metric, view );
-        }
-    }
+    emit signalRequestMetricTableViewUpdate();
 }
 
 /**
@@ -1457,32 +1465,6 @@ void PerformanceDataManager::loadCudaMetricViews(
         const Experiment& experiment,
         const TimeInterval& interval)
 {
-#if 0
-    const ThreadGroup threadGroup( experiment.getThreads() );
-#else
-    if ( m_selectedClusters.contains( clusteringCriteriaName ) )
-        return;
-
-    const ThreadGroup group( experiment.getThreads() );
-    ThreadGroup threadSubset;
-
-    const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
-
-    for ( ThreadGroup::iterator iter = group.begin(); iter != group.end(); ++iter ) {
-        const Thread thread( *iter );
-        if ( selected.contains( ArgoNavis::CUDA::getUniqueClusterName( thread ) ) ) {
-            threadSubset.insert( thread );
-        }
-    }
-
-    qDebug() << Q_FUNC_INFO << "threadSubset.size()=" << threadSubset.size();
-
-    if ( threadSubset.empty() )
-        return;
-
-    const ThreadGroup& threadGroup = threadSubset;
-#endif
-
     foreach ( const QString& metricName, metricList ) {
         QStringList metricDesc;
 
@@ -1490,51 +1472,54 @@ void PerformanceDataManager::loadCudaMetricViews(
 
         foreach ( const QString& viewName, viewList ) {
             const QString futuresKey = metricName + QStringLiteral("-") + viewName;
-
             if ( viewName == QStringLiteral("Functions") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                futures[ futuresKey ] = QtConcurrent::run( new QThreadPool, this, &PerformanceDataManager::processMetricView<Function>,
-                                                                 collector, threadGroup, interval, clusteringCriteriaName, metricName, metricDesc );
+                futures[ futuresKey ] = QtConcurrent::run(
+                    boost::bind( &PerformanceDataManager::processMetricView<Function>, this,
+                                 boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
-                processMetricView<Function>( collector.get(), experiment.getThreads(), metric, metricDesc );
+                processMetricView<Function>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
 #endif
             }
 
             else if ( viewName == QStringLiteral("Statements") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Statement>,
-                                                                 collector, threadGroup, interval, clusteringCriteriaName, metricName, metricDesc );
+                futures[ futuresKey ] = QtConcurrent::run(
+                    boost::bind( &PerformanceDataManager::processMetricView<Statement>, this,
+                                 boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
 #else
-                processMetricView<Statement>( collector.get(), experiment.getThreads(), metric, metricDesc );
+                processMetricView<Statement>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
 #endif
             }
 
             else if ( viewName == QStringLiteral("LinkedObjects") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<LinkedObject>,
-                                                                 collector, threadGroup, interval, clusteringCriteriaName, metricName, metricDesc );
+                futures[ futuresKey ] = QtConcurrent::run(
+                    boost::bind( &PerformanceDataManager::processMetricView<LinkedObject>, this,
+                                 boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
 #else
-                processMetricView<LinkedObject>( collector.get(), experiment.getThreads(), metric, metricDesc );
+                processMetricView<LinkedObject>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
 #endif
             }
 
             else if ( viewName == QStringLiteral("Loops") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processMetricView<Loop>,
-                                                                 collector, threadGroup, interval, clusteringCriteriaName, metricName, metricDesc );
+                futures[ futuresKey ] = QtConcurrent::run(
+                    boost::bind( &PerformanceDataManager::processMetricView<Loop>, this,
+                                 boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
-                processMetricView<Loop>( collector.get(), experiment.getThreads(), metric, metricDesc );
+                processMetricView<Loop>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
 #endif
             }
 
             else if ( viewName == QStringLiteral("CallTree") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processCalltreeView, collector, threadGroup, interval );
+                futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processCalltreeView, collector, experiment.getThreads(), interval );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
-                processCalltreeView( collector.get(), experiment.getThreads(), metric, metricDesc );
+                processCalltreeView( experiment, interval, clusteringCriteriaName, metric, metricDesc );
 #endif
             }
         }
@@ -1554,8 +1539,9 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
         m_renderer->unloadCudaViews( clusteringCriteriaName, clusterNames );
     }
 
+    m_tableViewInfo.remove( clusteringCriteriaName );
+
     foreach( const QString& clusterName, clusterNames ) {
-        m_tableViewInfo.remove( clusterName );
         emit removeCluster( clusteringCriteriaName, clusterName );
     }
 
@@ -1597,6 +1583,7 @@ bool PerformanceDataManager::getPerformanceData(const Collector& collector,
 /**
  * @brief PerformanceDataManager::loadCudaView
  * @param experimentName - experiment database filename
+ * @param clusteringCriteriaName - the clustering criteria name
  * @param collector - a reference to the cuda collector
  * @param all_threads - all threads known by the cuda collector
  *
@@ -1671,12 +1658,6 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
         sampleCounterNames << "Default";
     }
 #endif
-
-    QString clusteringCriteriaName;
-    if ( hasCudaCollector )
-        clusteringCriteriaName = QStringLiteral( "GPU Compute / Data Transfer Ratio" );
-    else
-        clusteringCriteriaName = QStringLiteral( "Thread Groups" );
 
     QVector< QString > clusterNames;
 
@@ -1841,9 +1822,8 @@ void PerformanceDataManager::sortByFixedComponent(ForwardIterator first, Forward
 
 /**
  * @brief PerformanceDataManager::partition_sort
- * @param functionName - name of called function
- * @param linkedObjectName - name of linked object where called function resides
- * @param callingFunctionName - name of calling function
+ * @param function - a reference to the called function
+ * @param callingFunctionSet- a reference to the calling function (as an element of a QSet since the calling function may be empty)
  * @param callingLinkedObjectName - name of linked object where calling function resides
  * @param d - entry in stack frame
  * @return - Same caller -> callee relationship? true or false
@@ -1880,6 +1860,7 @@ bool PerformanceDataManager::partition_sort(const Function& function,
  * @param caller_function_list - the set of all direct calls (caller -> function) involved in the view
  * @param call_depth_map - a map of the calltree depth from "_start" to a particular function
  * @param all_details - an array of raw detail data
+ * @param callPairToWeightMap - weights for all call pairs
  * @param reduced_details - an array of reduced detail data
  *
  * This method combines individual detail records for each function call pairs into one detail record.
@@ -2113,7 +2094,7 @@ std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std:
  * @param interval - the time interval for the calltree view
  * @param functions - the set of functions involved in the calltree view
  * @param metric - the metric computed in the calltree view
- * @param reduced_details - the data computed for the calltree view
+ * @param metricDesc - the metric table column headers for the calltree view
  *
  * This method computes the data for the calltree view in accordance with the various contraints for the view -
  * set of threads, set of functions, time interval and the metric name.

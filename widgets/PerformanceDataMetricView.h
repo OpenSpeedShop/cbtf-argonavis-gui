@@ -91,6 +91,7 @@ public slots:
     void handleInitModelView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
     void handleAddData(const QString& clusteringCriteriaName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders);
     void handleRangeChanged(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void handleRequestViewUpdate();
 
 private slots:
 

@@ -665,6 +665,21 @@ void PerformanceDataMetricView::handleRangeChanged(const QString &clusteringCrit
 }
 
 /**
+ * @brief PerformanceDataMetricView::handleRequestViewUpdate
+ *
+ * Handle request to update the current view by emitting the appropriate signal for the mode selected.
+ */
+void PerformanceDataMetricView::handleRequestViewUpdate()
+{
+    if ( DETAILS_MODE == m_mode )
+        emit signalRequestDetailView( m_clusteringCritieriaName, ui->comboBox_ViewSelection->currentText() );
+    else if ( CALLTREE_MODE == m_mode )
+        emit signalRequestMetricView( m_clusteringCritieriaName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
+    else
+        emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+}
+
+/**
  * @brief PerformanceDataMetricView::handleViewModeChanged
  * @param text - the value of the view mode combobox
  *
@@ -801,6 +816,7 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
 
 /**
  * @brief PerformanceDataMetricView::showContextMenu
+ * @param menuType - the context menu type to build and show
  * @param data - variant data from table item under which the custom context menu was requested
  * @param globalPos - the widget position at which the custom context menu was requested
  *
