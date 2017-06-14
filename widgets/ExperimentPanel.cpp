@@ -29,6 +29,7 @@
 #include "managers/PerformanceDataManager.h"
 
 #include <QVBoxLayout>
+#include <QMenu>
 #include <QDebug>
 
 
@@ -91,6 +92,31 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
                             "        border-image: none;"
                             "        image: url(:/images/branch-open);"
                             "}");
+
+    // create context-menu actions
+    m_selectAllAct = new QAction( tr("&Select All Threads"), this );
+    m_selectAllAct->setShortcuts( QKeySequence::SelectAll );
+    m_selectAllAct->setStatusTip( tr("Select all threads for the current experiment") );
+
+    connect( m_selectAllAct, &QAction::triggered, this, &ExperimentPanel::handleSelectAllThreads );
+
+    m_deselectAllAct = new QAction( tr("&Deselect All Threads"), this );
+    m_deselectAllAct->setShortcuts( QKeySequence::Deselect );
+    m_deselectAllAct->setStatusTip( tr("Deselect all threads for the current experiment") );
+
+    connect( m_deselectAllAct, &QAction::triggered, this, &ExperimentPanel::handleDeselectAllThreads );
+
+    m_refreshMetricsAct = new QAction( tr("&Refresh Metric View"), this );
+    m_refreshMetricsAct->setShortcuts( QKeySequence::Refresh );
+    m_refreshMetricsAct->setStatusTip( tr("Refresh metric table view using currently selected threads") );
+
+    connect( m_refreshMetricsAct, &QAction::triggered, this, &ExperimentPanel::handleRefreshMetrics );
+
+    m_resetSelectionsAct = new QAction( tr("&Cancel Thread Selections"), this );
+    m_resetSelectionsAct->setShortcuts( QKeySequence::Cancel );
+    m_resetSelectionsAct->setStatusTip( tr("Reset thread selections to those for the current metric table view") );
+
+    connect( m_resetSelectionsAct, &QAction::triggered, this, &ExperimentPanel::handleResetSelections );
 }
 
 /**
@@ -106,19 +132,52 @@ void ExperimentPanel::handleCheckedChanged(bool value)
 
     TreeItem* item = qobject_cast< TreeItem* >( sender() );
     if ( item ) {
-        const QSet<QString>::size_type size = m_selectedClusters.size();
         const QString clusterName = item->data( 0 ).toString();
         qDebug() << Q_FUNC_INFO << clusterName << " = " << value;
         if ( value )
             m_selectedClusters.insert( clusterName );
         else
             m_selectedClusters.remove( clusterName );
-        if ( size != m_selectedClusters.size() ) {
-            TreeItem* parent = item->parentItem();
-            const QString clusteringCriteriaName = parent->data( 0 ).toString();
-            emit signalSelectedClustersChanged( clusteringCriteriaName, m_selectedClusters );
-        }
     }
+}
+
+/**
+ * @brief ExperimentPanel::handleSelectAllThreads
+ */
+void ExperimentPanel::handleSelectAllThreads()
+{
+    qDebug() << Q_FUNC_INFO << "called!!";
+}
+
+/**
+ * @brief ExperimentPanel::handleDeselectAllThreads
+ */
+void ExperimentPanel::handleDeselectAllThreads()
+{
+    qDebug() << Q_FUNC_INFO << "called!!";
+}
+
+/**
+ * @brief ExperimentPanel::handleRefreshMetrics
+ */
+void ExperimentPanel::handleRefreshMetrics()
+{
+    qDebug() << Q_FUNC_INFO << "called!!";
+
+    TreeItem* expItem = qobject_cast< TreeItem* >( m_root->children().first() );
+    TreeItem* expCriteriaItem = qobject_cast< TreeItem* >( expItem->children().first() );
+
+    const QString clusteringCriteriaName = expCriteriaItem->data( 0 ).toString();
+
+    emit signalSelectedClustersChanged( clusteringCriteriaName, m_selectedClusters );
+}
+
+/**
+ * @brief ExperimentPanel::handleResetSelections
+ */
+void ExperimentPanel::handleResetSelections()
+{
+    qDebug() << Q_FUNC_INFO << "called!!";
 }
 
 /**
@@ -145,13 +204,13 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
 
     foreach( const QString& clusterName, clusterNames ) {
         // create new cluster item and add as child of the criteria item
-        TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName, expCriteriaItem, true, true );
+        TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName, expCriteriaItem, true, true, true );
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( clusterItem, &TreeItem::checkedChanged, this, &ExperimentPanel::handleCheckedChanged );
 #else
         connect( clusterItem, SIGNAL(checkedChanged(bool)), this, SLOT(handleCheckedChanged(bool)) );
 #endif
-        clusterItem->setChecked( true );
+        m_selectedClusters.insert( clusterName );
 
         expCriteriaItem->appendChild( clusterItem );
 
@@ -205,6 +264,20 @@ void ExperimentPanel::handleRemoveExperiment(const QString &name)
 
     m_selectedClusters.clear();
 }
+
+#ifndef QT_NO_CONTEXTMENU
+void ExperimentPanel::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu menu( this );
+
+    menu.addAction( m_selectAllAct );
+    menu.addAction( m_deselectAllAct );
+    menu.addAction( m_refreshMetricsAct );
+    menu.addAction( m_resetSelectionsAct );
+
+    menu.exec( event->globalPos() );
+}
+#endif // QT_NO_CONTEXTMENU
 
 
 } // GUI

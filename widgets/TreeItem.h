@@ -49,7 +49,7 @@ class TreeItem : public QObject
 
 public:
 
-    explicit TreeItem(const QList<QVariant> &data, TreeItem *parent = 0, bool checkable = false, bool enabled = true);
+    explicit TreeItem(const QList<QVariant> &data, TreeItem *parent = 0, bool checkable = false, bool checked = false, bool enabled = true);
     virtual ~TreeItem();
 
     // child manipulators

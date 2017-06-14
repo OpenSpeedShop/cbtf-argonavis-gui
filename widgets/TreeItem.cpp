@@ -34,10 +34,11 @@ namespace ArgoNavis { namespace GUI {
  *
  * Create a new tree item in the tree hierarchy having the parent and column data specified.
  */
-TreeItem::TreeItem(const QList<QVariant> &data, TreeItem *parent, bool checkable, bool enabled)
+TreeItem::TreeItem(const QList<QVariant> &data, TreeItem *parent, bool checkable, bool checked, bool enabled)
     : QObject( parent )
     , m_itemData( data )
     , m_checkable( checkable )
+    , m_checked( checked )
     , m_enabled( enabled )
 {
 
