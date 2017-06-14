@@ -30,6 +30,8 @@
 
 #include "common/openss-gui-config.h"
 
+#include "widgets/ThreadSelectionCommand.h"
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -46,6 +48,7 @@ class TreeItem : public QObject
     Q_PROPERTY(bool enabled READ isEnabled() WRITE setEnabled NOTIFY enabledChanged)
 
     friend class TreeModel;
+    friend class ThreadSelectionCommand;
 
 public:
 
@@ -58,7 +61,6 @@ public:
 
     // data accesor
     QVariant data(int column) const;
-    int row() const;
 
     // parent accesor
     TreeItem *parentItem();
@@ -74,6 +76,7 @@ protected:
     TreeItem *child(int row);
     int childCount() const;
     int columnCount() const;
+    int row() const;
     // checkable state setter/getter
     void setCheckable(bool set) { m_checkable = set; emit checkableChanged( set ); }
     bool isCheckable() const { return m_checkable; }
@@ -94,8 +97,8 @@ private:
 
     QList<TreeItem*> m_childItems;
     QList<QVariant> m_itemData;
-    bool m_checked;
     bool m_checkable;
+    bool m_checked;
     bool m_enabled;
 
 };

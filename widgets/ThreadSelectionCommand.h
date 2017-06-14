@@ -10,6 +10,7 @@
 namespace ArgoNavis { namespace GUI {
 
 
+class TreeItem;
 class TreeModel;
 
 
@@ -17,7 +18,7 @@ class ThreadSelectionCommand : public QUndoCommand
 {
 public:
 
-   explicit ThreadSelectionCommand(QPersistentModelIndex* index, bool selected = true,  QUndoCommand *parent = 0);
+   explicit ThreadSelectionCommand(TreeModel* model, TreeItem* item, bool selected = true,  QUndoCommand *parent = 0);
 
     void undo() Q_DECL_OVERRIDE;
     void redo() Q_DECL_OVERRIDE;

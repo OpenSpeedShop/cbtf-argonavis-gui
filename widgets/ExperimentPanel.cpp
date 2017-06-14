@@ -136,7 +136,7 @@ void ExperimentPanel::handleCheckedChanged(bool value)
     if ( item ) {
         const QString clusterName = item->data( 0 ).toString();
         qDebug() << Q_FUNC_INFO << clusterName << " = " << value;
-        m_userStack.push( new ThreadSelectionCommand( new QPersistentModelIndex( m_expModel->createIndex( item->row(), 0, item->parentItem() ) ), value ) );
+        m_userStack.push( new ThreadSelectionCommand( m_expModel, item, value ) );
         if ( value )
             m_selectedClusters.insert( clusterName );
         else
@@ -150,7 +150,9 @@ void ExperimentPanel::handleCheckedChanged(bool value)
 void ExperimentPanel::handleSelectAllThreads()
 {
     qDebug() << Q_FUNC_INFO << "called!!";
+    while ( m_userStack.canUndo() ) m_userStack.undo();
     m_initialStack.redo();
+    m_userStack.clear();
 }
 
 /**
@@ -159,7 +161,9 @@ void ExperimentPanel::handleSelectAllThreads()
 void ExperimentPanel::handleDeselectAllThreads()
 {
     qDebug() << Q_FUNC_INFO << "called!!";
+    while ( m_userStack.canUndo() ) m_userStack.undo();
     m_initialStack.undo();
+    m_userStack.clear();
 }
 
 /**
@@ -220,14 +224,13 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
 #else
         connect( clusterItem, SIGNAL(checkedChanged(bool)), this, SLOT(handleCheckedChanged(bool)) );
 #endif
+        // add cluster item to clustering criteria item
+        expCriteriaItem->appendChild( clusterItem );
 
-        m_initialStack.push( new ThreadSelectionCommand( new QPersistentModelIndex( m_expModel->createIndex( index, 0, clusterItem ) ) ) );
+        m_initialStack.push( new ThreadSelectionCommand( m_expModel, clusterItem ) );
 
         // insert cluster into selected cluster list
         m_selectedClusters.insert( clusterName );
-
-        // add cluster item to clustering criteria item
-        expCriteriaItem->appendChild( clusterItem );
 
         // is this cluster item associated with a GPU view?
         bool isGpuCluster( index < clusterHasGpuSampleCounters.size() && clusterHasGpuSampleCounters[ index++ ] );

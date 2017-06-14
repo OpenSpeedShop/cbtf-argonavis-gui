@@ -1,5 +1,6 @@
 #include "ThreadSelectionCommand.h"
 
+#include "widgets/TreeItem.h"
 #include "widgets/TreeModel.h"
 
 namespace ArgoNavis { namespace GUI {
@@ -11,15 +12,15 @@ namespace ArgoNavis { namespace GUI {
  * @param selected
  * @param parent
  */
-ThreadSelectionCommand::ThreadSelectionCommand(QPersistentModelIndex *index, bool selected, QUndoCommand *parent)
+ThreadSelectionCommand::ThreadSelectionCommand(TreeModel* model, TreeItem *item, bool selected, QUndoCommand *parent)
     : QUndoCommand( parent )
-    , m_model( Q_NULLPTR )
-    , m_index( index )
+    , m_model( model )
+    , m_index( Q_NULLPTR )
     , m_selected( selected )
     , m_ready( false )
 {
-    if ( index ) {
-        m_model = qobject_cast< TreeModel* >( const_cast< QAbstractItemModel* >( index->model() ) );
+    if ( model && item ) {
+        m_index = new QPersistentModelIndex( model->createIndex( item->row(), 0, item->parentItem() ) );
     }
 }
 
@@ -28,8 +29,10 @@ ThreadSelectionCommand::ThreadSelectionCommand(QPersistentModelIndex *index, boo
  */
 void ThreadSelectionCommand::undo()
 {
-    QModelIndex index = m_model->createIndex( m_index->row(), m_index->column(), m_index->internalPointer() );
-    m_model->setData( index, ! m_selected, Qt::CheckStateRole );
+    if ( m_model && m_index ) {
+        QModelIndex index = m_model->createIndex( m_index->row(), m_index->column(), m_index->internalPointer() );
+        m_model->setData( index, ! m_selected, Qt::CheckStateRole );
+    }
 }
 
 /**
@@ -38,8 +41,10 @@ void ThreadSelectionCommand::undo()
 void ThreadSelectionCommand::redo()
 {
     if ( m_ready ) {
-        QModelIndex index = m_model->createIndex( m_index->row(), m_index->column(), m_index->internalPointer() );
-        m_model->setData( index, m_selected, Qt::CheckStateRole );
+        if ( m_model && m_index ) {
+            QModelIndex index = m_model->createIndex( m_index->row(), m_index->column(), m_index->internalPointer() );
+            m_model->setData( index, m_selected, Qt::CheckStateRole );
+        }
     }
     else {
         m_ready = true;
