@@ -27,9 +27,11 @@
 #include "TreeItem.h"
 
 #include "managers/PerformanceDataManager.h"
+#include "widgets/ThreadSelectionCommand.h"
 
 #include <QVBoxLayout>
 #include <QMenu>
+#include <QPersistentModelIndex>
 #include <QDebug>
 
 
@@ -134,6 +136,7 @@ void ExperimentPanel::handleCheckedChanged(bool value)
     if ( item ) {
         const QString clusterName = item->data( 0 ).toString();
         qDebug() << Q_FUNC_INFO << clusterName << " = " << value;
+        m_userStack.push( new ThreadSelectionCommand( new QPersistentModelIndex( m_expModel->createIndex( item->row(), 0, item->parentItem() ) ), value ) );
         if ( value )
             m_selectedClusters.insert( clusterName );
         else
@@ -147,6 +150,7 @@ void ExperimentPanel::handleCheckedChanged(bool value)
 void ExperimentPanel::handleSelectAllThreads()
 {
     qDebug() << Q_FUNC_INFO << "called!!";
+    m_initialStack.redo();
 }
 
 /**
@@ -155,6 +159,7 @@ void ExperimentPanel::handleSelectAllThreads()
 void ExperimentPanel::handleDeselectAllThreads()
 {
     qDebug() << Q_FUNC_INFO << "called!!";
+    m_initialStack.undo();
 }
 
 /**
@@ -170,6 +175,8 @@ void ExperimentPanel::handleRefreshMetrics()
     const QString clusteringCriteriaName = expCriteriaItem->data( 0 ).toString();
 
     emit signalSelectedClustersChanged( clusteringCriteriaName, m_selectedClusters );
+
+    m_userStack.clear();
 }
 
 /**
@@ -178,6 +185,7 @@ void ExperimentPanel::handleRefreshMetrics()
 void ExperimentPanel::handleResetSelections()
 {
     qDebug() << Q_FUNC_INFO << "called!!";
+    m_userStack.undo();
 }
 
 /**
@@ -200,6 +208,8 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
     TreeItem* expCriteriaItem = new TreeItem( QList< QVariant >() << clusteringCriteriaName, expItem );
     expItem->appendChild( expCriteriaItem );
 
+    m_initialStack.beginMacro( "select-all-threads" );
+
     int index( 0 );
 
     foreach( const QString& clusterName, clusterNames ) {
@@ -210,8 +220,13 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
 #else
         connect( clusterItem, SIGNAL(checkedChanged(bool)), this, SLOT(handleCheckedChanged(bool)) );
 #endif
+
+        m_initialStack.push( new ThreadSelectionCommand( new QPersistentModelIndex( m_expModel->createIndex( index, 0, clusterItem ) ) ) );
+
+        // insert cluster into selected cluster list
         m_selectedClusters.insert( clusterName );
 
+        // add cluster item to clustering criteria item
         expCriteriaItem->appendChild( clusterItem );
 
         // is this cluster item associated with a GPU view?
@@ -229,6 +244,8 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
             }
         }
     }
+
+    m_initialStack.endMacro();
 
     m_expView.resizeColumnToContents( 0 );
     m_expView.expandAll();

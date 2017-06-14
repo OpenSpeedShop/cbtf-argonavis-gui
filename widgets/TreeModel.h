@@ -63,6 +63,7 @@ public:
     virtual bool insertRows(int row, int count, const QModelIndex &parent = QModelIndex()) Q_DECL_OVERRIDE;
     virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) Q_DECL_OVERRIDE;
     virtual QHash<int, QByteArray> roleNames() const Q_DECL_OVERRIDE;
+    virtual QModelIndex createIndex(int row, int column, void *data = Q_NULLPTR) const;
 
     TreeItem* getItem(const QModelIndex& index) const;
 

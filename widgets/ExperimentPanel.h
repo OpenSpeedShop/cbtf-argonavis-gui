@@ -31,6 +31,7 @@
 #include <QMutex>
 #include <QAction>
 #include <QContextMenuEvent>
+#include <QUndoStack>
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
 
@@ -104,6 +105,9 @@ private:
     QAction* m_deselectAllAct;
     QAction* m_refreshMetricsAct;
     QAction* m_resetSelectionsAct;
+
+    QUndoStack m_initialStack;
+    QUndoStack m_userStack;
 
 };
 

@@ -58,6 +58,10 @@ public:
 
     // data accesor
     QVariant data(int column) const;
+    int row() const;
+
+    // parent accesor
+    TreeItem *parentItem();
 
 signals:
 
@@ -70,7 +74,6 @@ protected:
     TreeItem *child(int row);
     int childCount() const;
     int columnCount() const;
-    int row() const;
     // checkable state setter/getter
     void setCheckable(bool set) { m_checkable = set; emit checkableChanged( set ); }
     bool isCheckable() const { return m_checkable; }
@@ -84,9 +87,6 @@ protected:
     // check state setter/getter
     void setChecked(bool set){ if ( m_enabled) { m_checked = set; emit checkedChanged( set ); } }
     bool isChecked() const { return m_checked; }
-
-    // parent accesor
-    TreeItem *parentItem();
 
 private:
 
