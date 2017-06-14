@@ -59,13 +59,6 @@ public:
     // data accesor
     QVariant data(int column) const;
 
-    // check state setter/getter
-    void setChecked(bool set){ if ( m_enabled) { m_checked = set; emit checkedChanged( set ); } }
-    bool isChecked() const { return m_checked; }
-
-    // parent accesor
-    TreeItem *parentItem();
-
 signals:
 
     void checkableChanged(bool value);
@@ -85,7 +78,15 @@ protected:
     void setEnabled(bool set){ m_enabled = set; emit enabledChanged( set ); }
     bool isEnabled() const { return m_enabled; }
 
+    // data setter
     void setData(int column, const QVariant& data);
+
+    // check state setter/getter
+    void setChecked(bool set){ if ( m_enabled) { m_checked = set; emit checkedChanged( set ); } }
+    bool isChecked() const { return m_checked; }
+
+    // parent accesor
+    TreeItem *parentItem();
 
 private:
 
