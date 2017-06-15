@@ -1520,7 +1520,10 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
         m_renderer->unloadCudaViews( clusteringCriteriaName, clusterNames );
     }
 
-    m_tableViewInfo.remove( clusteringCriteriaName );
+    if ( m_tableViewInfo.contains( clusteringCriteriaName ) ) {
+        delete m_tableViewInfo[ clusteringCriteriaName ].experiment;
+        m_tableViewInfo.remove( clusteringCriteriaName );
+    }
 
     foreach( const QString& clusterName, clusterNames ) {
         emit removeCluster( clusteringCriteriaName, clusterName );
