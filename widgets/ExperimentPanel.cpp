@@ -32,7 +32,6 @@
 #include <QVBoxLayout>
 #include <QMenu>
 #include <QPersistentModelIndex>
-#include <QDebug>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -55,7 +54,7 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
     vLayout->addWidget( &m_expView );
 
     QList<QVariant> rootData;
-    rootData << "Currently Loaded Experiment Information";
+    rootData << tr("Currently Loaded Experiment Information");
     m_root = new TreeItem( rootData );
 
     m_expModel = new TreeModel( m_root, this );
@@ -119,77 +118,6 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
     connect( m_refreshMetricsAct, SIGNAL(triggered(bool)), this, SLOT(handleRefreshMetrics()) );
     connect( m_resetSelectionsAct, SIGNAL(triggered(bool)), this, SLOT(handleResetSelections()) );
 #endif
-}
-
-/**
- * @brief ExperimentPanel::handleCheckedChanged
- * @param value
- */
-void ExperimentPanel::handleCheckedChanged(bool value)
-{
-    QMutexLocker guard( &m_mutex );
-
-    if ( m_loadedExperiments.isEmpty() )
-        return;
-
-    TreeItem* item = qobject_cast< TreeItem* >( sender() );
-    if ( item ) {
-        const QString clusterName = item->data( 0 ).toString();
-        qDebug() << Q_FUNC_INFO << clusterName << " = " << value;
-        m_userStack.push( new ThreadSelectionCommand( m_expModel, item, value ) );
-        if ( value )
-            m_selectedClusters.insert( clusterName );
-        else
-            m_selectedClusters.remove( clusterName );
-    }
-}
-
-/**
- * @brief ExperimentPanel::handleSelectAllThreads
- */
-void ExperimentPanel::handleSelectAllThreads()
-{
-    qDebug() << Q_FUNC_INFO << "called!!";
-    while ( m_userStack.canUndo() ) m_userStack.undo();
-    m_initialStack.redo();
-    m_userStack.clear();
-}
-
-/**
- * @brief ExperimentPanel::handleDeselectAllThreads
- */
-void ExperimentPanel::handleDeselectAllThreads()
-{
-    qDebug() << Q_FUNC_INFO << "called!!";
-    while ( m_userStack.canUndo() ) m_userStack.undo();
-    m_initialStack.undo();
-    m_userStack.clear();
-}
-
-/**
- * @brief ExperimentPanel::handleRefreshMetrics
- */
-void ExperimentPanel::handleRefreshMetrics()
-{
-    qDebug() << Q_FUNC_INFO << "called!!";
-
-    TreeItem* expItem = qobject_cast< TreeItem* >( m_root->children().first() );
-    TreeItem* expCriteriaItem = qobject_cast< TreeItem* >( expItem->children().first() );
-
-    const QString clusteringCriteriaName = expCriteriaItem->data( 0 ).toString();
-
-    emit signalSelectedClustersChanged( clusteringCriteriaName, m_selectedClusters );
-
-    m_userStack.clear();
-}
-
-/**
- * @brief ExperimentPanel::handleResetSelections
- */
-void ExperimentPanel::handleResetSelections()
-{
-    qDebug() << Q_FUNC_INFO << "called!!";
-    m_userStack.undo();
 }
 
 /**
@@ -298,6 +226,89 @@ void ExperimentPanel::contextMenuEvent(QContextMenuEvent *event)
     menu.exec( event->globalPos() );
 }
 #endif // QT_NO_CONTEXTMENU
+
+/**
+ * @brief ExperimentPanel::handleCheckedChanged
+ * @param value - checked state value
+ *
+ * This method handles checked state changes by recording the currently selected set of threads and
+ * updating pushing the action to the user undo stack.
+ */
+void ExperimentPanel::handleCheckedChanged(bool value)
+{
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_loadedExperiments.isEmpty() )
+        return;
+
+    TreeItem* item = qobject_cast< TreeItem* >( sender() );
+    if ( item ) {
+        const QString clusterName = item->data( 0 ).toString();
+        qDebug() << Q_FUNC_INFO << clusterName << " = " << value;
+        m_userStack.push( new ThreadSelectionCommand( m_expModel, item, value ) );
+        if ( value )
+            m_selectedClusters.insert( clusterName );
+        else
+            m_selectedClusters.remove( clusterName );
+    }
+}
+
+/**
+ * @brief ExperimentPanel::handleSelectAllThreads
+ *
+ * This method processes the "Select All Threads" context-menu selection from the user.
+ * An "undo" is performed on entire user command stack; then a "redo" is performed on the initial command stack;
+ * followed by clearing the user command stack.
+ */
+void ExperimentPanel::handleSelectAllThreads()
+{
+    while ( m_userStack.canUndo() ) m_userStack.undo();
+    m_initialStack.redo();
+    m_userStack.clear();
+}
+
+/**
+ * @brief ExperimentPanel::handleDeselectAllThreads
+ *
+ * This method processes the "Deselect All Threads" context-menu selection from the user.
+ * An "undo" is performed on entire user command stack; then a "undo" is performed on the initial command stack;
+ * followed by clearing the user command stack.
+ */
+void ExperimentPanel::handleDeselectAllThreads()
+{
+    while ( m_userStack.canUndo() ) m_userStack.undo();
+    m_initialStack.undo();
+    m_userStack.clear();
+}
+
+/**
+ * @brief ExperimentPanel::handleRefreshMetrics
+ *
+ * This method processes the "Refresh Metric View" context-menu selection from the user.
+ * Then the "signalSelectedClustersChanged" signal is emitted.
+ */
+void ExperimentPanel::handleRefreshMetrics()
+{
+    TreeItem* expItem = qobject_cast< TreeItem* >( m_root->children().first() );
+    TreeItem* expCriteriaItem = qobject_cast< TreeItem* >( expItem->children().first() );
+
+    const QString clusteringCriteriaName = expCriteriaItem->data( 0 ).toString();
+
+    emit signalSelectedClustersChanged( clusteringCriteriaName, m_selectedClusters );
+}
+
+/**
+ * @brief ExperimentPanel::handleResetSelections
+ *
+ * This method processes the "Cancel Thread Selections" context-menu selection from the user.
+ * An "undo" is performed on entire user command stack; followed by clearing the user command stack.
+ */
+void ExperimentPanel::handleResetSelections()
+{
+    qDebug() << Q_FUNC_INFO << "called!!";
+    while ( m_userStack.canUndo() ) m_userStack.undo();
+    m_userStack.clear();
+}
 
 
 } // GUI
