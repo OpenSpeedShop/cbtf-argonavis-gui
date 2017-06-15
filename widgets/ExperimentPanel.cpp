@@ -97,28 +97,28 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
 
     // create context-menu actions
     m_selectAllAct = new QAction( tr("&Select All Threads"), this );
-    m_selectAllAct->setShortcuts( QKeySequence::SelectAll );
     m_selectAllAct->setStatusTip( tr("Select all threads for the current experiment") );
 
-    connect( m_selectAllAct, &QAction::triggered, this, &ExperimentPanel::handleSelectAllThreads );
-
     m_deselectAllAct = new QAction( tr("&Deselect All Threads"), this );
-    m_deselectAllAct->setShortcuts( QKeySequence::Deselect );
     m_deselectAllAct->setStatusTip( tr("Deselect all threads for the current experiment") );
 
-    connect( m_deselectAllAct, &QAction::triggered, this, &ExperimentPanel::handleDeselectAllThreads );
-
     m_refreshMetricsAct = new QAction( tr("&Refresh Metric View"), this );
-    m_refreshMetricsAct->setShortcuts( QKeySequence::Refresh );
     m_refreshMetricsAct->setStatusTip( tr("Refresh metric table view using currently selected threads") );
 
-    connect( m_refreshMetricsAct, &QAction::triggered, this, &ExperimentPanel::handleRefreshMetrics );
-
     m_resetSelectionsAct = new QAction( tr("&Cancel Thread Selections"), this );
-    m_resetSelectionsAct->setShortcuts( QKeySequence::Cancel );
     m_resetSelectionsAct->setStatusTip( tr("Reset thread selections to those for the current metric table view") );
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( m_selectAllAct, &QAction::triggered, this, &ExperimentPanel::handleSelectAllThreads );
+    connect( m_deselectAllAct, &QAction::triggered, this, &ExperimentPanel::handleDeselectAllThreads );
+    connect( m_refreshMetricsAct, &QAction::triggered, this, &ExperimentPanel::handleRefreshMetrics );
     connect( m_resetSelectionsAct, &QAction::triggered, this, &ExperimentPanel::handleResetSelections );
+#else
+    connect( m_selectAllAct, SIGNAL(triggered(bool)), this, SLOT(handleSelectAllThreads()) );
+    connect( m_deselectAllAct, SIGNAL(triggered(bool)), this, SLOT(handleDeselectAllThreads()) );
+    connect( m_refreshMetricsAct, SIGNAL(triggered(bool)), this, SLOT(handleRefreshMetrics()) );
+    connect( m_resetSelectionsAct, SIGNAL(triggered(bool)), this, SLOT(handleResetSelections()) );
+#endif
 }
 
 /**

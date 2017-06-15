@@ -183,7 +183,7 @@ private slots:
 
     void handleLoadCudaMetricViews(const QString& clusteringCriteriaName, const QString &clusterName, double lower, double upper);
 
-    void handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, const QString &clusterName, double lower, double upper);
+    void handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, double lower, double upper);
 
     void handleSelectedClustersChanged(const QString& criteriaName, const QSet< QString >& selected);
 

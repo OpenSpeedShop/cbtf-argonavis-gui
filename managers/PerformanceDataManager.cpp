@@ -238,14 +238,14 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
     connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
     connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
-    connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeout, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
+    connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeoutGroup, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
     connect( this, &PerformanceDataManager::signalSelectedClustersChanged, this, &PerformanceDataManager::handleSelectedClustersChanged );
 #else
     connect( this, SIGNAL(loadComplete()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
     connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,QString,double,double,QSize)) );
     connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,QString,double,double)) );
     connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
-    connect( &m_userChangeMgr, SIGNAL(timeout(QString,QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,QString,double,double)) );
+    connect( &m_userChangeMgr, SIGNAL(timeoutGroup(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
     connect( this, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)), this, SLOT(handleSelectedClustersChanged(QString,QSet<QString>)) );
 #endif
 }
@@ -1322,15 +1322,13 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clustering
 /**
  * @brief PerformanceDataManager::handleLoadCudaMetricViewsTimeout
  * @param clusteringCriteriaName - the clustering criteria name
- * @param clusterName - the cluster name
  * @param lower - the lower value of the interval to process
  * @param upper - the upper value of the interval to process
  *
  * This handler in invoked when the waiting period has benn reached and actual processing of the CUDA metric view can proceed.
  */
-void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, const QString& clusterName, double lower, double upper)
+void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, double lower, double upper)
 {
-    Q_UNUSED(clusterName)
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: clusteringCriteriaName=" << clusteringCriteriaName << "lower=" << lower << "upper=" << upper;
 #endif

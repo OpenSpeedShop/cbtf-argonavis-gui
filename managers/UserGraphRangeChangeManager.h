@@ -50,13 +50,14 @@ public:
     explicit UserGraphRangeChangeManager(QObject *parent = 0);
     virtual ~UserGraphRangeChangeManager();
 
-    void create(const QString &clusteringCriteriaName, const QString &clusterName, double lower, double upper, const QSize& size = QSize() );
+    void create(const QString &group, const QString &item, double lower, double upper, const QSize& size = QSize() );
 
-    void cancel(const QString& clusterName);
+    void cancel(const QString& item);
 
 signals:
 
-    void timeout(const QString &clusteringCriteriaName, const QString& clusterName, double lower, double upper, const QSize& size);
+    void timeout(const QString &group, const QString& item, double lower, double upper, const QSize& size);
+    void timeoutGroup(const QString &group, double lower, double upper, const QSize& size);
 
 private slots:
 
@@ -70,7 +71,8 @@ private:
 
     QMutex m_mutex;
     QThread m_thread;
-    QMap< QString, QTimer* > m_timers;
+    QMap< QString, QTimer* > m_timers;              // key=item
+    QMap< QString, QSet< QString > > m_activeMap;   // key=group
 
 };
 
