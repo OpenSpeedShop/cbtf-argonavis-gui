@@ -58,6 +58,7 @@ using namespace boost;
 #include "Loop.hxx"
 #include "Statement.hxx"
 #include "Collector.hxx"
+#include "Experiment.hxx"
 
 #include "UserGraphRangeChangeManager.h"
 #include "CBTF-ArgoNavis-Ext/NameValueDefines.h"
@@ -348,13 +349,14 @@ private:
     QThread m_thread;
 #endif
 
-    typedef struct {
+    typedef struct MetricTableViewInfo {
         QStringList metricList;
         QStringList viewList;                 // processed metric views
         QStringList tableColumnHeaders;       // table column headers for metric views
         QStringList metricViewList;           // [ <metric name> | "Details" ] - [ <View Name> ]
         QString experimentFilename;
         OpenSpeedShop::Framework::TimeInterval interval;
+        const OpenSpeedShop::Framework::Experiment* experiment;
     } MetricTableViewInfo;
 
     QMap< QString, MetricTableViewInfo > m_tableViewInfo;

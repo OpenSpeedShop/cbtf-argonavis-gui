@@ -341,13 +341,7 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
     QMap< QString, QFuture<void> > futures;
 #endif
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    Experiment experiment( info.experimentFilename.toStdString() );
-#else
-    Experiment experiment( std::string( info.experimentFilename.toLatin1().data() ) );
-#endif
-
-    CollectorGroup collectors = experiment.getCollectors();
+    CollectorGroup collectors = info.experiment->getCollectors();
 
     if ( collectors.size() > 0 ) {
         const Collector collector( *collectors.begin() );
@@ -373,12 +367,12 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
             QStringList() << viewName,
             columnTitles,
             collector,
-            experiment,
+            *(info.experiment),
             interval );
 
         if ( futures.size() > 0 ) {
             // Determine full time interval extent of this experiment
-            Extent extent = experiment.getPerformanceDataExtent();
+            Extent extent = info.experiment->getPerformanceDataExtent();
             Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
 
             Base::TimeInterval graphInterval = ConvertToArgoNavis( interval );
@@ -430,14 +424,8 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusteringC
         info.metricViewList << ( CUDA_EVENT_DETAILS_METRIC + "-" + metricName );
     }
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    Experiment experiment( info.experimentFilename.toStdString() );
-#else
-    Experiment experiment( std::string( info.experimentFilename.toLatin1().data() ) );
-#endif
-
-    ThreadGroup all_threads = experiment.getThreads();
-    CollectorGroup collectors = experiment.getCollectors();
+    ThreadGroup all_threads = info.experiment->getThreads();
+    CollectorGroup collectors = info.experiment->getCollectors();
 
     boost::optional<Collector> collector;
     for ( CollectorGroup::const_iterator i = collectors.begin(); i != collectors.end(); ++i ) {
@@ -1036,9 +1024,6 @@ void PerformanceDataManager::processMetricView(const Experiment &experiment, con
         }
     }
 
-    if ( threadGroup.empty() )
-        return;
-
     // Evaluate the first collector's time metric for all functions
     SmartPtr<std::map<TS, std::map<Thread, double> > > individual;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -1200,20 +1185,20 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 #endif
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    Experiment experiment( filePath.toStdString() );
+    Experiment* experiment = new Experiment( filePath.toStdString() );
 #else
-    Experiment experiment( std::string( filePath.toLatin1().data() ) );
+    Experiment* experiment = new Experiment( std::string( filePath.toLatin1().data() ) );
 #endif
 
     // Determine full time interval extent of this experiment
-    Extent extent = experiment.getPerformanceDataExtent();
+    Extent extent = experiment->getPerformanceDataExtent();
     TimeInterval interval = extent.getTimeInterval();
 
     const QString timeMetric( "time" );
     QStringList metricList;
     QStringList metricDescList;
 
-    CollectorGroup collectors = experiment.getCollectors();
+    CollectorGroup collectors = experiment->getCollectors();
     boost::optional<Collector> collector;
     bool foundOne( false );
 
@@ -1246,16 +1231,16 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         QFutureSynchronizer<void> synchronizer;
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        QString experimentFilename = QString::fromStdString( experiment.getName() );
+        QString experimentFilename = QString::fromStdString( experiment->getName() );
 #else
-        QString experimentFilename( QString( experiment.getName().c_str() ) );
+        QString experimentFilename( QString( experiment->getName().c_str() ) );
 #endif
 
         QFileInfo fileInfo( experimentFilename );
         QString experimentName( fileInfo.fileName() );
         experimentName.replace( QString(".openss"), QString("") );
 
-        const ThreadGroup group = experiment.getThreads();
+        const ThreadGroup group = experiment->getThreads();
 
         // Initially all default metric views are computed using all threads.  Set the set of threads for the
         // current clustering criteria to be all threads.
@@ -1280,10 +1265,11 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         info.tableColumnHeaders = metricDescList;
         info.experimentFilename = experimentFilename;
         info.interval = interval;
+        info.experiment = experiment;
 
         m_tableViewInfo[ clusteringCriteriaName ] = info;
         
-        QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment.getThreads() );
+        QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment->getThreads() );
         synchronizer.addFuture( future1 );
 
         if ( hasCudaCollector ) {
@@ -1344,6 +1330,7 @@ void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clustering
  */
 void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, const QString& clusterName, double lower, double upper)
 {
+    Q_UNUSED(clusterName)
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "PerformanceDataManager::handleLoadCudaMetricViewsTimeout: clusteringCriteriaName=" << clusteringCriteriaName << "lower=" << lower << "upper=" << upper;
 #endif
@@ -1364,19 +1351,13 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
     QMap< QString, QFuture<void> > futures;
 #endif
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    Experiment experiment( info.experimentFilename.toStdString() );
-#else
-    Experiment experiment( std::string( info.experimentFilename.toLatin1().data() ) );
-#endif
-
-    CollectorGroup collectors = experiment.getCollectors();
+    CollectorGroup collectors = info.experiment->getCollectors();
 
     if ( collectors.size() > 0 ) {
         const Collector collector( *collectors.begin() );
 
         // Determine time origin from extent of this experiment
-        Extent extent = experiment.getPerformanceDataExtent();
+        Extent extent = info.experiment->getPerformanceDataExtent();
         Time timeOrigin = extent.getTimeInterval().getBegin();
 
         // Calculate new interval from currently selected graph range
@@ -1398,7 +1379,7 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
             info.viewList,
             info.tableColumnHeaders,
             collector,
-            experiment,
+            *(info.experiment),
             interval );
 
         // Emit signal to update detail views corresponding to timeline in graph view
