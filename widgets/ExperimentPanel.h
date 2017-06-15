@@ -35,6 +35,8 @@
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
 
+#include "common/openss-gui-config.h"
+
 #include "ToolAPI.hxx"
 
 using namespace OpenSpeedShop;
