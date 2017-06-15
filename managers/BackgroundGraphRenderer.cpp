@@ -58,7 +58,7 @@ BackgroundGraphRenderer::BackgroundGraphRenderer(QObject *parent)
     connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeout, this, &BackgroundGraphRenderer::handleGraphRangeChangedTimeout );
 #else
     connect( this, SIGNAL(createPlotForClustering(QString,QString)), this, SLOT(handleCreatePlotForClustering(QString,QString)), Qt::QueuedConnection );
-    connect( &m_userChangeMgr, SIGNAL(timeout(QString,double,double,QSize)), this, SLOT(handleGraphRangeChangedTimeout(QString,double,double,QSize)) );
+    connect( &m_userChangeMgr, SIGNAL(timeout(QString,QString,double,double,QSize)), this, SLOT(handleGraphRangeChangedTimeout(QString,QString,double,double,QSize)) );
 #endif
 
     // start thread for backend processing
@@ -145,6 +145,7 @@ void BackgroundGraphRenderer::unloadCudaViews(const QString &clusteringCriteriaN
 
 /**
  * @brief BackgroundGraphRenderer::handleGraphRangeChanged
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @param clusterName - the cluster group name
  * @param lower - the new X-axis lower range
  * @param upper - the new X-axis upper range
@@ -153,7 +154,7 @@ void BackgroundGraphRenderer::unloadCudaViews(const QString &clusteringCriteriaN
  * This method handles graph range changed events so that the processing of the CUDA events for the new view can be initiated after a waiting period.
  * The waiting period is handled by a timer run in a thread and allows processing only if the user has stopped manipulating the graph view (zoom and pan).
  */
-void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size)
+void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusteringCriteriaName, const QString& clusterName, double lower, double upper, const QSize& size)
 {
     m_userChangeMgr.cancel( clusterName );
 
@@ -170,7 +171,7 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
         if ( axisRect ) {
             QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
             if ( xAxis ) {
-                m_userChangeMgr.create( clusterName, lower, upper, size );
+                m_userChangeMgr.create( clusteringCriteriaName, clusterName, lower, upper, size );
             }
         }
     }
@@ -178,6 +179,7 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
 
 /**
  * @brief BackgroundGraphRenderer::handleGraphRangeChangedTimeout
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @param clusterName - the cluster group name
  * @param lower - the new X-axis lower range
  * @param upper - the new X-axis upper range
@@ -185,8 +187,9 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusterName
  *
  * This handler in invoked when the waiting period has benn reached and actual processing of the CUDA events can proceed.
  */
-void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clusterName, double lower, double upper, const QSize& size)
+void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clusteringCriteriaName, const QString& clusterName, double lower, double upper, const QSize& size)
 {
+    Q_UNUSED(clusteringCriteriaName)
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRenderer::handleGraphRangeChangedTimeout: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
 #endif
@@ -397,6 +400,7 @@ void BackgroundGraphRenderer::processCudaEventSnapshot(CustomPlot* plot)
 
 /**
  * @brief BackgroundGraphRenderer::handleCreatePlotForClustering
+ * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @param clusteringName - the cluster group name
  *
  * This handler creates a new QCustomPlot in the GUI thread to be used for background (non-display) rendering of CUDA events.

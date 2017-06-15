@@ -271,6 +271,18 @@ QHash<int, QByteArray> TreeModel::roleNames() const
 }
 
 /**
+ * @brief TreeModel::createIndex
+ * @param row
+ * @param column
+ * @param data
+ * @return
+ */
+QModelIndex TreeModel::createIndex(int row, int column, void *data) const
+{
+    return QAbstractItemModel::createIndex( row, column, data );
+}
+
+/**
  * @brief TreeModel::getItem
  * @param index - model index of item
  * @return the TreeItem instance referenced by index

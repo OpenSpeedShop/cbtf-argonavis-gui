@@ -27,8 +27,11 @@
 #include "TreeItem.h"
 
 #include "managers/PerformanceDataManager.h"
+#include "widgets/ThreadSelectionCommand.h"
 
 #include <QVBoxLayout>
+#include <QMenu>
+#include <QPersistentModelIndex>
 #include <QDebug>
 
 
@@ -91,6 +94,102 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
                             "        border-image: none;"
                             "        image: url(:/images/branch-open);"
                             "}");
+
+    // create context-menu actions
+    m_selectAllAct = new QAction( tr("&Select All Threads"), this );
+    m_selectAllAct->setShortcuts( QKeySequence::SelectAll );
+    m_selectAllAct->setStatusTip( tr("Select all threads for the current experiment") );
+
+    connect( m_selectAllAct, &QAction::triggered, this, &ExperimentPanel::handleSelectAllThreads );
+
+    m_deselectAllAct = new QAction( tr("&Deselect All Threads"), this );
+    m_deselectAllAct->setShortcuts( QKeySequence::Deselect );
+    m_deselectAllAct->setStatusTip( tr("Deselect all threads for the current experiment") );
+
+    connect( m_deselectAllAct, &QAction::triggered, this, &ExperimentPanel::handleDeselectAllThreads );
+
+    m_refreshMetricsAct = new QAction( tr("&Refresh Metric View"), this );
+    m_refreshMetricsAct->setShortcuts( QKeySequence::Refresh );
+    m_refreshMetricsAct->setStatusTip( tr("Refresh metric table view using currently selected threads") );
+
+    connect( m_refreshMetricsAct, &QAction::triggered, this, &ExperimentPanel::handleRefreshMetrics );
+
+    m_resetSelectionsAct = new QAction( tr("&Cancel Thread Selections"), this );
+    m_resetSelectionsAct->setShortcuts( QKeySequence::Cancel );
+    m_resetSelectionsAct->setStatusTip( tr("Reset thread selections to those for the current metric table view") );
+
+    connect( m_resetSelectionsAct, &QAction::triggered, this, &ExperimentPanel::handleResetSelections );
+}
+
+/**
+ * @brief ExperimentPanel::handleCheckedChanged
+ * @param value
+ */
+void ExperimentPanel::handleCheckedChanged(bool value)
+{
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_loadedExperiments.isEmpty() )
+        return;
+
+    TreeItem* item = qobject_cast< TreeItem* >( sender() );
+    if ( item ) {
+        const QString clusterName = item->data( 0 ).toString();
+        qDebug() << Q_FUNC_INFO << clusterName << " = " << value;
+        m_userStack.push( new ThreadSelectionCommand( m_expModel, item, value ) );
+        if ( value )
+            m_selectedClusters.insert( clusterName );
+        else
+            m_selectedClusters.remove( clusterName );
+    }
+}
+
+/**
+ * @brief ExperimentPanel::handleSelectAllThreads
+ */
+void ExperimentPanel::handleSelectAllThreads()
+{
+    qDebug() << Q_FUNC_INFO << "called!!";
+    while ( m_userStack.canUndo() ) m_userStack.undo();
+    m_initialStack.redo();
+    m_userStack.clear();
+}
+
+/**
+ * @brief ExperimentPanel::handleDeselectAllThreads
+ */
+void ExperimentPanel::handleDeselectAllThreads()
+{
+    qDebug() << Q_FUNC_INFO << "called!!";
+    while ( m_userStack.canUndo() ) m_userStack.undo();
+    m_initialStack.undo();
+    m_userStack.clear();
+}
+
+/**
+ * @brief ExperimentPanel::handleRefreshMetrics
+ */
+void ExperimentPanel::handleRefreshMetrics()
+{
+    qDebug() << Q_FUNC_INFO << "called!!";
+
+    TreeItem* expItem = qobject_cast< TreeItem* >( m_root->children().first() );
+    TreeItem* expCriteriaItem = qobject_cast< TreeItem* >( expItem->children().first() );
+
+    const QString clusteringCriteriaName = expCriteriaItem->data( 0 ).toString();
+
+    emit signalSelectedClustersChanged( clusteringCriteriaName, m_selectedClusters );
+
+    m_userStack.clear();
+}
+
+/**
+ * @brief ExperimentPanel::handleResetSelections
+ */
+void ExperimentPanel::handleResetSelections()
+{
+    qDebug() << Q_FUNC_INFO << "called!!";
+    m_userStack.undo();
 }
 
 /**
@@ -113,12 +212,25 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
     TreeItem* expCriteriaItem = new TreeItem( QList< QVariant >() << clusteringCriteriaName, expItem );
     expItem->appendChild( expCriteriaItem );
 
+    m_initialStack.beginMacro( "select-all-threads" );
+
     int index( 0 );
 
     foreach( const QString& clusterName, clusterNames ) {
         // create new cluster item and add as child of the criteria item
-        TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName, expCriteriaItem, true, true, false );
+        TreeItem* clusterItem = new TreeItem( QList< QVariant >() << clusterName, expCriteriaItem, true, true, true );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        connect( clusterItem, &TreeItem::checkedChanged, this, &ExperimentPanel::handleCheckedChanged );
+#else
+        connect( clusterItem, SIGNAL(checkedChanged(bool)), this, SLOT(handleCheckedChanged(bool)) );
+#endif
+        // add cluster item to clustering criteria item
         expCriteriaItem->appendChild( clusterItem );
+
+        m_initialStack.push( new ThreadSelectionCommand( m_expModel, clusterItem ) );
+
+        // insert cluster into selected cluster list
+        m_selectedClusters.insert( clusterName );
 
         // is this cluster item associated with a GPU view?
         bool isGpuCluster( index < clusterHasGpuSampleCounters.size() && clusterHasGpuSampleCounters[ index++ ] );
@@ -136,8 +248,18 @@ void ExperimentPanel::handleAddExperiment(const QString &name, const QString &cl
         }
     }
 
+    m_initialStack.endMacro();
+
     m_expView.resizeColumnToContents( 0 );
     m_expView.expandAll();
+
+    QMutexLocker guard( &m_mutex );
+
+    m_loadedExperiments << name;
+
+    foreach( QString name, clusterNames ) {
+        m_selectedClusters.insert( name );
+    }
 }
 
 /**
@@ -155,7 +277,27 @@ void ExperimentPanel::handleRemoveExperiment(const QString &name)
             break;
         }
     }
+
+    QMutexLocker guard( &m_mutex );
+
+    m_loadedExperiments.removeOne( name );
+
+    m_selectedClusters.clear();
 }
+
+#ifndef QT_NO_CONTEXTMENU
+void ExperimentPanel::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu menu( this );
+
+    menu.addAction( m_selectAllAct );
+    menu.addAction( m_deselectAllAct );
+    menu.addAction( m_refreshMetricsAct );
+    menu.addAction( m_resetSelectionsAct );
+
+    menu.exec( event->globalPos() );
+}
+#endif // QT_NO_CONTEXTMENU
 
 
 } // GUI

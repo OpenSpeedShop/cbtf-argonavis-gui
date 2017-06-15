@@ -28,6 +28,10 @@
 #include <QTreeView>
 #include <QVector>
 #include <QString>
+#include <QMutex>
+#include <QAction>
+#include <QContextMenuEvent>
+#include <QUndoStack>
 
 #include <ArgoNavis/CUDA/PerformanceData.hpp>
 
@@ -60,6 +64,7 @@ public:
 signals:
 
     void criteriaSelectionUpdate();
+    void signalSelectedClustersChanged(const QString& criteriaName, const QSet< QString >& selected);
 
 public slots:
 
@@ -72,11 +77,37 @@ public slots:
 
     void handleRemoveExperiment(const QString& name);
 
+#ifndef QT_NO_CONTEXTMENU
+protected slots:
+
+    void contextMenuEvent(QContextMenuEvent *event) Q_DECL_OVERRIDE;
+#endif // QT_NO_CONTEXTMENU
+
+private slots:
+
+    void handleCheckedChanged(bool value);
+    void handleSelectAllThreads();
+    void handleDeselectAllThreads();
+    void handleRefreshMetrics();
+    void handleResetSelections();
+
 private:
 
     QTreeView m_expView;
     TreeModel* m_expModel;
     TreeItem* m_root;
+
+    QMutex m_mutex;
+    QSet< QString > m_selectedClusters;
+    QStringList m_loadedExperiments;
+
+    QAction* m_selectAllAct;
+    QAction* m_deselectAllAct;
+    QAction* m_refreshMetricsAct;
+    QAction* m_resetSelectionsAct;
+
+    QUndoStack m_initialStack;
+    QUndoStack m_userStack;
 
 };
 

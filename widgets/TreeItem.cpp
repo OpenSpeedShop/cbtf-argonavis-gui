@@ -37,8 +37,8 @@ namespace ArgoNavis { namespace GUI {
 TreeItem::TreeItem(const QList<QVariant> &data, TreeItem *parent, bool checkable, bool checked, bool enabled)
     : QObject( parent )
     , m_itemData( data )
-    , m_checked( checked )
     , m_checkable( checkable )
+    , m_checked( checked )
     , m_enabled( enabled )
 {
 

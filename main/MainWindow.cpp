@@ -88,6 +88,7 @@ MainWindow::MainWindow(QWidget *parent)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::loadComplete, this, &MainWindow::handleLoadComplete );
         connect( dataMgr, &PerformanceDataManager::addExperiment, ui->widget_ExperimentPanel, &ExperimentPanel::handleAddExperiment );
+        connect( ui->widget_ExperimentPanel, &ExperimentPanel::signalSelectedClustersChanged, dataMgr, &PerformanceDataManager::signalSelectedClustersChanged );
         connect( dataMgr, &PerformanceDataManager::metricViewRangeChanged, ui->widget_MetricTableView, &PerformanceDataMetricView::handleRangeChanged );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalClearSourceView, ui->widget_SourceCodeViewer, &SourceView::handleClearSourceView );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalDisplaySourceFileLineNumber, ui->widget_SourceCodeViewer, &SourceView::handleDisplaySourceFileLineNumber );
@@ -98,10 +99,13 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::signalSetDefaultMetricView, ui->widget_MetricViewManager, &MetricViewManager::handleSwitchView );
         connect( dataMgr, &PerformanceDataManager::signalSetDefaultMetricView, this, &MainWindow::handleSetDefaultMetricView );
         connect( dataMgr, &PerformanceDataManager::addDevice, ui->widget_MetricTableView, &PerformanceDataMetricView::signalAddDevice );
+        connect( dataMgr, &PerformanceDataManager::signalRequestMetricTableViewUpdate, ui->widget_MetricTableView, &PerformanceDataMetricView::handleRequestViewUpdate );
 #else
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)),
                  ui->widget_ExperimentPanel, SLOT(handleAddExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)) );
+        connect( ui->widget_ExperimentPanel, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)),
+                 dataMgr, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)) );
         connect( dataMgr, SIGNAL(metricViewRangeChanged(QString,QString,QString,double,double)),
                  ui->widget_MetricTableView, SLOT(handleRangeChanged(QString,QString,QString,double,double)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalClearSourceView()), ui->widget_SourceCodeViewer, SLOT(handleClearSourceView()) );
@@ -113,6 +117,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );  
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes)) );
         connect( dataMgr, SIGNAL(addDevice(quint32,quint32,NameValueList,NameValueList)), ui->widget_MetricTableView, SIGNAL(signalAddDevice(quint32,quint32,NameValueList,NameValueList)) );
+        connect( dataMgr, SIGNAL(signalRequestMetricTableViewUpdate()), ui->widget_MetricTableView, SLOT(handleRequestViewUpdate()) );
 #endif
     }
 

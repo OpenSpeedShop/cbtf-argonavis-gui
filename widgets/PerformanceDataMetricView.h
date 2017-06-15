@@ -79,24 +79,25 @@ public:
 signals:
 
     void signalAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
-    void signalRequestMetricView(const QString& clusterName, const QString& metricName, const QString& viewName);
-    void signalRequestDetailView(const QString& clusterName, const QString& detailName);
+    void signalRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void signalRequestDetailView(const QString& clusteringCriteriaName, const QString& detailName);
     void signalClearSourceView();
     void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
     void signalAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
 
 public slots:
 
-    void handleInitModel(const QString& clusterName, const QString& metricName, const QString& viewName, const QStringList& metrics);
-    void handleInitModelView(const QString& clusterName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
-    void handleAddData(const QString& clusterName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders);
-    void handleRangeChanged(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void handleInitModel(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void handleInitModelView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
+    void handleAddData(const QString& clusteringCriteriaName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders);
+    void handleRangeChanged(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void handleRequestViewUpdate();
 
 private slots:
 
     void handleViewModeChanged(const QString &text);
     void handleMetricViewChanged(const QString &text);
-    void handleRequestMetricViewComplete(const QString& clusterName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void handleRequestMetricViewComplete(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
     void showContextMenu(const DetailsMenuTypes menuType, const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);
@@ -114,7 +115,7 @@ private:
     static QString s_functionTitle;
     static QString s_deviceTitle;
 
-    QString m_clusterName;                                  // cluster name associated to metric views
+    QString m_clusteringCritieriaName;                      // clustering criteria name associated to metric views
     QMutex m_mutex;                                         // mutex for the following QMap objects
     QMap< QString, QStandardItemModel* > m_models;          // map metric to model
     QMap< QString, QSortFilterProxyModel* > m_proxyModels;  // map metric to model

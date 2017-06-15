@@ -66,7 +66,7 @@ public:
 
 signals:
 
-    void graphRangeChanged(const QString& clusterName, double lower, double upper, const QSize& size);
+    void graphRangeChanged(const QString& clusteringCriteriaName,const QString& clusterName, double lower, double upper, const QSize& size);
 
 protected:
 
@@ -108,7 +108,7 @@ private:
     void initPlotView(const QString& metricGroupName, QCPAxisRect* axisRect);
     QList< QCPAxis* > getAxesForMetricGroup(const QCPAxis::AxisType axisType, const QString& metricGroupName);
     const QCPRange getRange(const QVector<double> &values, bool sortHint = false);
-    double getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusterName, QSize& size);
+    double getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusteringCriteriaName, QString& clusterName, QSize& size);
 
 private:
 
