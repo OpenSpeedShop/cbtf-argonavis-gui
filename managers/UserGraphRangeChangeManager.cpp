@@ -59,8 +59,8 @@ UserGraphRangeChangeManager::~UserGraphRangeChangeManager()
 
 /**
  * @brief UserGraphRangeChangeManager::create
- * @param clusteringCriteriaName - the name of the cluster criteria
- * @param clusterName - the name of the cluster (thread/process identifier)
+ * @param group - the name of the group the item being tracked belongs to
+ * @param item - the name of the item being tracked
  * @param lower - the lower value of the graph range change
  * @param upper - the upper value of the graph range change
  * @param size - the size of the axis rect
@@ -68,7 +68,7 @@ UserGraphRangeChangeManager::~UserGraphRangeChangeManager()
  * This method creates and starts a timer to delay processing of the graph range change until the timeout threshold has
  * been reached without further user interaction to change the graph range.
  */
-void UserGraphRangeChangeManager::create(const QString &clusteringCriteriaName, const QString &clusterName, double lower, double upper, const QSize &size)
+void UserGraphRangeChangeManager::create(const QString &group, const QString &item, double lower, double upper, const QSize &size)
 {
     QTimer* timer = new QTimer;
     if ( timer ) {
@@ -78,14 +78,14 @@ void UserGraphRangeChangeManager::create(const QString &clusteringCriteriaName, 
         // add timer to timer map
         {
             QMutexLocker guard( &m_mutex );
-            m_timers.insert( clusterName, timer );
-            m_activeMap[ clusteringCriteriaName ].insert( clusterName );
+            m_timers.insert( item, timer );
+            m_activeMap[ group ].insert( item );
         }
         // move timer to thread to let signals manage timer start/stop state
         timer->moveToThread( &m_thread );
         // setup the timer expiry handler to process the graph range change only if the waiting period completes
-        timer->setProperty( "clusteringCriteriaName", clusteringCriteriaName );
-        timer->setProperty( "clusterName", clusterName );
+        timer->setProperty( "group", group );
+        timer->setProperty( "item", item );
         timer->setProperty( "lower", lower );
         timer->setProperty( "upper", upper );
         timer->setProperty( "size", size );
@@ -104,15 +104,15 @@ void UserGraphRangeChangeManager::create(const QString &clusteringCriteriaName, 
 
 /**
  * @brief UserGraphRangeChangeManager::cancel
- * @param clusterName - the name of the cluster (thread/process identifier)
+ * @param item - the name of the item being tracked
  *
- * This method cancels the timer associated with the cluster name.
+ * This method cancels the timer associated with the named item.
  */
-void UserGraphRangeChangeManager::cancel(const QString &clusterName)
+void UserGraphRangeChangeManager::cancel(const QString &item)
 {
     QMutexLocker guard( &m_mutex );
-    if ( m_timers.contains( clusterName ) ) {
-        QTimer* timer = m_timers.take( clusterName );
+    if ( m_timers.contains( item ) ) {
+        QTimer* timer = m_timers.take( item );
         if ( timer ) {
             QMetaObject::invokeMethod( timer, "stop", Qt::QueuedConnection );
             timer->deleteLater();
@@ -132,25 +132,25 @@ void UserGraphRangeChangeManager::handleTimeout()
     if ( ! timer )
         return;
 
-    QString clusteringCriteriaName = timer->property( "clusteringCriteriaName" ).toString();
-    QString clusterName = timer->property( "clusterName" ).toString();
+    QString group = timer->property( "group" ).toString();
+    QString item = timer->property( "item" ).toString();
 
     double lower = timer->property( "lower" ).toDouble();
     double upper = timer->property( "upper" ).toDouble();
     QSize size = timer->property( "size" ).toSize();
 
-    qDebug() << "UserGraphRangeChangeManager::handleTimeout: clusterName=" << clusterName << " lower=" << lower << " upper=" << upper;
+    qDebug() << "UserGraphRangeChangeManager::handleTimeout: item=" << item << " lower=" << lower << " upper=" << upper;
 
-    emit timeout( clusteringCriteriaName, clusterName, lower, upper, size );
+    emit timeout( group, item, lower, upper, size );
 
-    cancel( clusterName );
+    cancel( item );
 
     QMutexLocker guard( &m_mutex );
 
-    if ( m_activeMap.contains( clusteringCriteriaName ) ) {
-        QSet< QString>& active = m_activeMap[ clusteringCriteriaName ];
-        if ( active.remove( clusterName ) && active.isEmpty() ) {
-            emit timeoutClusterCriteria( clusteringCriteriaName, lower, upper, size );
+    if ( m_activeMap.contains( group ) ) {
+        QSet< QString>& active = m_activeMap[ group ];
+        if ( active.remove( item ) && active.isEmpty() ) {
+            emit timeoutGroup( group, lower, upper, size );
         }
     }
 }

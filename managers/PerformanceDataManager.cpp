@@ -238,14 +238,14 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
     connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
     connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
     connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
-    connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeoutClusterCriteria, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
+    connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeoutGroup, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
     connect( this, &PerformanceDataManager::signalSelectedClustersChanged, this, &PerformanceDataManager::handleSelectedClustersChanged );
 #else
     connect( this, SIGNAL(loadComplete()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
     connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,QString,double,double,QSize)) );
     connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,QString,double,double)) );
     connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
-    connect( &m_userChangeMgr, SIGNAL(timeoutClusterCriteria(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
+    connect( &m_userChangeMgr, SIGNAL(timeoutGroup(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
     connect( this, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)), this, SLOT(handleSelectedClustersChanged(QString,QSet<QString>)) );
 #endif
 }
