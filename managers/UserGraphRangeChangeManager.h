@@ -57,6 +57,7 @@ public:
 signals:
 
     void timeout(const QString &clusteringCriteriaName, const QString& clusterName, double lower, double upper, const QSize& size);
+    void timeoutClusterCriteria(const QString &clusteringCriteriaName, double lower, double upper, const QSize& size);
 
 private slots:
 
@@ -70,7 +71,8 @@ private:
 
     QMutex m_mutex;
     QThread m_thread;
-    QMap< QString, QTimer* > m_timers;
+    QMap< QString, QTimer* > m_timers;              // key=clusterName
+    QMap< QString, QSet< QString > > m_activeMap;   // key=clusteringCriteriaName
 
 };
 

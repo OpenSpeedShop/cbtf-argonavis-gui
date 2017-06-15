@@ -79,6 +79,7 @@ void UserGraphRangeChangeManager::create(const QString &clusteringCriteriaName, 
         {
             QMutexLocker guard( &m_mutex );
             m_timers.insert( clusterName, timer );
+            m_activeMap[ clusteringCriteriaName ].insert( clusterName );
         }
         // move timer to thread to let signals manage timer start/stop state
         timer->moveToThread( &m_thread );
@@ -143,6 +144,15 @@ void UserGraphRangeChangeManager::handleTimeout()
     emit timeout( clusteringCriteriaName, clusterName, lower, upper, size );
 
     cancel( clusterName );
+
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_activeMap.contains( clusteringCriteriaName ) ) {
+        QSet< QString>& active = m_activeMap[ clusteringCriteriaName ];
+        if ( active.remove( clusterName ) && active.isEmpty() ) {
+            emit timeoutClusterCriteria( clusteringCriteriaName, lower, upper, size );
+        }
+    }
 }
 
 #ifdef HAS_TIMER_THREAD_DESTROYED_CHECKING
