@@ -244,7 +244,6 @@ void ExperimentPanel::handleCheckedChanged(bool value)
     TreeItem* item = qobject_cast< TreeItem* >( sender() );
     if ( item ) {
         const QString clusterName = item->data( 0 ).toString();
-        qDebug() << Q_FUNC_INFO << clusterName << " = " << value;
         m_userStack.push( new ThreadSelectionCommand( m_expModel, item, value ) );
         if ( value )
             m_selectedClusters.insert( clusterName );
@@ -305,7 +304,6 @@ void ExperimentPanel::handleRefreshMetrics()
  */
 void ExperimentPanel::handleResetSelections()
 {
-    qDebug() << Q_FUNC_INFO << "called!!";
     while ( m_userStack.canUndo() ) m_userStack.undo();
     m_userStack.clear();
 }
