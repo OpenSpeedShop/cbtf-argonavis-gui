@@ -125,7 +125,7 @@ ExperimentPanel::ExperimentPanel(QWidget *parent)
  * @param name - the experiment name
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterNames - the clustering group names
- * &param clusterHasGpuSampleCounters - whether the cluster has GPU sample counter data
+ * @param clusterHasGpuSampleCounters - whether the cluster has GPU sample counter data
  * @param sampleCounters - the sample counter identifiers
  *
  * Add the given experiment to the tree model which will be detected and added to the view.
