@@ -1013,9 +1013,6 @@ void PerformanceDataManager::processMetricView(const Experiment &experiment, con
 
     getThreadGroupFromSelectedClusters( clusteringCriteriaName, experiment.getThreads(), threadGroup );
 
-    if ( threadGroup.empty() )
-        return;
-
     const QString viewName = getViewName<TS>();
     const Collector collector( *collectors.begin() );
 
@@ -1575,12 +1572,14 @@ void PerformanceDataManager::getThreadGroupFromSelectedClusters(const QString &c
 {
     QMutexLocker guard( &m_mutex );
 
-    const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
+    if ( m_selectedClusters.contains( clusteringCriteriaName ) ) {
+        const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
 
-    for ( ThreadGroup::iterator iter = group.begin(); iter != group.end(); ++iter ) {
-        const Thread thread( *iter );
-        if ( selected.contains( ArgoNavis::CUDA::getUniqueClusterName( thread ) ) ) {
-            threadGroup.insert( thread );
+        for ( ThreadGroup::iterator iter = group.begin(); iter != group.end(); ++iter ) {
+            const Thread thread( *iter );
+            if ( selected.contains( ArgoNavis::CUDA::getUniqueClusterName( thread ) ) ) {
+                threadGroup.insert( thread );
+            }
         }
     }
 }
