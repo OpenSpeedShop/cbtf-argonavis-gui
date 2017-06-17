@@ -1006,23 +1006,18 @@ void PerformanceDataManager::processMetricView(const Experiment &experiment, con
     qDebug() << "PerformanceDataManager::processMetricView: thread=" << QString::number((long long)QThread::currentThread(), 16);
 #endif
 
-    if ( 0 == collectors.size() || ! m_selectedClusters.contains( clusteringCriteriaName ) )
+    if ( 0 == collectors.size() )
+        return;
+
+    ThreadGroup threadGroup;
+
+    getThreadGroupFromSelectedClusters( clusteringCriteriaName, experiment.getThreads(), threadGroup );
+
+    if ( threadGroup.empty() )
         return;
 
     const QString viewName = getViewName<TS>();
     const Collector collector( *collectors.begin() );
-    const ThreadGroup group( experiment.getThreads() );
-
-    ThreadGroup threadGroup;
-
-    const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
-
-    for ( ThreadGroup::iterator iter = group.begin(); iter != group.end(); ++iter ) {
-        const Thread thread( *iter );
-        if ( selected.contains( ArgoNavis::CUDA::getUniqueClusterName( thread ) ) ) {
-            threadGroup.insert( thread );
-        }
-    }
 
     // Evaluate the first collector's time metric for all functions
     SmartPtr<std::map<TS, std::map<Thread, double> > > individual;
@@ -1256,9 +1251,11 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         else
             clusteringCriteriaName = QStringLiteral( "Thread Groups" );
 
-        m_selectedClusters[ clusteringCriteriaName ] = selected;
+        {
+            QMutexLocker guard( &m_mutex );
 
-        const QString clusterName = *( selected.begin() );
+            m_selectedClusters[ clusteringCriteriaName ] = selected;
+        }
 
         MetricTableViewInfo info;
         info.metricList = metricList;
@@ -1412,7 +1409,11 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
  */
 void PerformanceDataManager::handleSelectedClustersChanged(const QString &criteriaName, const QSet<QString> &selected)
 {
-    m_selectedClusters[ criteriaName ] = selected;
+    {
+        QMutexLocker guard( &m_mutex );
+
+        m_selectedClusters[ criteriaName ] = selected;
+    }
 
     emit signalRequestMetricTableViewUpdate();
 }
@@ -1560,6 +1561,28 @@ bool PerformanceDataManager::getPerformanceData(const Collector& collector,
     }
 
     return hasCudaCollector;
+}
+
+/**
+ * @brief PerformanceDataManager::getThreadGroupFromSelectedClusters
+ * @param clusteringCriteriaName
+ * @param group - the superset of threads
+ * @param threadGroup - the subset of threads currently selected
+ *
+ * This method returns the subset of threads currently selected.
+ */
+void PerformanceDataManager::getThreadGroupFromSelectedClusters(const QString &clusteringCriteriaName, const ThreadGroup &group, ThreadGroup &threadGroup)
+{
+    QMutexLocker guard( &m_mutex );
+
+    const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
+
+    for ( ThreadGroup::iterator iter = group.begin(); iter != group.end(); ++iter ) {
+        const Thread thread( *iter );
+        if ( selected.contains( ArgoNavis::CUDA::getUniqueClusterName( thread ) ) ) {
+            threadGroup.insert( thread );
+        }
+    }
 }
 
 /**

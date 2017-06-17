@@ -197,6 +197,8 @@ private:
                             QMap< Base::ThreadName, OpenSpeedShop::Framework::Thread>& threads,
                             CUDA::PerformanceData& data);
 
+    void getThreadGroupFromSelectedClusters(const QString &clusteringCriteriaName, const OpenSpeedShop::Framework::ThreadGroup& group, OpenSpeedShop::Framework::ThreadGroup &threadGroup);
+
     void loadCudaView(const QString& experimentName,
                       const QString& clusteringCriteriaName,
                       const OpenSpeedShop::Framework::Collector& collector,
@@ -370,6 +372,7 @@ private:
     } details_compare;
 
     QMap< QString, QSet< QString > > m_selectedClusters;
+    QMutex m_mutex;
 
 };
 
