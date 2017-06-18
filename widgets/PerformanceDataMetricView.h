@@ -70,7 +70,7 @@ public:
 
     void deleteAllModelsViews();
 
-    typedef enum { DETAILS_MODE = 1, METRIC_MODE = 2, CALLTREE_MODE = 4 } ModeType;
+    typedef enum { DETAILS_MODE = 1, METRIC_MODE = 2, CALLTREE_MODE = 4, COMPARE_MODE = 5 } ModeType;
 
     Q_DECLARE_FLAGS( ModeTypes, ModeType )
 
@@ -128,6 +128,7 @@ private:
     QStandardItemModel m_metricViewModel;                   // snapshot of view combobox model for metric mode
     QStandardItemModel m_detailsViewModel;                  // initialized view combobox model for details mode
     QStandardItemModel m_calltreeViewModel;                 // empty combobox model for calltree mode
+    QStandardItemModel m_compareViewModel;                  // initialized view combobox model for compare mode
 
     ModifyPathSubstitutionsDialog* m_modifyPathsDialog;
     ShowDeviceDetailsDialog* m_deviceDetailsDialog;

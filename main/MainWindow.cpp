@@ -169,7 +169,7 @@ void MainWindow::setExperimentDatabase(const QString &filename)
  */
 void MainWindow::showEvent(QShowEvent *event)
 {
-    Q_UNUSED(event);
+    Q_UNUSED( event )
 
     if ( ! m_filename.isEmpty() ) {
         loadExperimentDatabase( m_filename );
@@ -361,7 +361,7 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
  */
 void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view)
 {
-    PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE | PerformanceDataMetricView::CALLTREE_MODE );
+    PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE | PerformanceDataMetricView::CALLTREE_MODE | PerformanceDataMetricView::COMPARE_MODE );
 
     if ( CUDA_VIEW == view ) {
         modes |= PerformanceDataMetricView::DETAILS_MODE;

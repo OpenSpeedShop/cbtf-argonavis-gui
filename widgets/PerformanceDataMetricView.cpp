@@ -87,6 +87,9 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     // initialize model used for view combobox when in calltree mode
     m_calltreeViewModel.appendRow( new QStandardItem( QStringLiteral("CallTree") ) );
 
+    // initialize model used for view combobox when in compare mode
+    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("By Thread") ) );
+
     // initial mode is details mode
     m_mode = METRIC_MODE;
 
@@ -234,6 +237,9 @@ void PerformanceDataMetricView::setAvailableMetricModes(const ModeTypes &modes)
 
     if ( modes.testFlag( CALLTREE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("CallTree") ) ) )
         ui->comboBox_ModeSelection->addItem( QStringLiteral("CallTree") );
+
+    if ( modes.testFlag( COMPARE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare") ) ) )
+        ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare") );
 }
 
 /**
@@ -713,7 +719,7 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
  */
 void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 {
-    Q_UNUSED(text)
+    Q_UNUSED( text )
 
     if ( ui->comboBox_MetricSelection->currentText().isEmpty() )
         return;
