@@ -163,7 +163,7 @@ int ModifyPathSubstitutionsDialog::exec()
  */
 void ModifyPathSubstitutionsDialog::handleCellChanged(int row, int column)
 {
-    Q_UNUSED(column)
+    Q_UNUSED( column )
 
     m_modifiedRows.insert( row );
 }

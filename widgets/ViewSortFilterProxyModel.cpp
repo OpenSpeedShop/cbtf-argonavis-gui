@@ -136,7 +136,7 @@ bool ViewSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInde
  */
 bool ViewSortFilterProxyModel::filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const
 {
-    Q_UNUSED(source_parent);
+    Q_UNUSED( source_parent )
 
     return ( ( m_type == "*" || source_column != 0  ) &&  m_columns.contains( source_column ) );
 }

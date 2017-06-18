@@ -695,7 +695,7 @@ bool PerformanceDataManager::processKernelExecutionDetails(const QString &cluste
 bool PerformanceDataManager::hasDataTransferEvents(const CUDA::DataTransfer& details,
                                                    bool& flag)
 {
-    Q_UNUSED( details );
+    Q_UNUSED( details )
 
     flag = true;
 
@@ -713,7 +713,7 @@ bool PerformanceDataManager::hasDataTransferEvents(const CUDA::DataTransfer& det
 bool PerformanceDataManager::hasKernelExecutionEvents(const CUDA::KernelExecution& details,
                                                       bool& flag)
 {
-    Q_UNUSED( details );
+    Q_UNUSED( details )
 
     flag = true;
 

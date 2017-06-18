@@ -122,7 +122,7 @@ PerformanceDataPlotView::~PerformanceDataPlotView()
  */
 void PerformanceDataPlotView::unloadExperimentDataFromView(const QString &experimentName)
 {
-    Q_UNUSED( experimentName );  // for now until view supports more than one experiment
+    Q_UNUSED( experimentName )  // for now until view supports more than one experiment
 
     ui->graphView->clearGraphs();
     ui->graphView->clearItems();
@@ -313,7 +313,7 @@ void PerformanceDataPlotView::handleGraphClicked(QCPAbstractPlottable *plottable
  */
 void PerformanceDataPlotView::handleItemClick(QCPAbstractItem *item, QMouseEvent *event)
 {
-    Q_UNUSED( event );
+    Q_UNUSED( event )
 #ifdef HAS_ITEM_CLICK_DEBUG
     QString text;
     QTextStream output( &text );

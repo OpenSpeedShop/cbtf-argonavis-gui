@@ -164,7 +164,7 @@ void UserGraphRangeChangeManager::handleTimeout()
  */
 void UserGraphRangeChangeManager::timerDestroyed(QObject* obj)
 {
-    Q_UNUSED(obj);
+    Q_UNUSED( obj )
     qDebug() << "TIMER DESTROYED!!";
 }
 #endif

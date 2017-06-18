@@ -129,7 +129,7 @@ void BackgroundGraphRenderer::setPerformanceData(const QString& clusteringCriter
  */
 void BackgroundGraphRenderer::unloadCudaViews(const QString &clusteringCriteriaName, const QStringList &clusterNames)
 {
-    Q_UNUSED(clusteringCriteriaName)
+    Q_UNUSED( clusteringCriteriaName )
 
     // remove the associated plots
     QMutableMapIterator< QString, CustomPlot* > piter( m_plot );
@@ -189,7 +189,7 @@ void BackgroundGraphRenderer::handleGraphRangeChanged(const QString& clusteringC
  */
 void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clusteringCriteriaName, const QString& clusterName, double lower, double upper, const QSize& size)
 {
-    Q_UNUSED(clusteringCriteriaName)
+    Q_UNUSED( clusteringCriteriaName )
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
     qDebug() << "BackgroundGraphRenderer::handleGraphRangeChangedTimeout: clusterName=" << clusterName << "lower=" << lower << "upper=" << upper;
 #endif

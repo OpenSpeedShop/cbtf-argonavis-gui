@@ -52,7 +52,7 @@ BackgroundGraphRendererBackend::BackgroundGraphRendererBackend(const QString& cl
     : QObject( parent )
     , m_data( data )
 {
-    Q_UNUSED(clusteringCriteriaName)
+    Q_UNUSED( clusteringCriteriaName )
 
     connect( this, SIGNAL(signalProcessCudaEventViewStart()), this, SLOT(handleProcessCudaEventView()) );
 }

@@ -202,8 +202,8 @@ CalltreeGraphManager::handle_t CalltreeGraphManager::addCallEdge(
     m_calltree[edge].label = label;
     m_calltree[edge].metricValues = metricValues;
 #else
-    Q_UNUSED(labelOrMetricName)
-    Q_UNUSED(metricValues)
+    Q_UNUSED( labelOrMetricName )
+    Q_UNUSED( metricValues )
 #endif
 
     const handle_t this_handle = m_edges.size();
