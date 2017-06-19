@@ -369,7 +369,10 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
             *(info.experiment),
             info.interval );
 
-        if ( futures.size() > 0 ) {
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
+        if ( futures.size() > 0 )
+#endif
+        {
             // Determine full time interval extent of this experiment
             Extent extent = info.experiment->getPerformanceDataExtent();
             Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
@@ -381,7 +384,9 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
 
             synchronizer.waitForFinished();
 
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
             emit requestMetricViewComplete( clusteringCriteriaName, metricName, viewName, lower, upper );
+#endif
         }
     }
 
@@ -1464,6 +1469,7 @@ void PerformanceDataManager::loadCudaMetricViews(
                 futures[ futuresKey ] = QtConcurrent::run(
                     boost::bind( &PerformanceDataManager::processMetricView<Statement>, this,
                                  boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
+                synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<Statement>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
 #endif
@@ -1474,6 +1480,7 @@ void PerformanceDataManager::loadCudaMetricViews(
                 futures[ futuresKey ] = QtConcurrent::run(
                     boost::bind( &PerformanceDataManager::processMetricView<LinkedObject>, this,
                                  boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
+                synchronizer.addFuture( futures[ futuresKey ] );
 #else
                 processMetricView<LinkedObject>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
 #endif
