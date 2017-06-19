@@ -688,7 +688,7 @@ void PerformanceDataMetricView::handleRequestViewUpdate()
         emit signalRequestCompareView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
     case CALLTREE_MODE:
-        emit signalRequestCalltreeView( m_clusteringCritieriaName, QStringLiteral("CallTree") );
+        emit signalRequestCalltreeView( m_clusteringCritieriaName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
         break;
     default:
         emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );

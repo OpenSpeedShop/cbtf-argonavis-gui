@@ -81,7 +81,7 @@ signals:
     void signalAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
     void signalRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
     void signalRequestCompareView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
-    void signalRequestCalltreeView(const QString& clusteringCriteriaName, const QString& viewName);
+    void signalRequestCalltreeView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
     void signalRequestDetailView(const QString& clusteringCriteriaName, const QString& detailName);
     void signalClearSourceView();
     void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
