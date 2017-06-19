@@ -80,6 +80,8 @@ signals:
 
     void signalAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
     void signalRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void signalRequestCompareView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void signalRequestCalltreeView(const QString& clusteringCriteriaName, const QString& viewName);
     void signalRequestDetailView(const QString& clusteringCriteriaName, const QString& detailName);
     void signalClearSourceView();
     void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
@@ -128,7 +130,7 @@ private:
     QStandardItemModel m_metricViewModel;                   // snapshot of view combobox model for metric mode
     QStandardItemModel m_detailsViewModel;                  // initialized view combobox model for details mode
     QStandardItemModel m_calltreeViewModel;                 // empty combobox model for calltree mode
-    QStandardItemModel m_compareViewModel;                  // initialized view combobox model for compare mode
+    QStandardItemModel m_compareViewModel;                  // snapshot of view combobox model for compare mode
 
     ModifyPathSubstitutionsDialog* m_modifyPathsDialog;
     ShowDeviceDetailsDialog* m_deviceDetailsDialog;

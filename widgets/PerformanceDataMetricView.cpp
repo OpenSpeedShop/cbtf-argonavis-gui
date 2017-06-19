@@ -88,7 +88,10 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_calltreeViewModel.appendRow( new QStandardItem( QStringLiteral("CallTree") ) );
 
     // initialize model used for view combobox when in compare mode
-    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("By Thread") ) );
+    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("Functions") ) );
+    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("Statements") ) );
+    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
+    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
 
     // initial mode is details mode
     m_mode = METRIC_MODE;
@@ -677,12 +680,19 @@ void PerformanceDataMetricView::handleRangeChanged(const QString &clusteringCrit
  */
 void PerformanceDataMetricView::handleRequestViewUpdate()
 {
-    if ( DETAILS_MODE == m_mode )
+    switch( m_mode ) {
+    case DETAILS_MODE:
         emit signalRequestDetailView( m_clusteringCritieriaName, ui->comboBox_ViewSelection->currentText() );
-    else if ( CALLTREE_MODE == m_mode )
-        emit signalRequestMetricView( m_clusteringCritieriaName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
-    else
+        break;
+    case COMPARE_MODE:
+        emit signalRequestCompareView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        break;
+    case CALLTREE_MODE:
+        emit signalRequestCalltreeView( m_clusteringCritieriaName, QStringLiteral("CallTree") );
+        break;
+    default:
         emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+    }
 }
 
 /**
@@ -703,6 +713,11 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
         m_mode = CALLTREE_MODE;
         ui->comboBox_ViewSelection->setModel( &m_calltreeViewModel );
         ui->comboBox_MetricSelection->setEnabled( false );
+    }
+    else if ( QStringLiteral("Compare") == text ) {
+        m_mode = COMPARE_MODE;
+        ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
+        ui->comboBox_MetricSelection->setEnabled( true );
     }
     else {
         m_mode = METRIC_MODE;
@@ -732,6 +747,8 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         metricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( CALLTREE_MODE == m_mode )
         metricViewName = QStringLiteral("CallTree") + "-" + QStringLiteral("CallTree");
+    else if ( COMPARE_MODE == m_mode )
+        metricViewName = QStringLiteral("Compare") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else
         metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
 
@@ -742,15 +759,10 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
     }
 
     if ( Q_NULLPTR == view ) {
-        // show blank view and the emit signal to have Performance Data Manager process requested metric view
+        // show blank view
         showBlankView();
-
-        if ( DETAILS_MODE == m_mode )
-            emit signalRequestDetailView( m_clusteringCritieriaName, ui->comboBox_ViewSelection->currentText() );
-        else if ( CALLTREE_MODE == m_mode )
-            emit signalRequestMetricView( m_clusteringCritieriaName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
-        else
-            emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        // emit signal to have Performance Data Manager process requested metric view
+        handleRequestViewUpdate();
     }
     else {
         // display existing metric view
@@ -773,51 +785,58 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
 {
     qDebug() << "PerformanceDataMetricView::handleRequestMetricViewComplete: clusteringCriteriaName=" << clusteringCriteriaName << "metricName=" << metricName << "viewName=" << viewName;
 
-    if ( m_clusteringCritieriaName != clusteringCriteriaName || metricName.isEmpty() || viewName.isEmpty() )
-        return;
+    if ( m_clusteringCritieriaName == clusteringCriteriaName || ! metricName.isEmpty() || ! viewName.isEmpty() ) {
+        QTreeView* view( Q_NULLPTR );
 
-    QTreeView* view( Q_NULLPTR );
+        const QString metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
 
-    const QString metricViewName = metricName + "-" + viewName;
+        {
+            QMutexLocker guard( &m_mutex );
 
-    {
-        QMutexLocker guard( &m_mutex );
+            view = m_views.value( metricViewName, Q_NULLPTR );
 
-        view = m_views.value( metricViewName, Q_NULLPTR );
-
-        if ( Q_NULLPTR == view )
-            return;
-
-        // now sorting can be enabled
-        if ( QStringLiteral("CallTree") == metricName ) {
-            // calltree has fixed order
-            view->setSortingEnabled( false );
-        }
-        else {
-            view->setSortingEnabled( true );
-            if ( QStringLiteral("Details") == metricName ) {
-                if ( QStringLiteral("All Events") == viewName )
-                    view->sortByColumn( 1, Qt::AscendingOrder );
-                else
-                    view->sortByColumn( 2, Qt::AscendingOrder );
+            if ( view != Q_NULLPTR ) {
+                // now sorting can be enabled
+                if ( QStringLiteral("CallTree") == metricViewName ) {
+                    // calltree has fixed order
+                    view->setSortingEnabled( false );
+                }
+                else {
+                    view->setSortingEnabled( true );
+                    if ( QStringLiteral("Details") == metricViewName ) {
+                        if ( QStringLiteral("All Events") == metricViewName )
+                            view->sortByColumn( 1, Qt::AscendingOrder );
+                        else
+                            view->sortByColumn( 2, Qt::AscendingOrder );
+                    }
+                    else
+                        view->sortByColumn( 0, Qt::DescendingOrder );
+                }
             }
+        }
+
+        if ( Q_NULLPTR != view ) {
+            handleRangeChanged( clusteringCriteriaName, metricName, viewName, lower, upper );
+
+            QString currentMetricViewName;
+
+            if ( DETAILS_MODE == m_mode )
+                currentMetricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
+            else if ( CALLTREE_MODE == m_mode )
+                currentMetricViewName = QStringLiteral("CallTree") + "-" + QStringLiteral("CallTree");
+            else if ( COMPARE_MODE == m_mode )
+                currentMetricViewName = QStringLiteral("Compare") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
             else
-                view->sortByColumn( 0, Qt::DescendingOrder );
+                currentMetricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+
+            if ( currentMetricViewName == metricViewName )
+                m_viewStack->setCurrentWidget( view );
+
+            return;
         }
     }
 
-    handleRangeChanged( clusteringCriteriaName, metricName, viewName, lower, upper );
-
-    QString currentMetricViewName;
-
-    if ( DETAILS_MODE == m_mode )
-        currentMetricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
-    else
-        currentMetricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
-
-    if ( currentMetricViewName == metricViewName && Q_NULLPTR != view ) {
-        m_viewStack->setCurrentWidget( view );
-    }
+     showBlankView();
 }
 
 /**

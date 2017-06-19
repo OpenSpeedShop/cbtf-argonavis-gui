@@ -392,6 +392,28 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
 }
 
 /**
+ * @brief PerformanceDataManager::handleRequestCompareView
+ * @param clusteringCriteriaName - the name of the clustering criteria
+ * @param metricName - the name of the metric requested in the metric view
+ * @param viewName - the name of the view requested in the metric view
+ *
+ * Handler for external request to produce compare view data for specified compare view.
+ */
+void PerformanceDataManager::handleRequestCompareView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName)
+{
+    if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) || metricName.isEmpty() || viewName.isEmpty() )
+        return;
+
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+    qDebug() << "PerformanceDataManager::handleRequestCompareView: clusteringCriteriaName=" << clusteringCriteriaName << "metric=" << metricName << "view=" << viewName;
+#endif
+
+    const QString metricViewName = metricName + "-" + viewName;
+
+    emit requestMetricViewComplete( clusteringCriteriaName, QStringLiteral("Compare"), metricViewName, 0, 0 );
+}
+
+/**
  * @brief PerformanceDataManager::handleProcessDetailViews
  * @param clusterName - the clustering criteria name
  *

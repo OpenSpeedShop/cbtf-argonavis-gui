@@ -121,8 +121,9 @@ public slots:
 
     void asyncLoadCudaViews(const QString& filePath);
 
-    void handleRequestMetricView(const QString& clusterName, const QString& metric, const QString& view);
-    void handleProcessDetailViews(const QString& clusterName);
+    void handleRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void handleRequestCompareView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void handleProcessDetailViews(const QString& clusteringCriteriaName);
 
 signals:
 

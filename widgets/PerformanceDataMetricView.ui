@@ -49,7 +49,11 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBox_ModeSelection"/>
+       <widget class="QComboBox" name="comboBox_ModeSelection">
+        <property name="sizeAdjustPolicy">
+         <enum>QComboBox::AdjustToContents</enum>
+        </property>
+       </widget>
       </item>
       <item>
        <spacer name="horizontalSpacer_TopSelector_Left">
