@@ -344,10 +344,9 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
     CollectorGroup collectors = info.experiment->getCollectors();
 
     if ( collectors.size() > 0 ) {
-        const Collector collector( *collectors.begin() );
+        const Collector& collector( *collectors.begin() );
 
         QStringList tableColumnHeaders = info.tableColumnHeaders;
-        TimeInterval interval = info.interval;
 
         if ( ! info.viewList.contains( viewName ) )
             info.viewList << viewName;
@@ -368,14 +367,14 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
             columnTitles,
             collector,
             *(info.experiment),
-            interval );
+            info.interval );
 
         if ( futures.size() > 0 ) {
             // Determine full time interval extent of this experiment
             Extent extent = info.experiment->getPerformanceDataExtent();
             Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
 
-            Base::TimeInterval graphInterval = ConvertToArgoNavis( interval );
+            Base::TimeInterval graphInterval = ConvertToArgoNavis( info.interval );
 
             double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
             double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
@@ -1352,7 +1351,7 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
     CollectorGroup collectors = info.experiment->getCollectors();
 
     if ( collectors.size() > 0 ) {
-        const Collector collector( *collectors.begin() );
+        const Collector& collector( *collectors.begin() );
 
         // Determine time origin from extent of this experiment
         Extent extent = info.experiment->getPerformanceDataExtent();
@@ -1362,9 +1361,7 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
         Time lowerTime = timeOrigin + lower * 1000000;
         Time upperTime = timeOrigin + upper * 1000000;
 
-        TimeInterval interval( lowerTime, upperTime );
-
-        info.interval = interval;
+        info.interval = TimeInterval( lowerTime, upperTime );
 
         // Update metric view scorresponding to timeline in graph view
         loadCudaMetricViews(
@@ -1378,7 +1375,7 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
             info.tableColumnHeaders,
             collector,
             *(info.experiment),
-            interval );
+            info.interval );
 
         // Emit signal to update detail views corresponding to timeline in graph view
         foreach ( const QString& metricViewName, info.metricViewList ) {
@@ -1444,12 +1441,12 @@ void PerformanceDataManager::loadCudaMetricViews(
         const Experiment& experiment,
         const TimeInterval& interval)
 {
-    foreach ( const QString& metricName, metricList ) {
+    foreach ( QString metricName, metricList ) {
         QStringList metricDesc;
 
         metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
 
-        foreach ( const QString& viewName, viewList ) {
+        foreach ( QString viewName, viewList ) {
             const QString futuresKey = metricName + QStringLiteral("-") + viewName;
             if ( viewName == QStringLiteral("Functions") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
