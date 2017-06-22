@@ -843,13 +843,6 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
                     else
                         view->sortByColumn( 0, Qt::DescendingOrder );
                 }
-                // resize header view columns to maximum size required to fit all column contents
-                QHeaderView* headerView = view->header();
-                if ( headerView ) {
-                    const int lastSectionIndex = headerView->count() - 1;
-                    headerView->moveSection( lastSectionIndex, 0 );
-                    headerView->moveSection( 0, lastSectionIndex );
-                }
             }
         }
 
