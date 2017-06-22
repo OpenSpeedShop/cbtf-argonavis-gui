@@ -828,17 +828,20 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
 
             if ( view != Q_NULLPTR ) {
                 // now sorting can be enabled
-                if ( QStringLiteral("CallTree") == metricViewName ) {
+                if ( QStringLiteral("CallTree") == metricName ) {
                     // calltree has fixed order
                     view->setSortingEnabled( false );
                 }
                 else {
                     view->setSortingEnabled( true );
-                    if ( QStringLiteral("Details") == metricViewName ) {
-                        if ( QStringLiteral("All Events") == metricViewName )
+                    if ( QStringLiteral("Details") == metricName ) {
+                        if ( QStringLiteral("All Events") == viewName )
                             view->sortByColumn( 1, Qt::AscendingOrder );
                         else
                             view->sortByColumn( 2, Qt::AscendingOrder );
+                    }
+                    else if ( QStringLiteral("Compare") == metricName ) {
+                        view->sortByColumn( 1, Qt::DescendingOrder );
                     }
                     else
                         view->sortByColumn( 0, Qt::DescendingOrder );

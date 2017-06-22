@@ -70,7 +70,7 @@ public:
 
     void deleteAllModelsViews();
 
-    typedef enum { DETAILS_MODE = 1, METRIC_MODE = 2, CALLTREE_MODE = 4, COMPARE_MODE = 5 } ModeType;
+    typedef enum { DETAILS_MODE = 1, METRIC_MODE = 2, CALLTREE_MODE = 4, COMPARE_MODE = 8 } ModeType;
 
     Q_DECLARE_FLAGS( ModeTypes, ModeType )
 
