@@ -1093,12 +1093,14 @@ void PerformanceDataManager::processCompareThreadView(const Experiment &experime
 
     const QString metricViewName = metric + QStringLiteral("-") + viewName;
 
-    QMap< TS, QVariantList > metricData;
     QStringList metricDesc;
+    metricDesc << s_functionTitle;
 
-    int count(0);
+    QMap< TS, QVariantList > metricData;
 
     SmartPtr<std::map<TS, std::map<Thread, double> > > individual;
+
+    int count(0);
 
     for ( ThreadGroup::iterator titer = threadGroup.begin(); titer != threadGroup.end(); ++titer, ++count ) {
         // make thread group with just the current thread
@@ -1127,16 +1129,20 @@ void PerformanceDataManager::processCompareThreadView(const Experiment &experime
         // organize into rows by TS with columns for each threads value and percentage
         for( typename std::map<TS, double>::const_iterator i = data->begin(); i != data->end(); ++i ) {
             // get reference to QVariantList corresponding to TS
-            QVariantList& data = metricData[ i->first ];
+            QVariantList& vdata = metricData[ i->first ];
+            if ( vdata.empty() ) {
+                // add location information based on TS at the end
+                vdata << getLocationInfo<TS>( i->first );
+            }
             // fill in null values for each thread not containing TS (two columns - value and percentage)
-            while ( data.size() < count*2 ) {
-                data << QVariant() << QVariant();
+            while ( vdata.size() < count*2+1 ) {
+                vdata << QVariant() << QVariant();
             }
             // scale value to milliseconds and compute percentage
             const double value( i->second * 1000.0 );
             const double percentage( i->second / total * 100.0 );
             // add actual value and percentage
-            data << value  << percentage;
+            vdata << value  << percentage;
         }
 
         // add column header values
@@ -1144,20 +1150,15 @@ void PerformanceDataManager::processCompareThreadView(const Experiment &experime
         metricDesc << tr("%1 (msec)").arg(clusterName) << tr("%1 %").arg(clusterName);
     }
 
-    metricDesc << s_functionTitle;
-
     emit addMetricView( clusteringCriteriaName, QStringLiteral("Compare"), metricViewName, metricDesc );
 
     for ( typename QMap< TS, QVariantList >::iterator i = metricData.begin(); i != metricData.end(); ++i ) {
         QVariantList& data = i.value();
 
         // fill in null values for each thread not containing TS (two columns - value and percentage)
-        while ( data.size() < count*2 ) {
+        while ( data.size() < count*2+1 ) {
             data << QVariant() << QVariant();
         }
-
-        // add location information based on TS at the end
-        data << getLocationInfo<TS>( i.key() );
 
         emit addMetricViewData( clusteringCriteriaName, QStringLiteral("Compare"), metricViewName, data );
     }
