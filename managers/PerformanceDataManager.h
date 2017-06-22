@@ -225,6 +225,12 @@ private:
                            QString metric,
                            QStringList metricDesc);
 
+    template<typename TS>
+    void processCompareThreadView(const OpenSpeedShop::Framework::Experiment &experiment,
+                                  const OpenSpeedShop::Framework::TimeInterval &interval,
+                                  const QString &clusteringCriteriaName,
+                                  QString metric);
+
     template <typename TS>
     std::set<TS> getThreadSet(const OpenSpeedShop::Framework::ThreadGroup& threads) { }
 

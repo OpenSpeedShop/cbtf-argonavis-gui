@@ -110,6 +110,8 @@ private:
     void processTableViewItemClicked(QTreeView* view, const QModelIndex& index);
     void processCustomContextMenuRequested(QTreeView* view, const QPoint &pos);
 
+    QString getMetricViewName() const;
+
 private:
 
     Ui::PerformanceDataMetricView *ui;

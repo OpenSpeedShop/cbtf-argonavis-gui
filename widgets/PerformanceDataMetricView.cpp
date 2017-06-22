@@ -293,13 +293,31 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     if ( QStringLiteral("Details") == metricName  )
         return;
 
-    ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel;
+    QSortFilterProxyModel* proxyModel( Q_NULLPTR );
 
-    if ( Q_NULLPTR == proxyModel )
-        return;
+    if ( QStringLiteral("Compare") != metricName  ) {
+        ViewSortFilterProxyModel* viewProxyModel = new ViewSortFilterProxyModel;
 
-    proxyModel->setSourceModel( model );
-    proxyModel->setColumnHeaders( metrics );
+        if ( Q_NULLPTR == viewProxyModel )
+            return;
+
+        viewProxyModel->setSourceModel( model );
+        viewProxyModel->setColumnHeaders( metrics );
+
+        proxyModel = viewProxyModel;
+    }
+    else {
+        proxyModel = new QSortFilterProxyModel;
+
+        if ( Q_NULLPTR == proxyModel )
+            return;
+
+        proxyModel->setSourceModel( model );
+
+        for( int i=0; i<metrics.size(); ++i ) {
+            proxyModel->setHeaderData( i, Qt::Horizontal, metrics.at(i) );
+        }
+    }
 
     QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
     bool newViewCreated( false );
@@ -356,7 +374,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     }
 
     // Make sure metric view not already in combobox
-    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 && metricName != QStringLiteral("CallTree") ) {
+    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 && metricName != QStringLiteral("CallTree") && metricName != QStringLiteral("Compare") ) {
         // Add metric view to combobox
         ui->comboBox_MetricSelection->addItem( metricName );
     }
@@ -727,6 +745,28 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
 }
 
 /**
+ * @brief PerformanceDataMetricView::getMetricViewName
+ * @return - metric view name formed from internal class state and values of UI comboboxes.
+ *
+ * Build metric view name string formed from internal class state and values of UI comboboxes.
+ */
+QString PerformanceDataMetricView::getMetricViewName() const
+{
+    QString metricViewName;
+
+    if ( DETAILS_MODE == m_mode )
+        metricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
+    else if ( CALLTREE_MODE == m_mode )
+        metricViewName = QStringLiteral("CallTree") + "-" + QStringLiteral("CallTree");
+    else if ( COMPARE_MODE == m_mode )
+        metricViewName = QStringLiteral("Compare") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+    else
+        metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+
+    return metricViewName;
+}
+
+/**
  * @brief PerformanceDataMetricView::handleMetricViewChanged
  * @param text - name of metric or view changed
  *
@@ -741,16 +781,7 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 
     QTreeView* view( Q_NULLPTR );
 
-    QString metricViewName;
-
-    if ( DETAILS_MODE == m_mode )
-        metricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
-    else if ( CALLTREE_MODE == m_mode )
-        metricViewName = QStringLiteral("CallTree") + "-" + QStringLiteral("CallTree");
-    else if ( COMPARE_MODE == m_mode )
-        metricViewName = QStringLiteral("Compare") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
-    else
-        metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+    const QString metricViewName = getMetricViewName();
 
     {
         QMutexLocker guard( &m_mutex );
@@ -788,7 +819,7 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
     if ( m_clusteringCritieriaName == clusteringCriteriaName || ! metricName.isEmpty() || ! viewName.isEmpty() ) {
         QTreeView* view( Q_NULLPTR );
 
-        const QString metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+        const QString metricViewName = metricName + "-" + viewName;
 
         {
             QMutexLocker guard( &m_mutex );
@@ -812,22 +843,20 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
                     else
                         view->sortByColumn( 0, Qt::DescendingOrder );
                 }
+                // resize header view columns to maximum size required to fit all column contents
+                QHeaderView* headerView = view->header();
+                if ( headerView ) {
+                    const int lastSectionIndex = headerView->count() - 1;
+                    headerView->moveSection( lastSectionIndex, 0 );
+                    headerView->moveSection( 0, lastSectionIndex );
+                }
             }
         }
 
         if ( Q_NULLPTR != view ) {
             handleRangeChanged( clusteringCriteriaName, metricName, viewName, lower, upper );
 
-            QString currentMetricViewName;
-
-            if ( DETAILS_MODE == m_mode )
-                currentMetricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
-            else if ( CALLTREE_MODE == m_mode )
-                currentMetricViewName = QStringLiteral("CallTree") + "-" + QStringLiteral("CallTree");
-            else if ( COMPARE_MODE == m_mode )
-                currentMetricViewName = QStringLiteral("Compare") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
-            else
-                currentMetricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+            const QString currentMetricViewName = getMetricViewName();
 
             if ( currentMetricViewName == metricViewName )
                 m_viewStack->setCurrentWidget( view );
@@ -836,7 +865,8 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
         }
     }
 
-     showBlankView();
+    // if this point is reached then show blank view
+    showBlankView();
 }
 
 /**
