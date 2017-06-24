@@ -27,6 +27,7 @@
 #include "TreeItem.h"
 
 #include "managers/PerformanceDataManager.h"
+#include "managers/ApplicationOverrideCursorManager.h"
 #include "widgets/ThreadSelectionCommand.h"
 
 #include <QVBoxLayout>
@@ -261,9 +262,16 @@ void ExperimentPanel::handleCheckedChanged(bool value)
  */
 void ExperimentPanel::handleSelectAllThreads()
 {
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QStringLiteral("select-all-threads") );
+    }
     while ( m_userStack.canUndo() ) m_userStack.undo();
     m_initialStack.redo();
     m_userStack.clear();
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QStringLiteral("select-all-threads") );
+    }
 }
 
 /**
@@ -275,9 +283,16 @@ void ExperimentPanel::handleSelectAllThreads()
  */
 void ExperimentPanel::handleDeselectAllThreads()
 {
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QStringLiteral("deselect-all-threads") );
+    }
     while ( m_userStack.canUndo() ) m_userStack.undo();
     m_initialStack.undo();
     m_userStack.clear();
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QStringLiteral("deselect-all-threads") );
+    }
 }
 
 /**
@@ -304,8 +319,15 @@ void ExperimentPanel::handleRefreshMetrics()
  */
 void ExperimentPanel::handleResetSelections()
 {
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QStringLiteral("reset-all-selections") );
+    }
     while ( m_userStack.canUndo() ) m_userStack.undo();
     m_userStack.clear();
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QStringLiteral("reset-all-selections") );
+    }
 }
 
 
