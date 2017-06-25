@@ -398,14 +398,15 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
 /**
  * @brief PerformanceDataManager::handleRequestCompareView
  * @param clusteringCriteriaName - the name of the clustering criteria
+ * @param compareMode - the specific compare mode requested
  * @param metricName - the name of the metric requested in the metric view
  * @param viewName - the name of the view requested in the metric view
  *
  * Handler for external request to produce compare view data for specified compare view.
  */
-void PerformanceDataManager::handleRequestCompareView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName)
+void PerformanceDataManager::handleRequestCompareView(const QString &clusteringCriteriaName, const QString &compareMode, const QString &metricName, const QString &viewName)
 {
-    if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) || metricName.isEmpty() || viewName.isEmpty() )
+    if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) || compareMode.isEmpty() || metricName.isEmpty() || viewName.isEmpty() )
         return;
 
     MetricTableViewInfo& info = m_tableViewInfo[ clusteringCriteriaName ];
@@ -415,35 +416,36 @@ void PerformanceDataManager::handleRequestCompareView(const QString &clusteringC
 #endif
 
     const QString metricViewName = metricName + "-" + viewName;
+    const QString compareViewName = compareMode + QStringLiteral("-") + metricViewName;
 
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
-        cursorManager->startWaitingOperation( QString("generate-Compare-%1").arg(metricViewName) );
+        cursorManager->startWaitingOperation( QString("generate-%1").arg(compareViewName) );
     }
 
-    if ( ! info.metricViewList.contains( metricViewName ) )
-        info.metricViewList << metricViewName;
+    if ( ! info.metricViewList.contains( compareViewName ) )
+        info.metricViewList << compareViewName;
 
-    if ( ! info.viewList.contains( viewName ) )
-        info.viewList << viewName;
+    if ( ! info.viewList.contains( metricViewName ) )
+        info.viewList << metricViewName;
 
     const Experiment& experiment( *(info.experiment) );
     const TimeInterval& interval( info.interval );
 
     if ( viewName == QStringLiteral("Functions") ) {
-        processCompareThreadView<Function>( experiment, interval, clusteringCriteriaName, metricName );
+        processCompareThreadView<Function>( experiment, interval, clusteringCriteriaName, metricName, compareMode );
     }
 
     else if ( viewName == QStringLiteral("Statements") ) {
-        processCompareThreadView<Statement>( experiment, interval, clusteringCriteriaName, metricName );
+        processCompareThreadView<Statement>( experiment, interval, clusteringCriteriaName, metricName, compareMode );
     }
 
     else if ( viewName == QStringLiteral("LinkedObjects") ) {
-        processCompareThreadView<LinkedObject>( experiment, interval, clusteringCriteriaName, metricName );
+        processCompareThreadView<LinkedObject>( experiment, interval, clusteringCriteriaName, metricName, compareMode );
     }
 
     else if ( viewName == QStringLiteral("Loops") ) {
-        processCompareThreadView<Loop>( experiment, interval, clusteringCriteriaName, metricName );
+        processCompareThreadView<Loop>( experiment, interval, clusteringCriteriaName, metricName, compareMode );
     }
 
     // Determine full time interval extent of this experiment
@@ -455,10 +457,10 @@ void PerformanceDataManager::handleRequestCompareView(const QString &clusteringC
     double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
     double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
 
-    emit requestMetricViewComplete( clusteringCriteriaName, QStringLiteral("Compare"), metricViewName, lower, upper );
+    emit requestMetricViewComplete( clusteringCriteriaName, compareMode, metricViewName, lower, upper );
 
     if ( cursorManager ) {
-        cursorManager->finishWaitingOperation( QString("generate-Compare-%1").arg(metricViewName) );
+        cursorManager->finishWaitingOperation( QString("generate-%1").arg(compareViewName) );
     }
 }
 
@@ -1060,12 +1062,13 @@ QString PerformanceDataManager::getViewName<Loop>() const
  * @param interval - the time interval of interest
  * @param clusteringCriteriaName - the name of the clustering criteria
  * @param metric - the metric to generate data for
+ * @param compareMode - the specific compare mode
  *
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
  * NOTE: must be metrics providing time information.
  */
 template <typename TS>
-void PerformanceDataManager::processCompareThreadView(const Experiment &experiment, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric)
+void PerformanceDataManager::processCompareThreadView(const Experiment &experiment, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric, QString compareMode)
 {
     const CollectorGroup collectors = experiment.getCollectors();
 
@@ -1079,9 +1082,9 @@ void PerformanceDataManager::processCompareThreadView(const Experiment &experime
     if ( 0 == collectors.size() )
         return;
 
-    ThreadGroup threadGroup;
+    QList< ThreadGroup > threadGroupList;
 
-    getThreadGroupFromSelectedClusters( clusteringCriteriaName, experiment.getThreads(), threadGroup );
+    getListOfThreadGroupsFromSelectedClusters( clusteringCriteriaName, compareMode, experiment.getThreads(), threadGroupList );
 
     const QString viewName = getViewName<TS>();
     const Collector collector( *collectors.begin() );
@@ -1102,10 +1105,9 @@ void PerformanceDataManager::processCompareThreadView(const Experiment &experime
 
     int count(0);
 
-    for ( ThreadGroup::iterator titer = threadGroup.begin(); titer != threadGroup.end(); ++titer, ++count ) {
+    for ( QList< ThreadGroup >::iterator titer = threadGroupList.begin(); titer != threadGroupList.end(); ++titer, ++count ) {
         // make thread group with just the current thread
-        ThreadGroup threads;
-        threads.insert( *titer );
+        ThreadGroup threads( *titer );
         // get metric values
         Queries::GetMetricValues( collector,
                                   metricStr,
@@ -1146,11 +1148,11 @@ void PerformanceDataManager::processCompareThreadView(const Experiment &experime
         }
 
         // add column header values
-        const QString clusterName = ArgoNavis::CUDA::getUniqueClusterName( *titer );
-        metricDesc << tr("%1 (msec)").arg(clusterName) << tr("%1 %").arg(clusterName);
+        const QString columnName = getColumnNameForCompareView( compareMode, *(threads.begin()) );
+        metricDesc << tr("%1 (msec)").arg(columnName) << tr("%1 %").arg(columnName);
     }
 
-    emit addMetricView( clusteringCriteriaName, QStringLiteral("Compare"), metricViewName, metricDesc );
+    emit addMetricView( clusteringCriteriaName, compareMode, metricViewName, metricDesc );
 
     for ( typename QMap< TS, QVariantList >::iterator i = metricData.begin(); i != metricData.end(); ++i ) {
         QVariantList& data = i.value();
@@ -1160,7 +1162,7 @@ void PerformanceDataManager::processCompareThreadView(const Experiment &experime
             data << QVariant() << QVariant();
         }
 
-        emit addMetricViewData( clusteringCriteriaName, QStringLiteral("Compare"), metricViewName, data );
+        emit addMetricViewData( clusteringCriteriaName, compareMode, metricViewName, data );
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -1517,66 +1519,35 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
 
     MetricTableViewInfo& info = m_tableViewInfo[ clusteringCriteriaName ];
 
-#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
-    if ( cursorManager ) {
-        cursorManager->startWaitingOperation( QStringLiteral("metric-view" ) );
-    }
+    // Determine time origin from extent of this experiment
+    Extent extent = info.experiment->getPerformanceDataExtent();
+    Time timeOrigin = extent.getTimeInterval().getBegin();
 
-    QFutureSynchronizer<void> synchronizer;
+    // Calculate new interval from currently selected graph range
+    Time lowerTime = timeOrigin + lower * 1000000;
+    Time upperTime = timeOrigin + upper * 1000000;
 
-    QMap< QString, QFuture<void> > futures;
-#endif
+    // update interval
+    info.interval = TimeInterval( lowerTime, upperTime );
 
-    CollectorGroup collectors = info.experiment->getCollectors();
-
-    if ( collectors.size() > 0 ) {
-        const Collector& collector( *collectors.begin() );
-
-        // Determine time origin from extent of this experiment
-        Extent extent = info.experiment->getPerformanceDataExtent();
-        Time timeOrigin = extent.getTimeInterval().getBegin();
-
-        // Calculate new interval from currently selected graph range
-        Time lowerTime = timeOrigin + lower * 1000000;
-        Time upperTime = timeOrigin + upper * 1000000;
-
-        info.interval = TimeInterval( lowerTime, upperTime );
-
-        // Update metric view scorresponding to timeline in graph view
-        loadCudaMetricViews(
-            #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-            synchronizer,
-            futures,
-            #endif
-            clusteringCriteriaName,
-            info.metricList,
-            info.viewList,
-            info.tableColumnHeaders,
-            collector,
-            *(info.experiment),
-            info.interval );
-
-        // Emit signal to update detail views corresponding to timeline in graph view
-        foreach ( const QString& metricViewName, info.metricViewList ) {
-            QStringList tokens = metricViewName.split('-');
-            if ( 2 == tokens.size() ) {
-                if ( QStringLiteral("Details") == tokens[0] ) {
-                    emit metricViewRangeChanged( clusteringCriteriaName, tokens[0], tokens[1], lower, upper );
-                }
-                else {
-                    emit requestMetricViewComplete( clusteringCriteriaName, tokens[0], tokens[1], lower, upper );
-                }
+    foreach ( const QString& metricViewName, info.metricViewList ) {
+        QStringList tokens = metricViewName.split('-');
+        if ( tokens.size() < 2 || tokens.size() > 3 )
+            continue;
+        if ( 2 == tokens.size() ) {
+            if ( tokens[0] == QStringLiteral("Details") ) {
+                // Emit signal to update detail views corresponding to timeline in graph view
+                emit metricViewRangeChanged( clusteringCriteriaName, tokens[0], tokens[1], lower, upper );
+            }
+            else if ( tokens[0] != QStringLiteral("Calltree") ) {
+                handleRequestMetricView( clusteringCriteriaName, tokens[0], tokens[1] );
             }
         }
-
-#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-        synchronizer.waitForFinished();
-#endif
-    }
-
-    if ( cursorManager ) {
-        cursorManager->finishWaitingOperation( QStringLiteral("metric-view" ) );
+        else {
+            if ( tokens[0].startsWith("Compare") ) {
+                handleRequestCompareView( clusteringCriteriaName, tokens[0], tokens[1], tokens[2] );
+            }
+        }
     }
 }
 
@@ -1595,7 +1566,7 @@ void PerformanceDataManager::handleSelectedClustersChanged(const QString &criter
         m_selectedClusters[ criteriaName ] = selected;
     }
 
-    emit signalRequestMetricTableViewUpdate();
+    emit signalRequestMetricTableViewUpdate( true );
 }
 
 /**
@@ -1747,7 +1718,7 @@ bool PerformanceDataManager::getPerformanceData(const Collector& collector,
 
 /**
  * @brief PerformanceDataManager::getThreadGroupFromSelectedClusters
- * @param clusteringCriteriaName
+ * @param clusteringCriteriaName - the clustering criteria name
  * @param group - the superset of threads
  * @param threadGroup - the subset of threads currently selected
  *
@@ -1767,6 +1738,96 @@ void PerformanceDataManager::getThreadGroupFromSelectedClusters(const QString &c
             }
         }
     }
+}
+
+/**
+ * @brief PerformanceDataManager::getRankSetFromSelectedClusters
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param ranks - list of ranks within selected clusters
+ *
+ * This method returns a list of ranks within the set of selected clusters.
+ */
+void PerformanceDataManager::getRankSetFromSelectedClusters(const QString &clusteringCriteriaName, QSet< int >& ranks)
+{
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_selectedClusters.contains( clusteringCriteriaName ) ) {
+        const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
+        foreach( const QString& name, selected ) {
+            const QString token = name.section( '-', 1 );
+            if ( name.section( '-', 1 ) == QStringLiteral("rank") ) {
+                ranks.insert( name.section( '-', 2 ).toInt() );
+            }
+        }
+    }
+}
+
+/**
+ * @brief PerformanceDataManager::getThreadGroupListFromSelectedClusters
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param compareMode - the specific compare mode
+ * @param group - the set of all threads
+ * @param threadGroup - the list of ThreadGroups appropriate for the specified compare mode
+ *
+ * This method returns a list of ThreadGroups appropriate for the specified compare mode.
+ */
+void PerformanceDataManager::getListOfThreadGroupsFromSelectedClusters(const QString &clusteringCriteriaName, const QString &compareMode, const ThreadGroup &group, QList<ThreadGroup> &threadGroupList)
+{
+    if ( compareMode == QStringLiteral("Compare") ) {
+        ThreadGroup threadGroup;
+        getThreadGroupFromSelectedClusters( clusteringCriteriaName, group, threadGroup );
+        foreach( Thread thread, threadGroup ) {
+            ThreadGroup tempGroup;
+            tempGroup.insert( thread );
+            threadGroupList.append( tempGroup );
+        }
+    }
+    else if ( compareMode == QStringLiteral("Compare By Rank") ) {
+        // get set of selected ranks from individual experiment components current selected
+        QSet< int > selectedRanks;
+        getRankSetFromSelectedClusters( clusteringCriteriaName, selectedRanks );
+        // for each selected rank in the set of selected ranks
+        foreach( int rank, selectedRanks ) {
+            ThreadGroup tempGroup;  // accumulated matching Threads
+            // examine each Thread in the specified ThreadGroup object looking for ones matching the rank
+            foreach( Thread thread, group ) {
+                bool hasRank;
+                int threadRank;
+                std::tie( hasRank, threadRank ) = thread.getMPIRank();
+                if ( hasRank && threadRank == rank ) {
+                    tempGroup.insert( thread );  // insert match into the temporary ThreadGroup object
+                }
+            }
+            // insert temporary ThreadGroup object into the return list
+            threadGroupList.append( tempGroup );
+        }
+    }
+}
+
+/**
+ * @brief PerformanceDataManager::getColumnNameForCompareView
+ * @param compareMode - the specific compare mode
+ * @param thread - thread instance used to get column name information
+ * @return - the column name
+ *
+ * This method constructs the column name for the corresponding ThreadGroup (using representative Thread).
+ */
+QString PerformanceDataManager::getColumnNameForCompareView(const QString& compareMode, const Thread& thread)
+{
+    QString columnName;
+
+    if ( QStringLiteral("Compare") == compareMode ) {
+        // build column name from unique cluster name value
+        columnName = ArgoNavis::CUDA::getUniqueClusterName( thread );
+    }
+    else if ( QStringLiteral("Compare By Rank") == compareMode ) {
+        bool found;
+        int rank;
+        std::tie( found, rank ) = thread.getMPIRank();
+        columnName = QString("%1 %2").arg( found ? QStringLiteral("-r") : tr("Group") ).arg( rank );
+    }
+
+    return columnName;
 }
 
 /**

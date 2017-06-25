@@ -122,7 +122,7 @@ public slots:
     void asyncLoadCudaViews(const QString& filePath);
 
     void handleRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
-    void handleRequestCompareView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void handleRequestCompareView(const QString& clusteringCriteriaName, const QString& compareMode, const QString& metricName, const QString& viewName);
     void handleProcessDetailViews(const QString& clusteringCriteriaName);
 
 signals:
@@ -177,7 +177,7 @@ signals:
 
     void signalSelectedClustersChanged(const QString& criteriaName, const QSet< QString >& selected);
 
-    void signalRequestMetricTableViewUpdate();
+    void signalRequestMetricTableViewUpdate(bool clearExisting);
 
 private slots:
 
@@ -199,6 +199,12 @@ private:
                             CUDA::PerformanceData& data);
 
     void getThreadGroupFromSelectedClusters(const QString &clusteringCriteriaName, const OpenSpeedShop::Framework::ThreadGroup& group, OpenSpeedShop::Framework::ThreadGroup &threadGroup);
+
+    void getListOfThreadGroupsFromSelectedClusters(const QString &clusteringCriteriaName, const QString& compareMode, const OpenSpeedShop::Framework::ThreadGroup& group, QList< OpenSpeedShop::Framework::ThreadGroup > &threadGroupList);
+
+    void getRankSetFromSelectedClusters(const QString &clusteringCriteriaName, QSet< int >& ranks);
+
+    QString getColumnNameForCompareView(const QString &compareMode, const OpenSpeedShop::Framework::Thread &thread);
 
     void loadCudaView(const QString& experimentName,
                       const QString& clusteringCriteriaName,
@@ -229,7 +235,8 @@ private:
     void processCompareThreadView(const OpenSpeedShop::Framework::Experiment &experiment,
                                   const OpenSpeedShop::Framework::TimeInterval &interval,
                                   const QString &clusteringCriteriaName,
-                                  QString metric);
+                                  QString metric,
+                                  QString compareMode);
 
     template <typename TS>
     std::set<TS> getThreadSet(const OpenSpeedShop::Framework::ThreadGroup& threads) { }

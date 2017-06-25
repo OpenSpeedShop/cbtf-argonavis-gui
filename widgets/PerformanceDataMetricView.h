@@ -70,7 +70,14 @@ public:
 
     void deleteAllModelsViews();
 
-    typedef enum { DETAILS_MODE = 1, METRIC_MODE = 2, CALLTREE_MODE = 4, COMPARE_MODE = 8 } ModeType;
+    typedef enum { DETAILS_MODE = 1,
+                   METRIC_MODE = 2,
+                   CALLTREE_MODE = 4,
+                   COMPARE_MODE = 8,
+                   COMPARE_BY_RANK_MODE = 16,
+                   COMPARE_BY_HOST_MODE = 32,
+                   COMPARE_BY_PROCESS_MODE = 64
+                 } ModeType;
 
     Q_DECLARE_FLAGS( ModeTypes, ModeType )
 
@@ -80,7 +87,7 @@ signals:
 
     void signalAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
     void signalRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
-    void signalRequestCompareView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void signalRequestCompareView(const QString& clusteringCriteriaName, const QString& compareMode, const QString& metricName, const QString& viewName);
     void signalRequestCalltreeView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
     void signalRequestDetailView(const QString& clusteringCriteriaName, const QString& detailName);
     void signalClearSourceView();
@@ -93,7 +100,7 @@ public slots:
     void handleInitModelView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
     void handleAddData(const QString& clusteringCriteriaName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders);
     void handleRangeChanged(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
-    void handleRequestViewUpdate();
+    void handleRequestViewUpdate(bool clearExistingViews);
 
 private slots:
 
@@ -109,6 +116,9 @@ private:
     void extractFilenameAndLine(const QString& text, QString& filename, int& lineNumber);
     void processTableViewItemClicked(QTreeView* view, const QModelIndex& index);
     void processCustomContextMenuRequested(QTreeView* view, const QPoint &pos);
+    void clearExistingModelsAndViews(const QString &metricViewName, bool deleteModel = true, bool deleteView = false);
+    void deleteModelsAndViews(bool all);
+    void resetUI();
 
     QString getMetricViewName() const;
 

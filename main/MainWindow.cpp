@@ -115,13 +115,13 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, SIGNAL(signalAddPathSubstitution(int,QString,QString)), ui->widget_SourceCodeViewer, SLOT(handleAddPathSubstitution(int,QString,QString)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestMetricView(QString,QString,QString)), dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestCalltreeView(QString,QString,QString)), dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
-        connect( ui->widget_MetricTableView, SIGNAL(signalRequestCompareView(QString,QString,QString)), dataMgr, SLOT(handleRequestCompareView(QString,QString,QString)) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalRequestCompareView(QString,QString,QString,QString)), dataMgr, SLOT(handleRequestCompareView(QString,QString,QString,QString)) );
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );  
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes)) );
         connect( dataMgr, SIGNAL(addDevice(quint32,quint32,NameValueList,NameValueList)), ui->widget_MetricTableView, SIGNAL(signalAddDevice(quint32,quint32,NameValueList,NameValueList)) );
-        connect( dataMgr, SIGNAL(signalRequestMetricTableViewUpdate()), ui->widget_MetricTableView, SLOT(handleRequestViewUpdate()) );
+        connect( dataMgr, SIGNAL(signalRequestMetricTableViewUpdate(bool)), ui->widget_MetricTableView, SLOT(handleRequestViewUpdate(bool)) );
 #endif
     }
 
@@ -365,7 +365,7 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
  */
 void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view)
 {
-    PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE | PerformanceDataMetricView::CALLTREE_MODE | PerformanceDataMetricView::COMPARE_MODE );
+    PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE | PerformanceDataMetricView::CALLTREE_MODE | PerformanceDataMetricView::COMPARE_MODE | PerformanceDataMetricView::COMPARE_BY_RANK_MODE );
 
     if ( CUDA_VIEW == view ) {
         modes |= PerformanceDataMetricView::DETAILS_MODE;

@@ -211,6 +211,48 @@ void PerformanceDataMetricView::deleteAllModelsViews()
         m_proxyModels.clear();
     }
 
+    resetUI();
+}
+
+/**
+ * @brief PerformanceDataMetricView::deleteModelsAndViews
+ * @param all - flag indicating that all models and views including 'Details' related ones should be deleted.
+ *
+ * This method deletes all models and views or just the ones not pertaining to the 'Details' mode views.
+ */
+void PerformanceDataMetricView::deleteModelsAndViews(bool all)
+{
+    showBlankView();
+
+    {
+        QMutexLocker guard( &m_mutex );
+
+        QMutableMapIterator< QString, QTreeView* > viter( m_views );
+        while ( viter.hasNext() ) {
+            viter.next();
+
+            const QString key = viter.key();
+
+            if ( key == "none" || ( ! all && key.startsWith("Details") ) )
+                 continue;
+
+            m_viewStack->removeWidget( viter.value() );
+            delete viter.value();
+            viter.remove();
+
+            m_proxyModels.remove( key );
+            m_models.remove( key );
+        }
+    }
+}
+
+/**
+ * @brief PerformanceDataMetricView::resetUI
+ *
+ * This method is called to reset UI state to a clear state.
+ */
+void PerformanceDataMetricView::resetUI()
+{
     ui->comboBox_ModeSelection->setCurrentIndex( 0 );
 
     ui->comboBox_MetricSelection->clear();
@@ -243,6 +285,48 @@ void PerformanceDataMetricView::setAvailableMetricModes(const ModeTypes &modes)
 
     if ( modes.testFlag( COMPARE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare") ) ) )
         ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare") );
+
+    if ( modes.testFlag( COMPARE_BY_RANK_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare By Rank") ) ) )
+        ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare By Rank") );
+
+    if ( modes.testFlag( COMPARE_BY_HOST_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare By Host") ) ) )
+        ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare By Host") );
+
+    if ( modes.testFlag( COMPARE_BY_PROCESS_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare By Process") ) ) )
+        ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare By Process") );
+}
+
+/**
+ * @brief PerformanceDataMetricView::clearExistingModelsAndViews
+ *
+ * Clear existing models for specified metric view as well as view if requested.
+ */
+void PerformanceDataMetricView::clearExistingModelsAndViews(const QString& metricViewName, bool deleteModel, bool deleteView)
+{
+    QMutexLocker guard( &m_mutex );
+
+    QSortFilterProxyModel* proxyModel = m_proxyModels.value( metricViewName, Q_NULLPTR );
+    if ( proxyModel ) {
+        proxyModel->setSourceModel( Q_NULLPTR );
+        m_proxyModels.remove( metricViewName );
+        delete proxyModel;
+    }
+
+    if ( deleteModel ) {
+        QStandardItemModel* model = m_models.value( metricViewName, Q_NULLPTR );
+        if ( model ) {
+            m_models.remove( metricViewName );
+            delete model;
+        }
+    }
+
+    if ( deleteView ) {
+        QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
+        if ( view ) {
+            m_views.remove( metricViewName );
+            delete view;
+        }
+    }
 }
 
 /**
@@ -264,22 +348,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
 
     const QString metricViewName = metricName + "-" + viewName;
 
-    {
-        QMutexLocker guard( &m_mutex );
-
-        QSortFilterProxyModel* proxyModel = m_proxyModels.value( metricViewName, Q_NULLPTR );
-        if ( proxyModel ) {
-            proxyModel->setSourceModel( Q_NULLPTR );
-            m_proxyModels.remove( metricViewName );
-            delete proxyModel;
-        }
-
-        QStandardItemModel* model = m_models.value( metricViewName, Q_NULLPTR );
-        if ( model ) {
-            m_models.remove( metricViewName );
-            delete model;
-        }
-    }
+    clearExistingModelsAndViews( metricViewName );
 
     QStandardItemModel* model = new QStandardItemModel( 0, metrics.size(), this );
 
@@ -405,29 +474,14 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
 
     const QString metricViewName = metricName + "-" + viewName;
 
-    QStandardItemModel* model( Q_NULLPTR );
-
-    {
-        QMutexLocker guard( &m_mutex );
-
-        model = m_models.value( attachedMetricViewName, Q_NULLPTR );
-
-        QSortFilterProxyModel* proxyModel = m_proxyModels.value( metricViewName, Q_NULLPTR );
-        if ( proxyModel ) {
-            proxyModel->setSourceModel( Q_NULLPTR );
-            m_proxyModels.remove( metricViewName );
-            delete proxyModel;
-        }
-    }
+    clearExistingModelsAndViews( metricViewName, false );
 
     const QString type = ( viewName == "All Events" ) ? "*" : viewName.left( viewName.length()-1 );    // remove 's' at end
 
     ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel( type );
 
-    if ( Q_NULLPTR == model || Q_NULLPTR == proxyModel )
+    if ( Q_NULLPTR == proxyModel )
         return;
-
-    proxyModel->setSourceModel( model );
 
     QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
     bool newViewCreated( false );
@@ -460,6 +514,12 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
     {
         QMutexLocker guard( &m_mutex ); 
 
+        QStandardItemModel* model = m_models.value( attachedMetricViewName, Q_NULLPTR );
+
+        if ( Q_NULLPTR == model )
+            return;
+
+        proxyModel->setSourceModel( model );
         proxyModel->setColumnHeaders( metrics );
 
         // the model is set to the proxy model
@@ -696,14 +756,26 @@ void PerformanceDataMetricView::handleRangeChanged(const QString &clusteringCrit
  *
  * Handle request to update the current view by emitting the appropriate signal for the mode selected.
  */
-void PerformanceDataMetricView::handleRequestViewUpdate()
+void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
 {
+    if ( clearExistingViews ) {
+       deleteModelsAndViews( false );
+    }
     switch( m_mode ) {
     case DETAILS_MODE:
         emit signalRequestDetailView( m_clusteringCritieriaName, ui->comboBox_ViewSelection->currentText() );
         break;
     case COMPARE_MODE:
-        emit signalRequestCompareView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        emit signalRequestCompareView( m_clusteringCritieriaName, QStringLiteral("Compare"), ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        break;
+    case COMPARE_BY_RANK_MODE:
+        emit signalRequestCompareView( m_clusteringCritieriaName, QStringLiteral("Compare By Rank"), ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        break;
+    case COMPARE_BY_HOST_MODE:
+        emit signalRequestCompareView( m_clusteringCritieriaName, QStringLiteral("Compare By Host"), ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        break;
+    case COMPARE_BY_PROCESS_MODE:
+        emit signalRequestCompareView( m_clusteringCritieriaName, QStringLiteral("Compare By Process"), ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
     case CALLTREE_MODE:
         emit signalRequestCalltreeView( m_clusteringCritieriaName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
@@ -734,6 +806,21 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
     }
     else if ( QStringLiteral("Compare") == text ) {
         m_mode = COMPARE_MODE;
+        ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
+        ui->comboBox_MetricSelection->setEnabled( true );
+    }
+    else if ( QStringLiteral("Compare By Rank") == text ) {
+        m_mode = COMPARE_BY_RANK_MODE;
+        ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
+        ui->comboBox_MetricSelection->setEnabled( true );
+    }
+    else if ( QStringLiteral("Compare By Host") == text ) {
+        m_mode = COMPARE_BY_HOST_MODE;
+        ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
+        ui->comboBox_MetricSelection->setEnabled( true );
+    }
+    else if ( QStringLiteral("Compare By Process") == text ) {
+        m_mode = COMPARE_BY_PROCESS_MODE;
         ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
         ui->comboBox_MetricSelection->setEnabled( true );
     }
@@ -789,11 +876,12 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         view = m_views.value( metricViewName, Q_NULLPTR );
     }
 
+    // if the request view has not been generated yet, then show blank view and request view update
     if ( Q_NULLPTR == view ) {
         // show blank view
         showBlankView();
         // emit signal to have Performance Data Manager process requested metric view
-        handleRequestViewUpdate();
+        handleRequestViewUpdate( false );
     }
     else {
         // display existing metric view
