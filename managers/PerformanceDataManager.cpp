@@ -1754,9 +1754,8 @@ void PerformanceDataManager::getRankSetFromSelectedClusters(const QString &clust
     if ( m_selectedClusters.contains( clusteringCriteriaName ) ) {
         const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
         foreach( const QString& name, selected ) {
-            const QString token = name.section( '-', 1 );
-            if ( name.section( '-', 1 ) == QStringLiteral("rank") ) {
-                ranks.insert( name.section( '-', 2 ).toInt() );
+            if ( name.section( '-', 1, 1 ) == QStringLiteral("rank") ) {
+                ranks.insert( name.section( '-', 2, 2 ).toInt() );
             }
         }
     }

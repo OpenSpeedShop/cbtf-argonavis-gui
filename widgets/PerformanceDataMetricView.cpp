@@ -443,7 +443,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     }
 
     // Make sure metric view not already in combobox
-    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 && metricName != QStringLiteral("CallTree") && metricName != QStringLiteral("Compare") ) {
+    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 && metricName != QStringLiteral("CallTree") && ! metricName.startsWith(QStringLiteral("Compare")) ) {
         // Add metric view to combobox
         ui->comboBox_MetricSelection->addItem( metricName );
     }
@@ -847,6 +847,12 @@ QString PerformanceDataMetricView::getMetricViewName() const
         metricViewName = QStringLiteral("CallTree") + "-" + QStringLiteral("CallTree");
     else if ( COMPARE_MODE == m_mode )
         metricViewName = QStringLiteral("Compare") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+    else if ( COMPARE_BY_RANK_MODE == m_mode )
+        metricViewName = QStringLiteral("Compare By Rank") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+    else if ( COMPARE_BY_HOST_MODE == m_mode )
+        metricViewName = QStringLiteral("Compare By Host") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+    else if ( COMPARE_BY_PROCESS_MODE == m_mode )
+        metricViewName = QStringLiteral("Compare By Process") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else
         metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
 
