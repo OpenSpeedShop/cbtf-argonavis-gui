@@ -365,7 +365,11 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
  */
 void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view)
 {
-    PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE | PerformanceDataMetricView::CALLTREE_MODE | PerformanceDataMetricView::COMPARE_MODE | PerformanceDataMetricView::COMPARE_BY_RANK_MODE );
+    PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE |
+                                                PerformanceDataMetricView::CALLTREE_MODE |
+                                                PerformanceDataMetricView::COMPARE_MODE |
+                                                PerformanceDataMetricView::COMPARE_BY_RANK_MODE |
+                                                PerformanceDataMetricView::COMPARE_BY_HOST_MODE );
 
     if ( CUDA_VIEW == view ) {
         modes |= PerformanceDataMetricView::DETAILS_MODE;
