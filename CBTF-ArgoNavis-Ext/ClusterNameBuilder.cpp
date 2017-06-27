@@ -43,14 +43,13 @@ const QString getUniqueClusterName(const Base::ThreadName& thread)
         clusterName = clusterName.left( index );
 #endif
 
+    boost::uint64_t pid = thread.pid();
+    clusterName += ( "-p" + QString::number(pid) );
+
     // append MPI rank (if any)
     boost::optional<boost::uint32_t> mpiRank = thread.mpi_rank();
     if ( mpiRank ) {
-        clusterName += ( "-rank-" + QString::number(mpiRank.get()) );
-    }
-    else {
-        boost::uint64_t pid = thread.pid();
-        clusterName += ( "-pid-" + QString::number(pid) );
+        clusterName += ( "-r" + QString::number(mpiRank.get()) );
     }
 
     boost::optional<uint64_t> tidval = thread.tid();
@@ -63,7 +62,7 @@ const QString getUniqueClusterName(const Base::ThreadName& thread)
         else {
             val = m_tidmap[tid] = m_tidmap.size();
         }
-        clusterName += ( "-tid-" + QString::number(val) );
+        clusterName += ( "-t" + QString::number(val) );
     }
 
     return clusterName;
@@ -83,14 +82,13 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread& threa
         clusterName = clusterName.left( index );
 #endif
 
+    pid_t pid = thread.getProcessId();
+    clusterName += ( "-p" + QString::number(pid) );
+
     // append MPI rank (if any)
     std::pair<bool, int> mpiRank = thread.getMPIRank();
     if ( mpiRank.first ) {
-        clusterName += ( "-rank-" + QString::number(mpiRank.second) );
-    }
-    else {
-        pid_t pid = thread.getProcessId();
-        clusterName += ( "-pid-" + QString::number(pid) );
+        clusterName += ( "-r" + QString::number(mpiRank.second) );
     }
 
     std::pair< bool, pthread_t> tidval = thread.getPosixThreadId();
@@ -103,7 +101,7 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread& threa
         else {
             val = m_tidmap[tid] = m_tidmap.size();
         }
-        clusterName += ( "-tid-" + QString::number(val) );
+        clusterName += ( "-t" + QString::number(val) );
     }
 
     return clusterName;
