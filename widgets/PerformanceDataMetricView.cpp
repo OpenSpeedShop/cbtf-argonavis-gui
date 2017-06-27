@@ -198,7 +198,7 @@ void PerformanceDataMetricView::deleteAllModelsViews()
         while ( viter.hasNext() ) {
             viter.next();
 
-            if ( viter.key() != "none" ) {
+            if ( viter.key() != QStringLiteral("none") ) {
                 m_viewStack->removeWidget( viter.value() );
                 delete viter.value();
                 viter.remove();
@@ -934,7 +934,7 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
                         else
                             view->sortByColumn( 2, Qt::AscendingOrder );
                     }
-                    else if ( QStringLiteral("Compare") == metricName ) {
+                    else if ( metricName.startsWith( QStringLiteral("Compare") ) ) {
                         view->sortByColumn( 1, Qt::DescendingOrder );
                     }
                     else
