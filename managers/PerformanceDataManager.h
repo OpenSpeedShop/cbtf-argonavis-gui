@@ -203,6 +203,7 @@ private:
     void getListOfThreadGroupsFromSelectedClusters(const QString &clusteringCriteriaName, const QString& compareMode, const OpenSpeedShop::Framework::ThreadGroup& group, QList< OpenSpeedShop::Framework::ThreadGroup > &threadGroupList);
 
     void getRankSetFromSelectedClusters(const QString &clusteringCriteriaName, QSet< int >& ranks);
+    void getHostSetFromSelectedClusters(const QString &clusteringCriteriaName, QSet<QString> &hosts);
 
     QString getColumnNameForCompareView(const QString &compareMode, const OpenSpeedShop::Framework::Thread &thread);
 

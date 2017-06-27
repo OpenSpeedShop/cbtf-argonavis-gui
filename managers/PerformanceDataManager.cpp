@@ -1156,12 +1156,12 @@ void PerformanceDataManager::processCompareThreadView(const Experiment &experime
 
     for ( typename QMap< TS, QVariantList >::iterator i = metricData.begin(); i != metricData.end(); ++i ) {
         QVariantList& data = i.value();
-
+#if 0
         // fill in null values for each thread not containing TS (two columns - value and percentage)
         while ( data.size() < count*2+1 ) {
             data << QVariant() << QVariant();
         }
-
+#endif
         emit addMetricViewData( clusteringCriteriaName, compareMode, metricViewName, data );
     }
 
@@ -1754,9 +1754,29 @@ void PerformanceDataManager::getRankSetFromSelectedClusters(const QString &clust
     if ( m_selectedClusters.contains( clusteringCriteriaName ) ) {
         const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
         foreach( const QString& name, selected ) {
-            if ( name.section( '-', 1, 1 ) == QStringLiteral("rank") ) {
-                ranks.insert( name.section( '-', 2, 2 ).toInt() );
+            const QString section = name.section( '-', 2, 2 );
+            if ( section.startsWith('r') ) {
+                ranks.insert( section.mid(1).toInt() );
             }
+        }
+    }
+}
+
+/**
+ * @brief PerformanceDataManager::getHostSetFromSelectedClusters
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param hosts - list of hosts within selected clusters
+ *
+ * This method returns a list of hosts within the set of selected clusters.
+ */
+void PerformanceDataManager::getHostSetFromSelectedClusters(const QString &clusteringCriteriaName, QSet< QString >& hosts)
+{
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_selectedClusters.contains( clusteringCriteriaName ) ) {
+        const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
+        foreach( const QString& name, selected ) {
+            hosts.insert( name.section( '-', 0, 0 ) );
         }
     }
 }
@@ -1801,6 +1821,33 @@ void PerformanceDataManager::getListOfThreadGroupsFromSelectedClusters(const QSt
             threadGroupList.append( tempGroup );
         }
     }
+    else if ( compareMode == QStringLiteral("Compare By Host") ) {
+        // get set of selected hosts from individual experiment components current selected
+        QSet< QString > selectedHosts;
+        getHostSetFromSelectedClusters( clusteringCriteriaName, selectedHosts );
+        // for each selected rank in the set of selected ranks
+        foreach( const QString& hostname, selectedHosts ) {
+            ThreadGroup tempGroup;  // accumulated matching Threads
+            // examine each Thread in the specified ThreadGroup object looking for ones matching the rank
+            foreach( Thread thread, group ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+                QString clusterName = QString::fromStdString( thread.getHost() );
+#else
+                QString clusterName = QString( thread.getHost().c_str() );
+#endif
+#ifdef HAS_STRIP_DOMAIN_NAME
+                int index = clusterName.indexOf( '.' );
+                if ( index > 0 )
+                    clusterName = clusterName.left( index );
+#endif
+                if ( clusterName == hostname ) {
+                    tempGroup.insert( thread );  // insert match into the temporary ThreadGroup object
+                }
+            }
+            // insert temporary ThreadGroup object into the return list
+            threadGroupList.append( tempGroup );
+        }
+    }
 }
 
 /**
@@ -1824,6 +1871,19 @@ QString PerformanceDataManager::getColumnNameForCompareView(const QString& compa
         int rank;
         std::tie( found, rank ) = thread.getMPIRank();
         columnName = QString("%1 %2").arg( found ? QStringLiteral("-r") : tr("Group") ).arg( rank );
+    }
+    else if ( QStringLiteral("Compare By Host") == compareMode ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        QString clusterName = QString::fromStdString( thread.getHost() );
+#else
+        QString clusterName = QString( thread.getHost().c_str() );
+#endif
+#ifdef HAS_STRIP_DOMAIN_NAME
+        int index = clusterName.indexOf( '.' );
+        if ( index > 0 )
+            clusterName = clusterName.left( index );
+#endif
+        columnName = QString("-h %1").arg( clusterName );
     }
 
     return columnName;
