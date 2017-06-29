@@ -1782,6 +1782,28 @@ void PerformanceDataManager::getHostSetFromSelectedClusters(const QString &clust
 }
 
 /**
+ * @brief PerformanceDataManager::getProcessIdSetFromSelectedClusters
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param pids - list of process ids within selected clusters
+ *
+ * This method returns a list of process ids within the set of selected clusters.
+ */
+void PerformanceDataManager::getProcessIdSetFromSelectedClusters(const QString &clusteringCriteriaName, QSet< pid_t >& pids)
+{
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_selectedClusters.contains( clusteringCriteriaName ) ) {
+        const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
+        foreach( const QString& name, selected ) {
+            const QString section = name.section( '-', 1, 1 );
+            if ( section.startsWith('p') ) {
+                pids.insert( section.mid(1).toInt() );
+            }
+        }
+    }
+}
+
+/**
  * @brief PerformanceDataManager::getThreadGroupListFromSelectedClusters
  * @param clusteringCriteriaName - the clustering criteria name
  * @param compareMode - the specific compare mode
@@ -1848,6 +1870,24 @@ void PerformanceDataManager::getListOfThreadGroupsFromSelectedClusters(const QSt
             threadGroupList.append( tempGroup );
         }
     }
+    else if ( compareMode == QStringLiteral("Compare By Process") ) {
+        // get set of selected process ids from individual experiment components current selected
+        QSet< pid_t > selectedPids;
+        getProcessIdSetFromSelectedClusters( clusteringCriteriaName, selectedPids );
+        // for each selected process in the set of selected process ids
+        foreach( pid_t pid, selectedPids ) {
+            ThreadGroup tempGroup;  // accumulated matching Threads
+            // examine each Thread in the specified ThreadGroup object looking for ones matching the rank
+            foreach( Thread thread, group ) {
+                pid_t tpid = thread.getProcessId();
+                if ( tpid == pid ) {
+                    tempGroup.insert( thread );  // insert match into the temporary ThreadGroup object
+                }
+            }
+            // insert temporary ThreadGroup object into the return list
+            threadGroupList.append( tempGroup );
+        }
+    }
 }
 
 /**
@@ -1884,6 +1924,10 @@ QString PerformanceDataManager::getColumnNameForCompareView(const QString& compa
             clusterName = clusterName.left( index );
 #endif
         columnName = QString("-h %1").arg( clusterName );
+    }
+    else if ( QStringLiteral("Compare By Process") == compareMode ) {
+        pid_t pid = thread.getProcessId();
+        columnName = QString("-p %1").arg( pid );
     }
 
     return columnName;

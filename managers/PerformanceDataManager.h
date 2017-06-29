@@ -204,6 +204,7 @@ private:
 
     void getRankSetFromSelectedClusters(const QString &clusteringCriteriaName, QSet< int >& ranks);
     void getHostSetFromSelectedClusters(const QString &clusteringCriteriaName, QSet<QString> &hosts);
+    void getProcessIdSetFromSelectedClusters(const QString &clusteringCriteriaName, QSet<pid_t> &pids);
 
     QString getColumnNameForCompareView(const QString &compareMode, const OpenSpeedShop::Framework::Thread &thread);
 

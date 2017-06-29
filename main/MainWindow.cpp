@@ -369,7 +369,8 @@ void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view)
                                                 PerformanceDataMetricView::CALLTREE_MODE |
                                                 PerformanceDataMetricView::COMPARE_MODE |
                                                 PerformanceDataMetricView::COMPARE_BY_RANK_MODE |
-                                                PerformanceDataMetricView::COMPARE_BY_HOST_MODE );
+                                                PerformanceDataMetricView::COMPARE_BY_HOST_MODE |
+                                                PerformanceDataMetricView::COMPARE_BY_PROCESS_MODE );
 
     if ( CUDA_VIEW == view ) {
         modes |= PerformanceDataMetricView::DETAILS_MODE;
