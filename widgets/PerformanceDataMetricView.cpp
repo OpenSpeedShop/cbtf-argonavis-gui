@@ -205,6 +205,7 @@ void PerformanceDataMetricView::deleteAllModelsViews()
             }
         }
 
+        qDeleteAll( m_models );
         m_models.clear();
 
         qDeleteAll( m_proxyModels );
@@ -253,11 +254,10 @@ void PerformanceDataMetricView::deleteModelsAndViews(bool all)
  */
 void PerformanceDataMetricView::resetUI()
 {
-    ui->comboBox_ModeSelection->setCurrentIndex( 0 );
-
     ui->comboBox_MetricSelection->clear();
 
-    ui->comboBox_ViewSelection->setCurrentIndex( 0 );
+    ui->comboBox_ViewSelection->setModel( &m_dummyModel );
+    ui->comboBox_ViewSelection->clear();
 
     ui->comboBox_ModeSelection->clear();
 
