@@ -139,6 +139,7 @@ private:
 
     ModeType m_mode;
 
+    QStandardItemModel m_dummyModel;                        // dummy model
     QStandardItemModel m_metricViewModel;                   // snapshot of view combobox model for metric mode
     QStandardItemModel m_detailsViewModel;                  // initialized view combobox model for details mode
     QStandardItemModel m_calltreeViewModel;                 // empty combobox model for calltree mode

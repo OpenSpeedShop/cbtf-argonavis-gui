@@ -794,6 +794,7 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
  */
 void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
 {
+    ui->comboBox_ViewSelection->setModel( &m_dummyModel );
     if ( QStringLiteral("Details") == text ) {
         m_mode = DETAILS_MODE;
         ui->comboBox_ViewSelection->setModel( &m_detailsViewModel );
