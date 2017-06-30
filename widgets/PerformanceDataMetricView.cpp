@@ -254,12 +254,17 @@ void PerformanceDataMetricView::deleteModelsAndViews(bool all)
  */
 void PerformanceDataMetricView::resetUI()
 {
-    ui->comboBox_MetricSelection->clear();
-
-    ui->comboBox_ViewSelection->setModel( &m_dummyModel );
-    ui->comboBox_ViewSelection->clear();
-
+    ui->comboBox_ModeSelection->blockSignals( true );
     ui->comboBox_ModeSelection->clear();
+    ui->comboBox_ModeSelection->blockSignals( false );
+
+    ui->comboBox_MetricSelection->blockSignals( true );
+    ui->comboBox_MetricSelection->clear();
+    ui->comboBox_MetricSelection->blockSignals( false );
+
+    ui->comboBox_ViewSelection->blockSignals( true );
+    ui->comboBox_ViewSelection->setModel( &m_dummyModel );
+    ui->comboBox_ViewSelection->blockSignals( false );
 
     m_deviceDetailsDialog->clearAllDevices();
 
@@ -794,7 +799,6 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
  */
 void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
 {
-    ui->comboBox_ViewSelection->setModel( &m_dummyModel );
     if ( QStringLiteral("Details") == text ) {
         m_mode = DETAILS_MODE;
         ui->comboBox_ViewSelection->setModel( &m_detailsViewModel );
@@ -805,25 +809,30 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
         ui->comboBox_ViewSelection->setModel( &m_calltreeViewModel );
         ui->comboBox_MetricSelection->setEnabled( false );
     }
-    else if ( QStringLiteral("Compare") == text ) {
-        m_mode = COMPARE_MODE;
-        ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
-        ui->comboBox_MetricSelection->setEnabled( true );
-    }
-    else if ( QStringLiteral("Compare By Rank") == text ) {
-        m_mode = COMPARE_BY_RANK_MODE;
-        ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
-        ui->comboBox_MetricSelection->setEnabled( true );
-    }
-    else if ( QStringLiteral("Compare By Host") == text ) {
-        m_mode = COMPARE_BY_HOST_MODE;
-        ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
-        ui->comboBox_MetricSelection->setEnabled( true );
-    }
-    else if ( QStringLiteral("Compare By Process") == text ) {
-        m_mode = COMPARE_BY_PROCESS_MODE;
-        ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
-        ui->comboBox_MetricSelection->setEnabled( true );
+    else if ( text.startsWith( QStringLiteral("Compare") ) ) {
+        ui->comboBox_ViewSelection->blockSignals( true );
+        ui->comboBox_ViewSelection->setModel( &m_dummyModel );
+        ui->comboBox_ViewSelection->blockSignals( false );
+        if ( QStringLiteral("Compare") == text ) {
+            m_mode = COMPARE_MODE;
+            ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
+            ui->comboBox_MetricSelection->setEnabled( true );
+        }
+        else if ( QStringLiteral("Compare By Rank") == text ) {
+            m_mode = COMPARE_BY_RANK_MODE;
+            ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
+            ui->comboBox_MetricSelection->setEnabled( true );
+        }
+        else if ( QStringLiteral("Compare By Host") == text ) {
+            m_mode = COMPARE_BY_HOST_MODE;
+            ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
+            ui->comboBox_MetricSelection->setEnabled( true );
+        }
+        else if ( QStringLiteral("Compare By Process") == text ) {
+            m_mode = COMPARE_BY_PROCESS_MODE;
+            ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
+            ui->comboBox_MetricSelection->setEnabled( true );
+        }
     }
     else {
         m_mode = METRIC_MODE;
