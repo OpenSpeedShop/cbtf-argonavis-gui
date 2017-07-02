@@ -417,7 +417,7 @@ void PerformanceDataManager::handleRequestLoadBalanceView(const QString &cluster
 #endif
 
     const QString metricViewName = metricName + "-" + viewName;
-    const QString loadBalanceViewName = QStringLiteral("LoadBalance-") + metricViewName;
+    const QString loadBalanceViewName = QStringLiteral("Load Balance-") + metricViewName;
 
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
@@ -485,7 +485,7 @@ void PerformanceDataManager::handleRequestCompareView(const QString &clusteringC
     MetricTableViewInfo& info = m_tableViewInfo[ clusteringCriteriaName ];
 
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
-    qDebug() << "PerformanceDataManager::handleRequestCompareView: clusteringCriteriaName=" << clusteringCriteriaName << "metric=" << compareMetricName << "view=" << compareViewName;
+    qDebug() << "PerformanceDataManager::handleRequestCompareView: clusteringCriteriaName=" << clusteringCriteriaName << "metric=" << metricName << "view=" << viewName;
 #endif
 
     const QString metricViewName = metricName + "-" + viewName;
@@ -1721,6 +1721,9 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
         else {
             if ( tokens[0].startsWith("Compare") ) {
                 handleRequestCompareView( clusteringCriteriaName, tokens[0], tokens[1], tokens[2] );
+            }
+            else if ( QStringLiteral("Load Balance") == tokens[0] ) {
+                handleRequestLoadBalanceView( clusteringCriteriaName, tokens[1], tokens[2] );
             }
         }
     }
