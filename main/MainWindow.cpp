@@ -94,6 +94,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalDisplaySourceFileLineNumber, ui->widget_SourceCodeViewer, &SourceView::handleDisplaySourceFileLineNumber );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalAddPathSubstitution, ui->widget_SourceCodeViewer, &SourceView::handleAddPathSubstitution );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestMetricView, dataMgr, &PerformanceDataManager::handleRequestMetricView );
+        connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestLoadBalanceView, dataMgr, &PerformanceDataManager::handleRequestLoadBalanceView );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestCalltreeView, dataMgr, &PerformanceDataManager::handleRequestMetricView );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestCompareView, dataMgr, &PerformanceDataManager::handleRequestCompareView );
         connect( dataMgr, &PerformanceDataManager::addCluster, this, &MainWindow::handleAdjustPlotViewScrollArea );
@@ -113,7 +114,10 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, SIGNAL(signalClearSourceView()), ui->widget_SourceCodeViewer, SLOT(handleClearSourceView()) );
         connect( ui->widget_MetricTableView, SIGNAL(signalDisplaySourceFileLineNumber(QString,int)), ui->widget_SourceCodeViewer, SLOT(handleDisplaySourceFileLineNumber(QString,int)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalAddPathSubstitution(int,QString,QString)), ui->widget_SourceCodeViewer, SLOT(handleAddPathSubstitution(int,QString,QString)) );
-        connect( ui->widget_MetricTableView, SIGNAL(signalRequestMetricView(QString,QString,QString)), dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalRequestMetricView(QString,QString,QString)),
+                 dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalRequestLoadBalanceView(QString,QString,QString)),
+                 dataMgr, SLOT(handleRequestLoadBalanceView(QString,QString,QString)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestCalltreeView(QString,QString,QString)), dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestCompareView(QString,QString,QString,QString)), dataMgr, SLOT(handleRequestCompareView(QString,QString,QString,QString)) );
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
@@ -366,6 +370,7 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
 void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view)
 {
     PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE |
+                                                PerformanceDataMetricView::LOAD_BALANCE_MODE |
                                                 PerformanceDataMetricView::CALLTREE_MODE |
                                                 PerformanceDataMetricView::COMPARE_MODE |
                                                 PerformanceDataMetricView::COMPARE_BY_RANK_MODE |

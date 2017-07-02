@@ -122,6 +122,7 @@ public slots:
     void asyncLoadCudaViews(const QString& filePath);
 
     void handleRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void handleRequestLoadBalanceView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName);
     void handleRequestCompareView(const QString& clusteringCriteriaName, const QString& compareMode, const QString& metricName, const QString& viewName);
     void handleProcessDetailViews(const QString& clusteringCriteriaName);
 
@@ -232,6 +233,13 @@ private:
                            const QString &clusteringCriteriaName,
                            QString metric,
                            QStringList metricDesc);
+
+    template<typename TS>
+    void processLoadBalanceView(const OpenSpeedShop::Framework::Experiment &experiment,
+                                const OpenSpeedShop::Framework::TimeInterval &interval,
+                                const QString &clusteringCriteriaName,
+                                QString metric,
+                                QStringList metricDesc);
 
     template<typename TS>
     void processCompareThreadView(const OpenSpeedShop::Framework::Experiment &experiment,
@@ -353,7 +361,9 @@ private:
 
     static QString s_functionTitle;
     static QString s_minimumTitle;
+    static QString s_minimumThreadTitle;
     static QString s_maximumTitle;
+    static QString s_maximumThreadTitle;
     static QString s_meanTitle;
 
     QVector<double> m_sampleKeys;

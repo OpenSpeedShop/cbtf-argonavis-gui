@@ -76,7 +76,8 @@ public:
                    COMPARE_MODE = 8,
                    COMPARE_BY_RANK_MODE = 16,
                    COMPARE_BY_HOST_MODE = 32,
-                   COMPARE_BY_PROCESS_MODE = 64
+                   COMPARE_BY_PROCESS_MODE = 64,
+                   LOAD_BALANCE_MODE = 128
                  } ModeType;
 
     Q_DECLARE_FLAGS( ModeTypes, ModeType )
@@ -87,6 +88,7 @@ signals:
 
     void signalAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
     void signalRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void signalRequestLoadBalanceView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
     void signalRequestCompareView(const QString& clusteringCriteriaName, const QString& compareMode, const QString& metricName, const QString& viewName);
     void signalRequestCalltreeView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
     void signalRequestDetailView(const QString& clusteringCriteriaName, const QString& detailName);
@@ -141,6 +143,7 @@ private:
 
     QStandardItemModel m_dummyModel;                        // dummy model
     QStandardItemModel m_metricViewModel;                   // snapshot of view combobox model for metric mode
+    QStandardItemModel m_loadBalanceViewModel;              // snapshot of view combobox model for load balance mode
     QStandardItemModel m_detailsViewModel;                  // initialized view combobox model for details mode
     QStandardItemModel m_calltreeViewModel;                 // empty combobox model for calltree mode
     QStandardItemModel m_compareViewModel;                  // snapshot of view combobox model for compare mode

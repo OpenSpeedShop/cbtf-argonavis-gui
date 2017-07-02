@@ -84,6 +84,12 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
     m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
 
+    // initialize model used for view combobox when in load balance mode
+    m_loadBalanceViewModel.appendRow( new QStandardItem( QStringLiteral("Functions") ) );
+    m_loadBalanceViewModel.appendRow( new QStandardItem( QStringLiteral("Statements") ) );
+    m_loadBalanceViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
+    m_loadBalanceViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
+
     // initialize model used for view combobox when in calltree mode
     m_calltreeViewModel.appendRow( new QStandardItem( QStringLiteral("CallTree") ) );
 
@@ -299,6 +305,9 @@ void PerformanceDataMetricView::setAvailableMetricModes(const ModeTypes &modes)
 
     if ( modes.testFlag( COMPARE_BY_PROCESS_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare By Process") ) ) )
         ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare By Process") );
+
+    if ( modes.testFlag( LOAD_BALANCE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Load Balance") ) ) )
+        ui->comboBox_ModeSelection->addItem( QStringLiteral("Load Balance") );
 }
 
 /**
@@ -785,6 +794,9 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
     case CALLTREE_MODE:
         emit signalRequestCalltreeView( m_clusteringCritieriaName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
         break;
+    case LOAD_BALANCE_MODE:
+        emit signalRequestLoadBalanceView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        break;
     default:
         emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
     }
@@ -834,6 +846,11 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
             ui->comboBox_MetricSelection->setEnabled( true );
         }
     }
+    else if ( QStringLiteral("Load Balance") == text ) {
+        m_mode = LOAD_BALANCE_MODE;
+        ui->comboBox_ViewSelection->setModel( &m_loadBalanceViewModel );
+        ui->comboBox_MetricSelection->setEnabled( true );
+    }
     else {
         m_mode = METRIC_MODE;
         ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
@@ -863,6 +880,8 @@ QString PerformanceDataMetricView::getMetricViewName() const
         metricViewName = QStringLiteral("Compare By Host") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( COMPARE_BY_PROCESS_MODE == m_mode )
         metricViewName = QStringLiteral("Compare By Process") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+    else if ( LOAD_BALANCE_MODE == m_mode )
+        metricViewName = QStringLiteral("Load Balance") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else
         metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
 

@@ -84,9 +84,11 @@ namespace ArgoNavis { namespace GUI {
 
 
 QString PerformanceDataManager::s_functionTitle( tr("Function (defining location)") );
-QString PerformanceDataManager::s_minimumTitle( tr("Minimum (Thread)") );
-QString PerformanceDataManager::s_maximumTitle( tr("Maximum (Thread)") );
-QString PerformanceDataManager::s_meanTitle( tr("Average (Thread)") );
+QString PerformanceDataManager::s_minimumTitle( tr("Minimum (msec)") );
+QString PerformanceDataManager::s_minimumThreadTitle( tr("Minimum (name)") );
+QString PerformanceDataManager::s_maximumTitle( tr("Maximum (msec)") );
+QString PerformanceDataManager::s_maximumThreadTitle( tr("Maximum (name)") );
+QString PerformanceDataManager::s_meanTitle( tr("Average (msec)") );
 
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral("Details");
 const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral("All Events");
@@ -392,6 +394,77 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
 
     if ( cursorManager ) {
         cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
+    }
+}
+
+/**
+ * @brief PerformanceDataManager::handleRequestLoadBalanceView
+ * @param clusteringCriteriaName - the name of the clustering criteria
+ * @param metricName - the name of the metric requested in the metric view
+ * @param viewName - the name of the view requested in the metric view
+ *
+ * Handler for external request to produce load balance data for the load balance view.
+ */
+void PerformanceDataManager::handleRequestLoadBalanceView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName)
+{
+    if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) || metricName.isEmpty() || viewName.isEmpty() )
+        return;
+
+    MetricTableViewInfo& info = m_tableViewInfo[ clusteringCriteriaName ];
+
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+    qDebug() << "PerformanceDataManager::handleRequestLoadBalanceView: clusteringCriteriaName=" << clusteringCriteriaName << "metric=" << metricName << "view=" << viewName;
+#endif
+
+    const QString metricViewName = metricName + "-" + viewName;
+    const QString loadBalanceViewName = QStringLiteral("LoadBalance-") + metricViewName;
+
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QString("generate-%1").arg(loadBalanceViewName) );
+    }
+
+    if ( ! info.metricViewList.contains( loadBalanceViewName ) )
+        info.metricViewList << loadBalanceViewName;
+
+    if ( ! info.viewList.contains( metricViewName ) )
+        info.viewList << metricViewName;
+
+    const Experiment& experiment( *(info.experiment) );
+    const TimeInterval& interval( info.interval );
+
+    QStringList metricDesc;
+    metricDesc << s_maximumTitle  << s_maximumThreadTitle << s_minimumTitle << s_minimumThreadTitle << s_functionTitle;
+
+    if ( viewName == QStringLiteral("Functions") ) {
+        processLoadBalanceView<Function>( experiment, interval, clusteringCriteriaName, metricName, metricDesc );
+    }
+
+    else if ( viewName == QStringLiteral("Statements") ) {
+        processLoadBalanceView<Statement>( experiment, interval, clusteringCriteriaName, metricName, metricDesc );
+    }
+
+    else if ( viewName == QStringLiteral("LinkedObjects") ) {
+        processLoadBalanceView<LinkedObject>( experiment, interval, clusteringCriteriaName, metricName, metricDesc );
+    }
+
+    else if ( viewName == QStringLiteral("Loops") ) {
+        processLoadBalanceView<Loop>( experiment, interval, clusteringCriteriaName, metricName, metricDesc );
+    }
+
+    // Determine full time interval extent of this experiment
+    Extent extent = experiment.getPerformanceDataExtent();
+    Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
+
+    Base::TimeInterval graphInterval = ConvertToArgoNavis( interval );
+
+    double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
+    double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
+
+    emit requestMetricViewComplete( clusteringCriteriaName, QStringLiteral("Load Balance"), metricViewName, lower, upper );
+
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QString("generate-%1").arg(loadBalanceViewName) );
     }
 }
 
@@ -1267,6 +1340,108 @@ void PerformanceDataManager::processMetricView(const Experiment &experiment, con
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::processMetricView FINISHED" << metric;
+#endif
+}
+
+/**
+ * @brief PerformanceDataManager::processLoadBalanceView
+ * @param experiment - a reference to the experiment object
+ * @param interval - the time interval of interest
+ * @param clusteringCriteriaName - the name of the clustering criteria
+ * @param metric - the metric to generate data for
+ * @param metricDesc - the metrics to generate data for
+ *
+ * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
+ * NOTE: must be metrics providing time information.
+ */
+template <typename TS>
+void PerformanceDataManager::processLoadBalanceView(const Experiment &experiment, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric, QStringList metricDesc)
+{
+    const CollectorGroup collectors = experiment.getCollectors();
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::processLoadBalanceView STARTED" << metric;
+#endif
+#if defined(HAS_CONCURRENT_PROCESSING_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::processLoadBalanceView: thread=" << QString::number((long long)QThread::currentThread(), 16);
+#endif
+
+    if ( 0 == collectors.size() )
+        return;
+
+    ThreadGroup threadGroup;
+
+    getThreadGroupFromSelectedClusters( clusteringCriteriaName, experiment.getThreads(), threadGroup );
+
+    const QString viewName = getViewName<TS>();
+    const Collector collector( *collectors.begin() );
+
+    // Evaluate the first collector's time metric for all functions
+    SmartPtr<std::map<TS, std::map<Thread, double> > > individual;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    std::string metricStr = metric.toStdString();
+#else
+    std::string metricStr = std::string( metric.toLatin1().data() );
+#endif
+
+    Queries::GetMetricValues( collector,
+                              metricStr,
+                              interval,
+                              threadGroup,
+                              getThreadSet<TS>( threadGroup ),
+                              individual );
+
+    SmartPtr< std::map< TS, double > > dataMin =
+            Queries::Reduction::Apply( individual, Queries::Reduction::Minimum );
+    SmartPtr< std::map< TS, double > > dataMax =
+            Queries::Reduction::Apply( individual, Queries::Reduction::Maximum );
+
+    std::map< TS, Thread > minimumThreads;
+    std::map< TS, Thread > maximumThreads;
+
+    // find thread exhbiting the minimum and maximum times for each TS item
+    for( typename std::map< TS, std::map<Thread, double > >::const_iterator i = individual->begin(); i != individual->end(); ++i ) {
+        const std::map<Thread, double>& threadMetricMap = i->second;
+        const double min( dataMin->at( i->first ) );
+        const double max( dataMax->at( i->first ) );
+        for( std::map< Thread, double >::const_iterator titer = threadMetricMap.begin(); titer != threadMetricMap.end(); ++titer ) {
+            if ( min == titer->second ) {
+                minimumThreads.insert( std::make_pair( i->first, titer->first ) );
+            }
+            if ( max == titer->second ) {
+                maximumThreads.insert( std::make_pair( i->first, titer->first ) );
+            }
+        }
+    }
+
+    // reset the individual instance
+    individual = SmartPtr<std::map< TS, std::map< Thread, double > > >();
+
+    // Sort the results
+    std::multimap< double, TS > sorted;
+    for( typename std::map< TS, double >::const_iterator i = dataMax->begin(); i != dataMax->end(); ++i ) {
+        sorted.insert( std::make_pair( i->second, i->first ) );
+    }
+
+    emit addMetricView( clusteringCriteriaName, QStringLiteral("Load Balance"), metric + "-" + viewName, metricDesc );
+
+    for( typename std::map< TS, double >::const_iterator i = dataMax->begin(); i != dataMax->end(); ++i ) {
+        QVariantList metricData;
+
+        const double max( i->second * 1000.0 );
+        const double min( dataMin->at( i->first ) * 1000.0 );
+
+        metricData << max;
+        metricData << ArgoNavis::CUDA::getUniqueClusterName( maximumThreads.at( i->first ) );
+        metricData << min;
+        metricData << ArgoNavis::CUDA::getUniqueClusterName( minimumThreads.at( i->first ) );
+        metricData << getLocationInfo<TS>( i->first );
+
+        emit addMetricViewData( clusteringCriteriaName, QStringLiteral("Load Balance"), metric + "-" + viewName, metricData );
+    }
+
+#if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
+    qDebug() << "PerformanceDataManager::processLoadBalanceView FINISHED" << metric;
 #endif
 }
 
