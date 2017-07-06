@@ -2658,7 +2658,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
     const QString viewName = getViewName<DETAIL_t>();
 
     // get cluster name
-    Thread thread = *(threadGroup.begin());
+    const Thread& thread = *(threadGroup.begin());
 
     const QString clusterName = ArgoNavis::CUDA::getUniqueClusterName( thread );
 
@@ -2685,6 +2685,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
 
     for ( typename std::map< Function, std::map< Framework::StackTrace, DETAIL_t > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
         const Framework::Function function( iter->first );
+
         std::map< Framework::StackTrace, DETAIL_t > tracemap( iter->second );
 
         std::map< Framework::Thread, Framework::ExtentGroup > subextents_map;
