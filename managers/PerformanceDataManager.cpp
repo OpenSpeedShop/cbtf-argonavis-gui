@@ -89,6 +89,7 @@ QString PerformanceDataManager::s_minimumThreadTitle( tr("Minimum (name)") );
 QString PerformanceDataManager::s_maximumTitle( tr("Maximum (msec)") );
 QString PerformanceDataManager::s_maximumThreadTitle( tr("Maximum (name)") );
 QString PerformanceDataManager::s_meanTitle( tr("Average (msec)") );
+QString PerformanceDataManager::s_meanThreadTitle( tr("Thread Nearest Avg (name)") );
 
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral("Details");
 const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral("All Events");
@@ -434,7 +435,7 @@ void PerformanceDataManager::handleRequestLoadBalanceView(const QString &cluster
     const TimeInterval& interval( info.interval );
 
     QStringList metricDesc;
-    metricDesc << s_maximumTitle  << s_maximumThreadTitle << s_minimumTitle << s_minimumThreadTitle << s_functionTitle;
+    metricDesc << s_maximumTitle << s_maximumThreadTitle << s_minimumTitle << s_minimumThreadTitle << s_meanTitle << s_meanThreadTitle << s_functionTitle;
 
     if ( viewName == QStringLiteral("Functions") ) {
         processLoadBalanceView<Function>( experiment, interval, clusteringCriteriaName, metricName, metricDesc );
@@ -1395,15 +1396,21 @@ void PerformanceDataManager::processLoadBalanceView(const Experiment &experiment
             Queries::Reduction::Apply( individual, Queries::Reduction::Minimum );
     SmartPtr< std::map< TS, double > > dataMax =
             Queries::Reduction::Apply( individual, Queries::Reduction::Maximum );
+    SmartPtr<std::map<TS, double> > dataMean =
+            Queries::Reduction::Apply( individual, Queries::Reduction::ArithmeticMean );
 
     std::map< TS, Thread > minimumThreads;
     std::map< TS, Thread > maximumThreads;
+    std::map< TS, Thread > meanThreads;
 
     // find thread exhbiting the minimum and maximum times for each TS item
     for( typename std::map< TS, std::map<Thread, double > >::const_iterator i = individual->begin(); i != individual->end(); ++i ) {
         const std::map<Thread, double>& threadMetricMap = i->second;
         const double min( dataMin->at( i->first ) );
         const double max( dataMax->at( i->first ) );
+        const double mean( dataMean->at( i->first ) );
+        double diff( std::numeric_limits< double >::max() );
+        std::map< Thread, double >::const_iterator miter = threadMetricMap.begin();
         for( std::map< Thread, double >::const_iterator titer = threadMetricMap.begin(); titer != threadMetricMap.end(); ++titer ) {
             if ( min == titer->second ) {
                 minimumThreads.insert( std::make_pair( i->first, titer->first ) );
@@ -1411,7 +1418,13 @@ void PerformanceDataManager::processLoadBalanceView(const Experiment &experiment
             if ( max == titer->second ) {
                 maximumThreads.insert( std::make_pair( i->first, titer->first ) );
             }
+            const double temp_diff = std::fabs( mean - titer->second );
+            if ( temp_diff < diff ) {
+                miter = titer;
+                diff = temp_diff;
+            }
         }
+        meanThreads.insert( std::make_pair( i->first, miter->first ) );
     }
 
     // reset the individual instance
@@ -1430,11 +1443,14 @@ void PerformanceDataManager::processLoadBalanceView(const Experiment &experiment
 
         const double max( i->second * 1000.0 );
         const double min( dataMin->at( i->first ) * 1000.0 );
+        const double mean( dataMean->at( i->first ) * 1000.0 );
 
         metricData << max;
         metricData << ArgoNavis::CUDA::getUniqueClusterName( maximumThreads.at( i->first ) );
         metricData << min;
         metricData << ArgoNavis::CUDA::getUniqueClusterName( minimumThreads.at( i->first ) );
+        metricData << mean;
+        metricData << ArgoNavis::CUDA::getUniqueClusterName( meanThreads.at( i->first ) );
         metricData << getLocationInfo<TS>( i->first );
 
         emit addMetricViewData( clusteringCriteriaName, QStringLiteral("Load Balance"), metric + "-" + viewName, metricData );

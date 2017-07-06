@@ -365,6 +365,7 @@ private:
     static QString s_maximumTitle;
     static QString s_maximumThreadTitle;
     static QString s_meanTitle;
+    static QString s_meanThreadTitle;
 
     QVector<double> m_sampleKeys;
     QMap< int, QVector<double> > m_sampleValues;
