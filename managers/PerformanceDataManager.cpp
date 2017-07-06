@@ -2684,16 +2684,16 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
     std::set< CallerCallee_t > caller_function_list;
 
     for ( typename std::map< Function, std::map< Framework::StackTrace, DETAIL_t > >::iterator iter = data->begin(); iter != data->end(); iter++ ) {
-        const Framework::Function function( iter->first );
+        const Framework::Function& function( iter->first );
 
-        std::map< Framework::StackTrace, DETAIL_t > tracemap( iter->second );
+        const std::map< Framework::StackTrace, DETAIL_t >& tracemap( iter->second );
 
         std::map< Framework::Thread, Framework::ExtentGroup > subextents_map;
         Get_Subextents_To_Object_Map( threadGroup, function, subextents_map );
 
         std::set< Framework::StackTrace, ltST > StackTraces_Processed;
 
-        for ( typename std::map< Framework::StackTrace, DETAIL_t >::iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
+        for ( typename std::map< Framework::StackTrace, DETAIL_t >::const_iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
             const Framework::StackTrace& stacktrace( siter->first );
 
             std::pair< std::set< Framework::StackTrace >::iterator, bool > ret = StackTraces_Processed.insert( stacktrace );
