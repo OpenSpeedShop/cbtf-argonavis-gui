@@ -222,7 +222,6 @@ private:
                              const QString &clusteringCriteriaName,
                              const QStringList& metricList,
                              const QStringList& viewList,
-                             QStringList metricDescList,
                              const OpenSpeedShop::Framework::Collector& collector,
                              const OpenSpeedShop::Framework::Experiment& experiment,
                              const OpenSpeedShop::Framework::TimeInterval& interval);
@@ -231,15 +230,13 @@ private:
     void processMetricView(const OpenSpeedShop::Framework::Experiment &experiment,
                            const OpenSpeedShop::Framework::TimeInterval &interval,
                            const QString &clusteringCriteriaName,
-                           QString metric,
-                           QStringList metricDesc);
+                           QString metric);
 
     template<typename TS>
     void processLoadBalanceView(const OpenSpeedShop::Framework::Experiment &experiment,
                                 const OpenSpeedShop::Framework::TimeInterval &interval,
                                 const QString &clusteringCriteriaName,
-                                QString metric,
-                                QStringList metricDesc);
+                                QString metric);
 
     template<typename TS>
     void processCompareThreadView(const OpenSpeedShop::Framework::Experiment &experiment,
@@ -359,6 +356,8 @@ private:
 
     static QAtomicPointer< PerformanceDataManager > s_instance;
 
+    static QString s_percentageTitle;
+    static QString s_timeTitle;
     static QString s_functionTitle;
     static QString s_minimumTitle;
     static QString s_minimumThreadTitle;
@@ -381,7 +380,6 @@ private:
     typedef struct MetricTableViewInfo {
         QStringList metricList;
         QStringList viewList;                 // processed metric views
-        QStringList tableColumnHeaders;       // table column headers for metric views
         QStringList metricViewList;           // [ <metric name> | "Details" ] - [ <View Name> ]
         QString experimentFilename;
         OpenSpeedShop::Framework::TimeInterval interval;

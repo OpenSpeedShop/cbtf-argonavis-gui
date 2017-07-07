@@ -83,6 +83,8 @@ Q_DECLARE_METATYPE( ArgoNavis::CUDA::KernelExecution )
 namespace ArgoNavis { namespace GUI {
 
 
+QString PerformanceDataManager::s_percentageTitle( tr("% of Time") );
+QString PerformanceDataManager::s_timeTitle( tr("Time (msec)") );
 QString PerformanceDataManager::s_functionTitle( tr("Function (defining location)") );
 QString PerformanceDataManager::s_minimumTitle( tr("Minimum (msec)") );
 QString PerformanceDataManager::s_minimumThreadTitle( tr("Minimum (name)") );
@@ -349,15 +351,8 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
     if ( collectors.size() > 0 ) {
         const Collector& collector( *collectors.begin() );
 
-        QStringList tableColumnHeaders = info.tableColumnHeaders;
-
         if ( ! info.viewList.contains( viewName ) )
             info.viewList << viewName;
-
-        QStringList columnTitles;
-        columnTitles << tableColumnHeaders.takeFirst();
-        columnTitles << tableColumnHeaders.takeFirst();
-        columnTitles << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
 
         loadCudaMetricViews(
             #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
@@ -367,7 +362,6 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
             clusteringCriteriaName,
             QStringList() << metricName,
             QStringList() << viewName,
-            columnTitles,
             collector,
             *(info.experiment),
             info.interval );
@@ -434,23 +428,20 @@ void PerformanceDataManager::handleRequestLoadBalanceView(const QString &cluster
     const Experiment& experiment( *(info.experiment) );
     const TimeInterval& interval( info.interval );
 
-    QStringList metricDesc;
-    metricDesc << s_maximumTitle << s_maximumThreadTitle << s_minimumTitle << s_minimumThreadTitle << s_meanTitle << s_meanThreadTitle << s_functionTitle;
-
     if ( viewName == QStringLiteral("Functions") ) {
-        processLoadBalanceView<Function>( experiment, interval, clusteringCriteriaName, metricName, metricDesc );
+        processLoadBalanceView<Function>( experiment, interval, clusteringCriteriaName, metricName );
     }
 
     else if ( viewName == QStringLiteral("Statements") ) {
-        processLoadBalanceView<Statement>( experiment, interval, clusteringCriteriaName, metricName, metricDesc );
+        processLoadBalanceView<Statement>( experiment, interval, clusteringCriteriaName, metricName );
     }
 
     else if ( viewName == QStringLiteral("LinkedObjects") ) {
-        processLoadBalanceView<LinkedObject>( experiment, interval, clusteringCriteriaName, metricName, metricDesc );
+        processLoadBalanceView<LinkedObject>( experiment, interval, clusteringCriteriaName, metricName );
     }
 
     else if ( viewName == QStringLiteral("Loops") ) {
-        processLoadBalanceView<Loop>( experiment, interval, clusteringCriteriaName, metricName, metricDesc );
+        processLoadBalanceView<Loop>( experiment, interval, clusteringCriteriaName, metricName );
     }
 
     // Determine full time interval extent of this experiment
@@ -1250,13 +1241,12 @@ void PerformanceDataManager::processCompareThreadView(const Experiment &experime
  * @param interval - the time interval of interest
  * @param clusteringCriteriaName - the name of the clustering criteria
  * @param metric - the metric to generate data for
- * @param metricDesc - the metrics to generate data for
  *
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
  * NOTE: must be metrics providing time information.
  */
 template <typename TS>
-void PerformanceDataManager::processMetricView(const Experiment &experiment, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric, QStringList metricDesc)
+void PerformanceDataManager::processMetricView(const Experiment &experiment, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric)
 {
     const CollectorGroup collectors = experiment.getCollectors();
 
@@ -1269,6 +1259,9 @@ void PerformanceDataManager::processMetricView(const Experiment &experiment, con
 
     if ( 0 == collectors.size() )
         return;
+
+    QStringList metricDesc;
+    metricDesc << s_timeTitle << s_percentageTitle << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
 
     ThreadGroup threadGroup;
 
@@ -1350,13 +1343,12 @@ void PerformanceDataManager::processMetricView(const Experiment &experiment, con
  * @param interval - the time interval of interest
  * @param clusteringCriteriaName - the name of the clustering criteria
  * @param metric - the metric to generate data for
- * @param metricDesc - the metrics to generate data for
  *
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
  * NOTE: must be metrics providing time information.
  */
 template <typename TS>
-void PerformanceDataManager::processLoadBalanceView(const Experiment &experiment, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric, QStringList metricDesc)
+void PerformanceDataManager::processLoadBalanceView(const Experiment &experiment, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric)
 {
     const CollectorGroup collectors = experiment.getCollectors();
 
@@ -1369,6 +1361,9 @@ void PerformanceDataManager::processLoadBalanceView(const Experiment &experiment
 
     if ( 0 == collectors.size() )
         return;
+
+    QStringList metricDesc;
+    metricDesc << s_maximumTitle << s_maximumThreadTitle << s_minimumTitle << s_minimumThreadTitle << s_meanTitle << s_meanThreadTitle << s_functionTitle;
 
     ThreadGroup threadGroup;
 
@@ -1566,7 +1561,6 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
     const QString timeMetric( "time" );
     QStringList metricList;
-    QStringList metricDescList;
 
     CollectorGroup collectors = experiment->getCollectors();
     boost::optional<Collector> collector;
@@ -1586,8 +1580,6 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 #endif
             if ( metricName.contains( timeMetric ) && metadata.isType( typeid(double) ) ) {
                 metricList << metricName;
-                metricDescList <<  tr("% of Time");
-                metricDescList <<  tr("Time (msec)");
                 foundOne = true;
             }
             iter++;
@@ -1634,7 +1626,6 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
         MetricTableViewInfo info;
         info.metricList = metricList;
-        info.tableColumnHeaders = metricDescList;
         info.experimentFilename = experimentFilename;
         info.interval = interval;
         info.experiment = experiment;
@@ -1770,7 +1761,6 @@ void PerformanceDataManager::handleSelectedClustersChanged(const QString &criter
  * @param clusteringCriteriaName - the clustering criteria name
  * @param metricList - the list of metrics to process and add to metric view
  * @param viewList - the list of views to process and add to the metric view
- * @param metricDescList - the column headers for the metric view
  * @param collector - the collector object
  * @param experiment - the experiment object
  * @param interval - the interval to process for the metric view
@@ -1785,26 +1775,21 @@ void PerformanceDataManager::loadCudaMetricViews(
         const QString& clusteringCriteriaName,
         const QStringList& metricList,
         const QStringList& viewList,
-        QStringList metricDescList,
         const Collector& collector,
         const Experiment& experiment,
         const TimeInterval& interval)
 {
     foreach ( QString metricName, metricList ) {
-        QStringList metricDesc;
-
-        metricDesc << metricDescList.takeFirst() << metricDescList.takeFirst() << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
-
         foreach ( QString viewName, viewList ) {
             const QString futuresKey = metricName + QStringLiteral("-") + viewName;
             if ( viewName == QStringLiteral("Functions") ) {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
                 futures[ futuresKey ] = QtConcurrent::run(
                             boost::bind( &PerformanceDataManager::processMetricView<Function>, this,
-                                         boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
+                                         boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
-                processMetricView<Function>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
+                processMetricView<Function>( experiment, interval, clusteringCriteriaName, metricName );
 #endif
             }
 
@@ -1812,10 +1797,10 @@ void PerformanceDataManager::loadCudaMetricViews(
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
                 futures[ futuresKey ] = QtConcurrent::run(
                             boost::bind( &PerformanceDataManager::processMetricView<Statement>, this,
-                                         boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
+                                         boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
-                processMetricView<Statement>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
+                processMetricView<Statement>( experiment, interval, clusteringCriteriaName, metricName );
 #endif
             }
 
@@ -1823,10 +1808,10 @@ void PerformanceDataManager::loadCudaMetricViews(
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
                 futures[ futuresKey ] = QtConcurrent::run(
                             boost::bind( &PerformanceDataManager::processMetricView<LinkedObject>, this,
-                                         boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
+                                         boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
-                processMetricView<LinkedObject>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
+                processMetricView<LinkedObject>( experiment, interval, clusteringCriteriaName, metricName );
 #endif
             }
 
@@ -1834,10 +1819,10 @@ void PerformanceDataManager::loadCudaMetricViews(
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
                 futures[ futuresKey ] = QtConcurrent::run(
                             boost::bind( &PerformanceDataManager::processMetricView<Loop>, this,
-                                         boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName, metricDesc ) );
+                                         boost::cref(experiment), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
-                processMetricView<Loop>( experiment, interval, clusteringCriteriaName, metric, metricDesc );
+                processMetricView<Loop>( experiment, interval, clusteringCriteriaName, metricName );
 #endif
             }
 
@@ -1846,7 +1831,7 @@ void PerformanceDataManager::loadCudaMetricViews(
                 futures[ futuresKey ] = QtConcurrent::run( this, &PerformanceDataManager::processCalltreeView, collector, experiment.getThreads(), interval );
                 synchronizer.addFuture( futures[ futuresKey ] );
 #else
-                processCalltreeView( experiment, interval, clusteringCriteriaName, metric, metricDesc );
+                processCalltreeView( collector, experiment.getThreads(), interval );
 #endif
             }
         }
@@ -2694,7 +2679,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
         std::set< Framework::StackTrace, ltST > StackTraces_Processed;
 
         for ( typename std::map< Framework::StackTrace, DETAIL_t >::const_iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
-            const Framework::StackTrace& stacktrace( siter->first );
+            const Framework::StackTrace stacktrace( siter->first );
 
             std::pair< std::set< Framework::StackTrace >::iterator, bool > ret = StackTraces_Processed.insert( stacktrace );
             if ( ! ret.second )
@@ -2791,7 +2776,6 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
         metricData << QString::fromStdString( oss.str() );
         emit addMetricViewData( clusterName, viewName, viewName, metricData );
     }
-
 }
 
 } // GUI
