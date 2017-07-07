@@ -2774,7 +2774,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
     graphManager.write_graphviz( oss );
     emit signalDisplayCalltreeGraph( QString::fromStdString( oss.str() ) );
 
-    for ( TDETAILS::reverse_iterator i = reduced_details.rbegin(); i != reduced_details.rend(); ++i ) {
+    for ( TDETAILS::const_reverse_iterator i = reduced_details.rbegin(); i != reduced_details.rend(); ++i ) {
         const details_data_t& d( *i );
         QVariantList metricData;
         std::ostringstream oss;
