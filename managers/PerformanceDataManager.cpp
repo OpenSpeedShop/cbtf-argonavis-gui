@@ -1541,7 +1541,6 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         experiment = m_experiments[ filePath ];
     else {
         experiment = new Experiment( filePathStr );
-        m_experiments.insert( filePath, experiment );
     }
 
     // Determine full time interval extent of this experiment
@@ -1612,6 +1611,9 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
             m_selectedClusters[ clusteringCriteriaName ] = selected;
         }
+
+        if ( ! m_experiments.contains( clusteringCriteriaName ) )
+            m_experiments.insert( filePath, experiment );
 
         MetricTableViewInfo info( experiment, interval, metricList );
 
@@ -1841,8 +1843,9 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
         m_tableViewInfo.remove( clusteringCriteriaName );
     }
 
-    qDeleteAll( m_experiments );
-    m_experiments.clear();
+    if ( m_experiments.contains( clusteringCriteriaName ) ) {
+        m_experiments.remove( clusteringCriteriaName );
+    }
 
     foreach( const QString& clusterName, clusterNames ) {
         emit removeCluster( clusteringCriteriaName, clusterName );
