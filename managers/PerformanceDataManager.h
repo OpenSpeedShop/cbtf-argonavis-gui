@@ -58,20 +58,17 @@ using namespace boost;
 #include "Loop.hxx"
 #include "Statement.hxx"
 #include "Collector.hxx"
+#include "CollectorGroup.hxx"
 #include "Experiment.hxx"
+#include "ThreadGroup.hxx"
 
 #include "UserGraphRangeChangeManager.h"
 #include "CBTF-ArgoNavis-Ext/NameValueDefines.h"
 #include "widgets/MetricViewManager.h"
 #include "widgets/ShowDeviceDetailsDialog.h"
 #include "managers/CalltreeGraphManager.h"
+#include "managers/MetricTableViewInfo.h"
 
-namespace OpenSpeedShop {
-namespace Framework {
-class Experiment;
-class ThreadGroup;
-}
-}
 
 class QTimer;
 class QCPAxisRect;
@@ -222,24 +219,27 @@ private:
                              const QString &clusteringCriteriaName,
                              const QStringList& metricList,
                              const QStringList& viewList,
-                             const OpenSpeedShop::Framework::Collector& collector,
-                             const OpenSpeedShop::Framework::Experiment& experiment,
+                             const OpenSpeedShop::Framework::CollectorGroup& collectors,
+                             const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                              const OpenSpeedShop::Framework::TimeInterval& interval);
 
     template <typename TS>
-    void processMetricView(const OpenSpeedShop::Framework::Experiment &experiment,
+    void processMetricView(const OpenSpeedShop::Framework::CollectorGroup &collectors,
+                           const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                            const OpenSpeedShop::Framework::TimeInterval &interval,
                            const QString &clusteringCriteriaName,
                            QString metric);
 
     template<typename TS>
-    void processLoadBalanceView(const OpenSpeedShop::Framework::Experiment &experiment,
+    void processLoadBalanceView(const OpenSpeedShop::Framework::CollectorGroup& collectors,
+                                const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                                 const OpenSpeedShop::Framework::TimeInterval &interval,
                                 const QString &clusteringCriteriaName,
                                 QString metric);
 
     template<typename TS>
-    void processCompareThreadView(const OpenSpeedShop::Framework::Experiment &experiment,
+    void processCompareThreadView(const OpenSpeedShop::Framework::CollectorGroup& collectors,
+                                  const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                                   const OpenSpeedShop::Framework::TimeInterval &interval,
                                   const QString &clusteringCriteriaName,
                                   QString metric,
@@ -303,7 +303,7 @@ private:
                             const QString metric,
                             const QStringList metricDesc);
 
-    void processCalltreeView(const OpenSpeedShop::Framework::Collector collector,
+    void processCalltreeView(const OpenSpeedShop::Framework::Collector &collector,
                              const OpenSpeedShop::Framework::ThreadGroup& threads,
                              const OpenSpeedShop::Framework::TimeInterval& interval);
 
@@ -377,16 +377,9 @@ private:
     QThread m_thread;
 #endif
 
-    typedef struct MetricTableViewInfo {
-        QStringList metricList;
-        QStringList viewList;                 // processed metric views
-        QStringList metricViewList;           // [ <metric name> | "Details" ] - [ <View Name> ]
-        QString experimentFilename;
-        OpenSpeedShop::Framework::TimeInterval interval;
-        const OpenSpeedShop::Framework::Experiment* experiment;
-    } MetricTableViewInfo;
-
     QMap< QString, MetricTableViewInfo > m_tableViewInfo;
+
+    QMap< QString, OpenSpeedShop::Framework::Experiment* > m_experiments;
 
     UserGraphRangeChangeManager m_userChangeMgr;
 
