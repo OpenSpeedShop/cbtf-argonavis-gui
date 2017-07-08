@@ -18,7 +18,8 @@ class ThreadSelectionCommand : public QUndoCommand
 {
 public:
 
-   explicit ThreadSelectionCommand(TreeModel* model, TreeItem* item, bool selected = true,  QUndoCommand *parent = 0);
+    explicit ThreadSelectionCommand(TreeModel* model, TreeItem* item, bool selected = true,  QUndoCommand *parent = 0);
+    virtual ~ThreadSelectionCommand();
 
     void undo() Q_DECL_OVERRIDE;
     void redo() Q_DECL_OVERRIDE;
