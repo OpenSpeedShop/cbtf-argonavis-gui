@@ -122,6 +122,7 @@ public slots:
     void handleRequestLoadBalanceView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName);
     void handleRequestCompareView(const QString& clusteringCriteriaName, const QString& compareMode, const QString& metricName, const QString& viewName);
     void handleProcessDetailViews(const QString& clusteringCriteriaName);
+    void handleRequestTraceView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
 
 signals:
 
@@ -296,16 +297,29 @@ private:
     std::pair< uint64_t, double > getDetailTotals(const DETAIL_t& detail, const double factor) { return std::make_pair( detail.dm_count, detail.dm_time / factor ); }
 
     template <typename DETAIL_t>
+    void getTraceMetricValues(const QString& functionName, const double time_origin, const DETAIL_t& details, QVector<QVariantList>& metricData);
+
+    template <typename DETAIL_t>
     void ShowCalltreeDetail(const OpenSpeedShop::Framework::Collector& collector,
                             const OpenSpeedShop::Framework::ThreadGroup& threadGroup,
                             const OpenSpeedShop::Framework::TimeInterval& interval,
                             const std::set< OpenSpeedShop::Framework::Function > functions,
                             const QString metric,
-                            const QStringList metricDesc);
+                            const QStringList metricDesc,
+                            const QString& clusteringCriteriaName);
+
+    template <typename DETAIL_t>
+    void ShowTraceDetail(const QString& clusteringCriteriaName,
+                         const OpenSpeedShop::Framework::Collector &collector,
+                         const OpenSpeedShop::Framework::ThreadGroup &threadGroup,
+                         const double time_origin,
+                         const OpenSpeedShop::Framework::TimeInterval &interval,
+                         const std::set<OpenSpeedShop::Framework::Function> functions,
+                         const QString metric);
 
     void processCalltreeView(const OpenSpeedShop::Framework::Collector &collector,
                              const OpenSpeedShop::Framework::ThreadGroup& threads,
-                             const OpenSpeedShop::Framework::TimeInterval& interval);
+                             const OpenSpeedShop::Framework::TimeInterval& interval, const QString &clusteringCriteriaName);
 
     bool processDataTransferEvent(const ArgoNavis::Base::Time& time_origin,
                                   const ArgoNavis::CUDA::DataTransfer& details,
