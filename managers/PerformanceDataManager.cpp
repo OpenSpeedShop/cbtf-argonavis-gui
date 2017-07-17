@@ -2878,7 +2878,7 @@ void PerformanceDataManager::getTraceMetricValues(const QString& functionName, c
         const double upper = ( detail.dm_interval.getEnd().getValue() / 1000000.0 ) - time_origin;
         const double time_in_call = detail.dm_time * 1000.0;
 
-        metricData.push_back( QVariantList() << lower << upper << time_in_call << detail.dm_source << detail.dm_destination << QVariant::fromValue<long>(detail.dm_size) << detail.dm_retval << functionName );
+        metricData.push_back( QVariantList() << lower << upper << time_in_call << detail.dm_source << detail.dm_destination << QVariant::fromValue<long>(detail.dm_size) << detail.dm_retval << detail.dm_id.first << functionName );
     }
 }
 
@@ -2910,7 +2910,7 @@ void PerformanceDataManager::ShowTraceDetail(
 
     QStringList metricDesc;
     metricDesc << tr("Start Time") << tr("End Time") << tr("Duration (ms)") << tr("From Rank") << tr("To Rank")
-               << tr("Message Size") << tr("Return Value") << s_functionTitle;
+               << tr("Message Size") << tr("Return Value") << tr("Rank") << s_functionTitle;
 
     emit addMetricView( clusteringCriteriaName, viewName, viewName, metricDesc );
 
