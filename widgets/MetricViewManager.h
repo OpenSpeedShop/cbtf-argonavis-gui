@@ -35,7 +35,7 @@ class MetricViewManager;
 namespace ArgoNavis { namespace GUI {
 
 enum MetricViewTypes {
-    CUDA_VIEW,
+    TIMELINE_VIEW,
     CALLTREE_VIEW
 };
 

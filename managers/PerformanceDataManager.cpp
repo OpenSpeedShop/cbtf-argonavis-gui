@@ -1718,7 +1718,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         #endif
 
             // set default metric view
-            emit signalSetDefaultMetricView( SUPPORTED_EXPERIMENTS.contains( collectorId ) ? CUDA_VIEW : CALLTREE_VIEW );
+            emit signalSetDefaultMetricView( SUPPORTED_EXPERIMENTS.contains( collectorId ) ? TIMELINE_VIEW : CALLTREE_VIEW );
 
             QVector< QString > clusterNames;
             foreach( const QString& clusterName, selected ) {
@@ -2242,7 +2242,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
     bool hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
 
     // set default metric view
-    emit signalSetDefaultMetricView( hasCudaCollector ? CUDA_VIEW : CALLTREE_VIEW );
+    emit signalSetDefaultMetricView( hasCudaCollector ? TIMELINE_VIEW : CALLTREE_VIEW );
 
     // reset all thread flags to false
     QMutableMapIterator< Base::ThreadName, bool > mapiter( flags );

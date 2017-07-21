@@ -66,9 +66,9 @@ MetricViewManager::~MetricViewManager()
  */
 void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
 {
-    qDebug() << "MetricViewManager::handleSwitchView: viewType=" << ( viewType == CUDA_VIEW ? "CUDA_VIEW" : "CALLTREE_VIEW" );
+    qDebug() << "MetricViewManager::handleSwitchView: viewType=" << ( viewType == TIMELINE_VIEW ? "TIMELINE_VIEW" : "CALLTREE_VIEW" );
 
-    if ( CUDA_VIEW == viewType )
+    if ( TIMELINE_VIEW == viewType )
         setCurrentWidget( ui->widget_MetricPlotView );
     else if ( CALLTREE_VIEW == viewType )
         setCurrentWidget( ui->widget_CalltreeGraphView );
