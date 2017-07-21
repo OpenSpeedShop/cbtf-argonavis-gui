@@ -144,6 +144,7 @@ SOURCES += \
     graphitems/OSSEventItem.cpp \
     graphitems/OSSPeriodicSampleItem.cpp \
     graphitems/OSSEventsSummaryItem.cpp \
+    graphitems/OSSTraceItem.cpp \
     widgets/TreeItem.cpp \
     widgets/TreeModel.cpp \
     widgets/ExperimentPanel.cpp \
@@ -189,6 +190,7 @@ HEADERS += \
     graphitems/OSSEventItem.h \
     graphitems/OSSPeriodicSampleItem.h \
     graphitems/OSSEventsSummaryItem.h \
+    graphitems/OSSTraceItem.h \
     widgets/TreeItem.h \
     widgets/TreeModel.h \
     widgets/ExperimentPanel.h \

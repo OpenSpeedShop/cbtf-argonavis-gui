@@ -83,12 +83,19 @@ private slots:
 
     void handleAddCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
-    void handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisPercentage);
+    void handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisVisible, double yAxisLower, double yAxisUpper);
 
     void handleAddDataTransfer(const QString &clusteringCriteriaName,
                                const QString &clusterName,
                                const Base::Time &time_origin,
                                const CUDA::DataTransfer &details);
+
+    void handleAddTraceItem(const QString &clusteringCriteriaName,
+                            const QString &clusterName,
+                            const QString &functionName,
+                            double startTime,
+                            double endTime,
+                            int rankOrThread);
 
     void handleAddKernelExecution(const QString& clusteringCriteriaName,
                                   const QString& clusterName,
@@ -100,7 +107,12 @@ private slots:
                                  const double& time_begin,
                                  const double& time_end,
                                  const double& count);
-    void handleCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
+
+    void handleCudaEventSnapshot(const QString& clusteringCriteriaName,
+                                 const QString& clusteringName,
+                                 double lower,
+                                 double upper,
+                                 const QImage& image);
 
 private:
 

@@ -152,6 +152,13 @@ signals:
                            const double& time_end,
                            const double& count);
 
+    void addTraceItem(const QString &clusteringCriteriaName,
+                      const QString &clusterName,
+                      const QString &functionName,
+                      double startTime,
+                      double endTime,
+                      int rankOrThread);
+
     void addCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
 
     void addMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
@@ -162,7 +169,7 @@ signals:
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
     void removeCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
-    void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisPercentage);
+    void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisVisible, double yAxisLower, double yAxisUpper);
 
     void graphRangeChanged(const QString& clusteringCriteriaName,const QString& clusterName, double lower, double upper, const QSize& size);
 
@@ -184,7 +191,7 @@ private slots:
 
     void handleLoadCudaMetricViewsTimeout(const QString& clusteringCriteriaName, double lower, double upper);
 
-    void handleSelectedClustersChanged(const QString& criteriaName, const QSet< QString >& selected);
+    void handleSelectedClustersChanged(const QString& criteriaName, const QSet<QString> &selected);
 
 private:
 

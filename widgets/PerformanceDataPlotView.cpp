@@ -31,6 +31,7 @@
 #include "graphitems/OSSKernelExecutionItem.h"
 #include "graphitems/OSSPeriodicSampleItem.h"
 #include "graphitems/OSSEventsSummaryItem.h"
+#include "graphitems/OSSTraceItem.h"
 
 #include <QtGlobal>
 #include <qmath.h>
@@ -89,14 +90,17 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::addDataTransfer, this, &PerformanceDataPlotView::handleAddDataTransfer, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addKernelExecution, this, &PerformanceDataPlotView::handleAddKernelExecution, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addPeriodicSample, this, &PerformanceDataPlotView::handleAddPeriodicSample, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addTraceItem, this, &PerformanceDataPlotView::handleAddTraceItem, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addCudaEventSnapshot, this, &PerformanceDataPlotView::handleCudaEventSnapshot, Qt::QueuedConnection );
         connect( this, &PerformanceDataPlotView::graphRangeChanged, dataMgr, &PerformanceDataManager::graphRangeChanged );
 #else
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAddCluster(QString,QString)), Qt::QueuedConnection );
-        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double,bool)), this, SLOT(handleSetMetricDuration(QString,QString,double,bool)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double,bool,double,double)), this, SLOT(handleSetMetricDuration(QString,QString,double,bool,double,double)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), this, SLOT(handleAddDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addPeriodicSample(QString,QString,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,QString,double,double,double)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addTraceItem(QString,QString,QString,double,double,int)),
+                 this, SLOT(handleAddTraceItem(QString,QString,QString,double,double,int)) );
         connect( dataMgr, SIGNAL(addCudaEventSnapshot(const QString&,const QString&,double,double,const QImage&)),
                  this, SLOT(handleCudaEventSnapshot(const QString&,const QString&,double,double,const QImage&)), Qt::QueuedConnection );
         connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), dataMgr, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)) );
@@ -683,7 +687,7 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
 
     QMutexLocker guard( &m_mutex );
 
-    const bool needLegend( 0 == m_metricGroups.size() );
+    const bool needLegend( 0 == m_metricGroups.size() && clusteringCriteriaName != clusterName );
 
     MetricGroup* metricGroup( Q_NULLPTR );
     if ( ! m_metricGroups.contains( clusteringCriteriaName ) ) {
@@ -733,15 +737,17 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
 }
 
 /**
- * @brief PerformanceDataPlotView::setMetricDuration
+ * @brief PerformanceDataPlotView::handleSetMetricDuration
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterName - the cluster name
  * @param duration - the duration of the experiment in the range [ 0 .. duration ]
- * @param yAxisPercentage - flag indicating whether the Y-Axis scale units is percentage; thus range is [ 0 .. 100 ]
+ * @param yAxisVisible - whether the y axis tick marks and label are visible
+ * @param yAxisLower - the specified lower value of the y axis range
+ * @param yAxisUpper - the specified upper value of the y axis range (-1 means that it is dynamically set based on y values)
  *
  * This method sets the upper value of the visible range of data in the graph view.  Also cause update of metric graph by calling QCustomPlot::replot method.
  */
-void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisPercentage)
+void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisVisible, double yAxisLower, double yAxisUpper)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
@@ -762,8 +768,12 @@ void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringC
         QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
         QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
 
-        if ( yAxisPercentage ) {
-            yAxis->setRange( 0.0, 100.0 );
+        if ( yAxisUpper != -1.0 ) {
+            yAxis->setRange( yAxisLower, yAxisUpper );
+        }
+        if ( yAxisVisible ) {
+            yAxis->setAutoTicks( true );
+            yAxis->setAutoTickLabels( true );
         }
         yAxis->setLabel( clusterName );
         yAxis->setVisible( true );
@@ -808,6 +818,43 @@ void PerformanceDataPlotView::handleAddDataTransfer(const QString &clusteringCri
     dataXferItem->setData( time_origin, details );
 
     ui->graphView->addItem( dataXferItem );
+}
+
+/**
+ * @brief PerformanceDataPlotView::handleAddTraceItem
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param clusterName - the cluster name
+ * @param functionName - name of function that was traced
+ * @param startTime - the start time of the trace event
+ * @param endTime - the end time of the trace event
+ * @param rankOrThread - the rank or thread id in which the trace event occurred
+ *
+ * This method handles adding a trace event to the axis rect for the trace graph.
+ */
+void PerformanceDataPlotView::handleAddTraceItem(const QString &clusteringCriteriaName, const QString &clusterName, const QString &functionName, double startTime, double endTime, int rankOrThread)
+{
+    QCPAxisRect* axisRect( Q_NULLPTR );
+
+    {
+        QMutexLocker guard( &m_mutex );
+
+        if ( m_metricGroups.contains( clusteringCriteriaName ) ) {
+            QMap< QString, QCPAxisRect* >& axisRects = m_metricGroups[ clusteringCriteriaName ]->axisRects;
+            if ( axisRects.contains( clusterName ) )
+                axisRect = axisRects[ clusterName ];
+        }
+    }
+
+    if ( Q_NULLPTR == axisRect )
+        return;
+
+    double yAxisUpper = axisRect->axis( QCPAxis::atLeft )->range().upper;
+
+    OSSTraceItem* traceItem = new OSSTraceItem( axisRect, ui->graphView );
+
+    traceItem->setData( functionName, startTime, endTime, rankOrThread );
+
+    ui->graphView->addItem( traceItem );
 }
 
 /**

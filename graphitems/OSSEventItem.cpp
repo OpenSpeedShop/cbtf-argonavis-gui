@@ -69,13 +69,15 @@ OSSEventItem::~OSSEventItem()
 void OSSEventItem::setBrush(const QColor &color)
 {
     QCPItemRect::setBrush( color );
-    setPen( QPen( color, 0.0 ) ); // cosmetic pen
 
+    setPen( QPen( color, 0.0 ) ); // cosmetic pen
 }
 
 /**
  * @brief OSSEventItem::draw
- * @param painter
+ * @param painter - the painter used for drawing
+ *
+ * Reimplements the QCPRectItem::draw method.
  */
 void OSSEventItem::draw(QCPPainter *painter)
 {

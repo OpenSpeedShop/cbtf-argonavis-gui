@@ -108,8 +108,8 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)),
                  ui->widget_ExperimentPanel, SLOT(handleAddExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)) );
-        connect( ui->widget_ExperimentPanel, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)),
-                 dataMgr, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)) );
+        connect( ui->widget_ExperimentPanel, SIGNAL(signalSelectedClustersChanged(QString,QVector<QString>)),
+                 dataMgr, SIGNAL(signalSelectedClustersChanged(QString,QVector<QString>)) );
         connect( dataMgr, SIGNAL(metricViewRangeChanged(QString,QString,QString,double,double)),
                  ui->widget_MetricTableView, SLOT(handleRangeChanged(QString,QString,QString,double,double)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalClearSourceView()), ui->widget_SourceCodeViewer, SLOT(handleClearSourceView()) );
@@ -333,15 +333,15 @@ void MainWindow::handleLoadComplete()
  */
 void MainWindow::handleAdjustPlotViewScrollArea(const QString& clusteringCriteriaName, const QString& clusterName)
 {
-    QString key( clusteringCriteriaName + clusterName );
+    const int currentHeight( m_plotsMap.size() == 0 ? 0 : ui->widget_MetricViewManager->height() );
+
+    const QString key( clusteringCriteriaName + clusterName );
 
     m_plotsMap.insert( key );
 
-    int numPlots( m_plotsMap.size() );
+    const int plotSize( clusteringCriteriaName == clusterName ? 400 : 150 );
 
-    int plotSize( 150 );
-
-    ui->widget_MetricViewManager->setFixedHeight( numPlots * plotSize );
+    ui->widget_MetricViewManager->setFixedHeight( currentHeight + plotSize );
 }
 
 /**
@@ -354,15 +354,15 @@ void MainWindow::handleAdjustPlotViewScrollArea(const QString& clusteringCriteri
  */
 void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, const QString &clusterName)
 {
-    QString key( clusteringCriteriaName + clusterName );
+    const QString key( clusteringCriteriaName + clusterName );
 
     m_plotsMap.remove( key );
 
-    int numPlots( m_plotsMap.size() );
+    const int plotSize( clusteringCriteriaName == clusterName ? 400 : 150 );
 
-    const int plotSize( 150 );
+    const int currentHeight = ui->widget_MetricViewManager->height();
 
-    ui->widget_MetricViewManager->setFixedHeight( numPlots * plotSize );
+    ui->widget_MetricViewManager->setFixedHeight( currentHeight - plotSize );
 }
 
 /**

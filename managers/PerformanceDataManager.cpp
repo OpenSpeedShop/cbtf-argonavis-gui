@@ -1668,9 +1668,18 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         // current clustering criteria to be all threads.
 
         QSet< QString> selected;
+        int rankCount = 0;
         for ( ThreadGroup::iterator iter = group.begin(); iter != group.end(); ++iter ) {
-            selected.insert( ArgoNavis::CUDA::getUniqueClusterName( *iter ) );
+            const Thread thread( *iter );
+            int rank;
+            bool valid;
+            std::tie(valid,rank) = thread.getMPIRank();
+            if ( valid && rank > rankCount ) {
+                rankCount = rank;
+            }
+            selected.insert( ArgoNavis::CUDA::getUniqueClusterName( thread ) );
         }
+        rankCount++;
 
         QString clusteringCriteriaName;
         if ( hasCudaCollector )
@@ -1690,13 +1699,43 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         MetricTableViewInfo info( experiment, interval, metricList );
 
         m_tableViewInfo.insert( clusteringCriteriaName, info );
-        
-        QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment->getThreads() );
-        synchronizer.addFuture( future1 );
 
         if ( hasCudaCollector ) {
+            QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment->getThreads() );
+            synchronizer.addFuture( future1 );
+
             QFuture<void> future2 = QtConcurrent::run( this, &PerformanceDataManager::handleProcessDetailViews, clusteringCriteriaName );
             synchronizer.addFuture( future2 );
+        }
+        else {
+            const QString collectorId( collector.get().getMetadata().getUniqueId().c_str() );
+
+            // define list of supported experiment types
+        #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+            static QStringList SUPPORTED_EXPERIMENTS{ "mpit" };
+        #else
+            static QStringList SUPPORTED_EXPERIMENTS = QStringList() << "mpit";
+        #endif
+
+            // set default metric view
+            emit signalSetDefaultMetricView( SUPPORTED_EXPERIMENTS.contains( collectorId ) ? CUDA_VIEW : CALLTREE_VIEW );
+
+            QVector< QString > clusterNames;
+            foreach( const QString& clusterName, selected ) {
+                clusterNames << clusterName;
+            }
+            QVector< bool > isGpuSampleCounters;
+            QVector< QString > sampleCounterNames;
+
+            double durationMs( 0.0 );
+            if ( ! interval.isEmpty() ) {
+                uint64_t duration = static_cast<uint64_t>( interval.getWidth() );
+                durationMs = qCeil( duration / 1000000.0 );
+            }
+
+            emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, isGpuSampleCounters, sampleCounterNames );
+            emit addCluster( clusteringCriteriaName, clusteringCriteriaName );
+            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, durationMs, true, -1.0, rankCount );
         }
 
         const QString functionView = QStringLiteral("Functions");
@@ -2303,7 +2342,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
 
         foreach( const QString& clusterName, clusterNames ) {
             bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
-            emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs, hasGpuPercentageCounter);
+            emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs, false, 0.0, hasGpuPercentageCounter ? 100.0 : -1.0 );
             qDebug() << "CLUSTER NAME: " << clusterName << " PERCENTAGE SAMPLE COUNTER? " << hasGpuPercentageCounter;
         }
 
@@ -2948,10 +2987,20 @@ void PerformanceDataManager::ShowTraceDetail(
                 if ( ! ret.second )
                     continue;
 
-                const QString functionName = getLocationInfo< Framework::Function >( function );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+                const QString functionName = QString::fromStdString( function.getDemangledName() );
+#else
+                const QString functionName = QString( function.getDemangledName().c_str() );
+#endif
 
                 QVector< QVariantList > traceList;
                 getTraceMetricValues( functionName, time_origin, details, traceList );
+
+                foreach( const QVariantList& list, traceList ) {
+                    if ( list.size() == metricDesc.size() ) {
+                        emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, list[8].toString(), list[0].toDouble(), list[1].toDouble(), list[7].toInt() );
+                    }
+                }
 
                 foreach( const QVariantList& metricData, traceList ) {
                     emit addMetricViewData( clusteringCriteriaName, viewName, viewName, metricData );
