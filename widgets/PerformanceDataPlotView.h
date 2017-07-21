@@ -114,6 +114,12 @@ private slots:
                                  double upper,
                                  const QImage& image);
 
+    void handleRequestMetricViewComplete(const QString &clusteringCriteriaName,
+                                         const QString &metricName,
+                                         const QString &viewName,
+                                         double lower,
+                                         double upper);
+
 private:
 
     void addLegend(QCPAxisRect *axisRect);

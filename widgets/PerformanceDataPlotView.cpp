@@ -93,6 +93,7 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::addTraceItem, this, &PerformanceDataPlotView::handleAddTraceItem, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addCudaEventSnapshot, this, &PerformanceDataPlotView::handleCudaEventSnapshot, Qt::QueuedConnection );
         connect( this, &PerformanceDataPlotView::graphRangeChanged, dataMgr, &PerformanceDataManager::graphRangeChanged );
+        connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataPlotView::handleRequestMetricViewComplete, Qt::QueuedConnection );
 #else
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAddCluster(QString,QString)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double,bool,double,double)), this, SLOT(handleSetMetricDuration(QString,QString,double,bool,double,double)), Qt::QueuedConnection );
@@ -104,6 +105,8 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( dataMgr, SIGNAL(addCudaEventSnapshot(const QString&,const QString&,double,double,const QImage&)),
                  this, SLOT(handleCudaEventSnapshot(const QString&,const QString&,double,double,const QImage&)), Qt::QueuedConnection );
         connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), dataMgr, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)) );
+        connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,double,double)),
+                 this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,double,double)) );
 #endif
     }
 }
@@ -408,6 +411,31 @@ void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringC
     }
 
     ui->graphView->replot( QCustomPlot::rpQueued );
+}
+
+/**
+ * @brief PerformanceDataPlotView::handleRequestMetricViewComplete
+ * @param clusteringCriteriaName - the name of the cluster criteria
+ * @param metricName - name of metric view for which to add data to model
+ * @param viewName - name of the view for which to add data to model
+ * @param lower - lower value of range to actually view
+ * @param upper - upper value of range to actually view
+ *
+ * Once a signal 'requestMetricViewComplete' is emitted, this handler of the signal will insure the plot is updated.
+ */
+void PerformanceDataPlotView::handleRequestMetricViewComplete(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, double lower, double upper)
+{
+    Q_UNUSED( lower );
+    Q_UNUSED( upper );
+
+    qDebug() << "PerformanceDataPlotView::handleRequestMetricViewComplete: clusteringCriteriaName=" << clusteringCriteriaName << "metricName=" << metricName << "viewName=" << viewName;
+
+    if ( clusteringCriteriaName.isEmpty() || metricName.isEmpty() || viewName.isEmpty() )
+        return;
+
+    if ( QStringLiteral("Trace") == metricName && QStringLiteral("Trace") == viewName ) {
+        ui->graphView->replot( QCustomPlot::rpQueued );
+    }
 }
 
 /**
