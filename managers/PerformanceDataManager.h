@@ -303,6 +303,9 @@ private:
     template <typename DETAIL_t>
     std::pair< uint64_t, double > getDetailTotals(const DETAIL_t& detail, const double factor) { return std::make_pair( detail.dm_count, detail.dm_time / factor ); }
 
+    template <typename TS>
+    QStringList getTraceMetrics() const { return QStringList(); }
+
     template <typename DETAIL_t>
     void getTraceMetricValues(const QString& functionName, const double time_origin, const DETAIL_t& details, QVector<QVariantList>& metricData);
 

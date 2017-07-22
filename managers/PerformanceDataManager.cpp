@@ -2908,6 +2908,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
  * @param details - the vector of metric details
  * @param metricData - a vector of trace metrics generated from the metric details
  *
+ * This is a template specialization of the getTraceMetricValues template for the OpenSpeedShop::Framework::MPITDetail typename.
  * This method generates a vector of trace metrics from the metric details.
  */
 template <>
@@ -2922,6 +2923,24 @@ void PerformanceDataManager::getTraceMetricValues(const QString& functionName, c
 
         metricData.push_back( QVariantList() << lower << upper << time_in_call << detail.dm_source << detail.dm_destination << QVariant::fromValue<long>(detail.dm_size) << detail.dm_retval << detail.dm_id.first << functionName );
     }
+}
+
+/**
+ * @brief PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>
+ * @return - the trace metrics (names of columns for the MPI trace view).
+ *
+ * This is a template specialization of the getTraceMetrics template for the OpenSpeedShop::Framework::MPITDetail typename.
+ * The function returns the names of columns for the MPI trace view.
+ */
+template <>
+QStringList PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>() const
+{
+    QStringList metrics;
+
+    metrics << tr("Start Time") << tr("End Time") << tr("Duration (ms)") << tr("From Rank") << tr("To Rank")
+            << tr("Message Size") << tr("Return Value") << tr("Rank") << s_functionTitle;
+
+    return metrics;
 }
 
 /*
@@ -2950,9 +2969,7 @@ void PerformanceDataManager::ShowTraceDetail(
     // bet view name
     const QString viewName = QStringLiteral("Trace");
 
-    QStringList metricDesc;
-    metricDesc << tr("Start Time") << tr("End Time") << tr("Duration (ms)") << tr("From Rank") << tr("To Rank")
-               << tr("Message Size") << tr("Return Value") << tr("Rank") << s_functionTitle;
+    QStringList metricDesc = getTraceMetrics<DETAIL_t>();
 
     emit addMetricView( clusteringCriteriaName, viewName, viewName, metricDesc );
 
