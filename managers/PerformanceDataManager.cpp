@@ -2969,7 +2969,7 @@ void PerformanceDataManager::ShowTraceDetail(
     // bet view name
     const QString viewName = QStringLiteral("Trace");
 
-    QStringList metricDesc = getTraceMetrics<DETAIL_t>();
+    const QStringList metricDesc = getTraceMetrics<DETAIL_t>();
 
     emit addMetricView( clusteringCriteriaName, viewName, viewName, metricDesc );
 
