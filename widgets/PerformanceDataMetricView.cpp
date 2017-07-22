@@ -47,6 +47,27 @@ namespace ArgoNavis { namespace GUI {
 QString PerformanceDataMetricView::s_functionTitle( tr("Function (defining location)") );
 QString PerformanceDataMetricView::s_deviceTitle( tr("Device") );
 
+QString PerformanceDataMetricView::s_metricModeName( tr("Metric") );
+QString PerformanceDataMetricView::s_detailsModeName( tr("Details") );
+QString PerformanceDataMetricView::s_calltreeModeName( tr("CallTree") );
+QString PerformanceDataMetricView::s_compareModeName( tr("Compare") );
+QString PerformanceDataMetricView::s_compareByRankModeName( tr("Compare By Rank") );
+QString PerformanceDataMetricView::s_compareByHostModeName( tr("Compare By Host") );
+QString PerformanceDataMetricView::s_compareByProcessModeName( tr("Compare By Process") );
+QString PerformanceDataMetricView::s_loadBalanceModeName( tr("Load Balance") );
+QString PerformanceDataMetricView::s_traceModeName( tr("Trace") );
+
+QString PerformanceDataMetricView::s_functionViewName( tr("Functions") );
+QString PerformanceDataMetricView::s_statementsViewName( tr("Statements") );
+QString PerformanceDataMetricView::s_linkedObjectsViewName( tr("LinkedObjects") );
+QString PerformanceDataMetricView::s_loopsViewName( tr("Loops") );
+
+QString PerformanceDataMetricView::s_allEventsDetailsName( tr("All Events") );
+QString PerformanceDataMetricView::s_dataTransfersDetailsName( tr("Data Transfers") );
+QString PerformanceDataMetricView::s_kernelExecutionsDetailsName( tr("Kernel Executions") );
+
+QString PerformanceDataMetricView::s_noneName( QStringLiteral("none") );
+
 
 /**
  * @brief PerformanceDataTableView::PerformanceDataTableView
@@ -74,33 +95,33 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_viewStack->addWidget( blankView );
 
     // initialize model used for view combobox when in details mode
-    m_detailsViewModel.appendRow( new QStandardItem( QStringLiteral("All Events") ) );
-    m_detailsViewModel.appendRow( new QStandardItem( QStringLiteral("Data Transfers") ) );
-    m_detailsViewModel.appendRow( new QStandardItem( QStringLiteral("Kernel Executions") ) );
+    m_detailsViewModel.appendRow( new QStandardItem( s_allEventsDetailsName ) );
+    m_detailsViewModel.appendRow( new QStandardItem( s_dataTransfersDetailsName ) );
+    m_detailsViewModel.appendRow( new QStandardItem( s_kernelExecutionsDetailsName ) );
 
     // initialize model used for view combobox when in metric mode
-    m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Functions") ) );
-    m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Statements") ) );
-    m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
-    m_metricViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
+    m_metricViewModel.appendRow( new QStandardItem( s_functionViewName ) );
+    m_metricViewModel.appendRow( new QStandardItem( s_statementsViewName ) );
+    m_metricViewModel.appendRow( new QStandardItem( s_linkedObjectsViewName ) );
+    m_metricViewModel.appendRow( new QStandardItem( s_loopsViewName ) );
 
     // initialize model used for view combobox when in load balance mode
-    m_loadBalanceViewModel.appendRow( new QStandardItem( QStringLiteral("Functions") ) );
-    m_loadBalanceViewModel.appendRow( new QStandardItem( QStringLiteral("Statements") ) );
-    m_loadBalanceViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
-    m_loadBalanceViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
+    m_loadBalanceViewModel.appendRow( new QStandardItem( s_functionViewName ) );
+    m_loadBalanceViewModel.appendRow( new QStandardItem( s_statementsViewName ) );
+    m_loadBalanceViewModel.appendRow( new QStandardItem( s_linkedObjectsViewName ) );
+    m_loadBalanceViewModel.appendRow( new QStandardItem( s_loopsViewName ) );
 
     // initialize model used for view combobox when in calltree mode
-    m_calltreeViewModel.appendRow( new QStandardItem( QStringLiteral("CallTree") ) );
+    m_calltreeViewModel.appendRow( new QStandardItem( s_calltreeModeName) );
 
     // initialize model used for view combobox when in trace mode
-    m_traceViewModel.appendRow( new QStandardItem( QStringLiteral("Trace") ) );
+    m_traceViewModel.appendRow( new QStandardItem( s_traceModeName ) );
 
     // initialize model used for view combobox when in compare mode
-    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("Functions") ) );
-    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("Statements") ) );
-    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("LinkedObjects") ) );
-    m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("Loops") ) );
+    m_compareViewModel.appendRow( new QStandardItem( s_functionViewName ) );
+    m_compareViewModel.appendRow( new QStandardItem( s_statementsViewName ) );
+    m_compareViewModel.appendRow( new QStandardItem( s_linkedObjectsViewName ) );
+    m_compareViewModel.appendRow( new QStandardItem( s_loopsViewName ) );
 
     // initial mode is details mode
     m_mode = METRIC_MODE;
@@ -207,7 +228,7 @@ void PerformanceDataMetricView::deleteAllModelsViews()
         while ( viter.hasNext() ) {
             viter.next();
 
-            if ( viter.key() != QStringLiteral("none") ) {
+            if ( viter.key() != s_noneName ) {
                 m_viewStack->removeWidget( viter.value() );
                 delete viter.value();
                 viter.remove();
@@ -243,7 +264,7 @@ void PerformanceDataMetricView::deleteModelsAndViews(bool all)
 
             const QString key = viter.key();
 
-            if ( key == "none" || ( ! all && key.startsWith("Details") ) )
+            if ( key == "none" || ( ! all && key.startsWith( s_detailsModeName ) ) )
                  continue;
 
             m_viewStack->removeWidget( viter.value() );
@@ -288,32 +309,64 @@ void PerformanceDataMetricView::resetUI()
  */
 void PerformanceDataMetricView::setAvailableMetricModes(const ModeTypes &modes)
 {
-    if ( modes.testFlag( METRIC_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Metric") ) ) )
-        ui->comboBox_ModeSelection->addItem( QStringLiteral("Metric") );
+    if ( modes.testFlag( METRIC_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_metricModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_metricModeName );
 
-    if ( modes.testFlag( DETAILS_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Details") ) ) )
-        ui->comboBox_ModeSelection->addItem( QStringLiteral("Details") );
+    if ( modes.testFlag( DETAILS_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_detailsModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_detailsModeName );
 
-    if ( modes.testFlag( CALLTREE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("CallTree") ) ) )
-        ui->comboBox_ModeSelection->addItem( QStringLiteral("CallTree") );
+    if ( modes.testFlag( CALLTREE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_calltreeModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_calltreeModeName );
 
-    if ( modes.testFlag( COMPARE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare") ) ) )
-        ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare") );
+    if ( modes.testFlag( COMPARE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_compareModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_compareModeName );
 
-    if ( modes.testFlag( COMPARE_BY_RANK_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare By Rank") ) ) )
-        ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare By Rank") );
+    if ( modes.testFlag( COMPARE_BY_RANK_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_compareByRankModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_compareByRankModeName );
 
-    if ( modes.testFlag( COMPARE_BY_HOST_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare By Host") ) ) )
-        ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare By Host") );
+    if ( modes.testFlag( COMPARE_BY_HOST_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_compareByHostModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_compareByHostModeName );
 
-    if ( modes.testFlag( COMPARE_BY_PROCESS_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Compare By Process") ) ) )
-        ui->comboBox_ModeSelection->addItem( QStringLiteral("Compare By Process") );
+    if ( modes.testFlag( COMPARE_BY_PROCESS_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_compareByProcessModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_compareByProcessModeName );
 
-    if ( modes.testFlag( LOAD_BALANCE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Load Balance") ) ) )
-        ui->comboBox_ModeSelection->addItem( QStringLiteral("Load Balance") );
+    if ( modes.testFlag( LOAD_BALANCE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_loadBalanceModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_loadBalanceModeName );
 
-    if ( modes.testFlag( TRACE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Trace") ) ) )
-        ui->comboBox_ModeSelection->addItem( QStringLiteral("Trace") );
+    if ( modes.testFlag( TRACE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_traceModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_traceModeName );
+}
+
+/**
+ * @brief PerformanceDataMetricView::getMetricModeName
+ * @param mode - the mode type
+ *
+ * This function returns the name for the specified mode type.
+ */
+QString PerformanceDataMetricView::getMetricModeName(const PerformanceDataMetricView::ModeType mode)
+{
+    switch( mode ) {
+    case DETAILS_MODE:
+        return s_detailsModeName;
+    case METRIC_MODE:
+        return s_metricModeName;
+    case CALLTREE_MODE:
+        return s_calltreeModeName;
+    case COMPARE_MODE:
+        return s_compareModeName;
+    case COMPARE_BY_RANK_MODE:
+        return s_compareByRankModeName;
+    case COMPARE_BY_HOST_MODE:
+        return s_compareByHostModeName;
+    case COMPARE_BY_PROCESS_MODE:
+        return s_compareByProcessModeName;
+    case LOAD_BALANCE_MODE:
+        return s_loadBalanceModeName;
+    case TRACE_MODE:
+        return s_traceModeName;
+    default:
+        return QString();
+    }
 }
 
 /**
@@ -379,12 +432,12 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
 
     m_models[ metricViewName ] = model;
 
-    if ( QStringLiteral("Details") == metricName  )
+    if ( s_detailsModeName == metricName  )
         return;
 
     QSortFilterProxyModel* proxyModel( Q_NULLPTR );
 
-    if ( QStringLiteral("Compare") != metricName && QStringLiteral("Trace") != metricName ) {
+    if ( s_compareModeName != metricName && s_traceModeName != metricName ) {
         ViewSortFilterProxyModel* viewProxyModel = new ViewSortFilterProxyModel;
 
         if ( Q_NULLPTR == viewProxyModel )
@@ -463,7 +516,8 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     }
 
     // Make sure metric view not already in combobox
-    if ( ui->comboBox_MetricSelection->findText( metricName ) == -1 && metricName != QStringLiteral("CallTree") && ! metricName.startsWith(QStringLiteral("Compare")) ) {
+    if ( metricName != viewName && metricName != s_loadBalanceModeName && ! metricName.startsWith( s_compareModeName ) &&
+         ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
         // Add metric view to combobox
         ui->comboBox_MetricSelection->addItem( metricName );
     }
@@ -786,22 +840,22 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
         emit signalRequestDetailView( m_clusteringCritieriaName, ui->comboBox_ViewSelection->currentText() );
         break;
     case COMPARE_MODE:
-        emit signalRequestCompareView( m_clusteringCritieriaName, QStringLiteral("Compare"), ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        emit signalRequestCompareView( m_clusteringCritieriaName, s_compareModeName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
     case COMPARE_BY_RANK_MODE:
-        emit signalRequestCompareView( m_clusteringCritieriaName, QStringLiteral("Compare By Rank"), ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        emit signalRequestCompareView( m_clusteringCritieriaName, s_compareByRankModeName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
     case COMPARE_BY_HOST_MODE:
-        emit signalRequestCompareView( m_clusteringCritieriaName, QStringLiteral("Compare By Host"), ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        emit signalRequestCompareView( m_clusteringCritieriaName, s_compareByHostModeName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
     case COMPARE_BY_PROCESS_MODE:
-        emit signalRequestCompareView( m_clusteringCritieriaName, QStringLiteral("Compare By Process"), ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        emit signalRequestCompareView( m_clusteringCritieriaName, s_compareByProcessModeName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
     case CALLTREE_MODE:
-        emit signalRequestCalltreeView( m_clusteringCritieriaName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
+        emit signalRequestCalltreeView( m_clusteringCritieriaName, s_calltreeModeName, s_calltreeModeName );
         break;
     case TRACE_MODE:
-        emit signalRequestTraceView( m_clusteringCritieriaName, QStringLiteral("Trace"), QStringLiteral("Trace") );
+        emit signalRequestTraceView( m_clusteringCritieriaName, s_traceModeName, s_traceModeName );
         break;
     case LOAD_BALANCE_MODE:
         emit signalRequestLoadBalanceView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
@@ -820,47 +874,47 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
  */
 void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
 {
-    if ( QStringLiteral("Details") == text ) {
+    if ( s_detailsModeName == text ) {
         m_mode = DETAILS_MODE;
         ui->comboBox_ViewSelection->setModel( &m_detailsViewModel );
         ui->comboBox_MetricSelection->setEnabled( false );
     }
-    else if ( QStringLiteral("CallTree") == text ) {
+    else if ( s_calltreeModeName == text ) {
         m_mode = CALLTREE_MODE;
         ui->comboBox_ViewSelection->setModel( &m_calltreeViewModel );
         ui->comboBox_MetricSelection->setEnabled( false );
     }
-    else if ( QStringLiteral("Trace") == text ) {
+    else if ( s_traceModeName == text ) {
         m_mode = TRACE_MODE;
         ui->comboBox_ViewSelection->setModel( &m_traceViewModel );
         ui->comboBox_MetricSelection->setEnabled( false );
     }
-    else if ( text.startsWith( QStringLiteral("Compare") ) ) {
+    else if ( text.startsWith( s_compareModeName ) ) {
         ui->comboBox_ViewSelection->blockSignals( true );
         ui->comboBox_ViewSelection->setModel( &m_dummyModel );
         ui->comboBox_ViewSelection->blockSignals( false );
-        if ( QStringLiteral("Compare") == text ) {
+        if ( s_compareModeName== text ) {
             m_mode = COMPARE_MODE;
             ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
             ui->comboBox_MetricSelection->setEnabled( true );
         }
-        else if ( QStringLiteral("Compare By Rank") == text ) {
+        else if ( s_compareByRankModeName == text ) {
             m_mode = COMPARE_BY_RANK_MODE;
             ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
             ui->comboBox_MetricSelection->setEnabled( true );
         }
-        else if ( QStringLiteral("Compare By Host") == text ) {
+        else if ( s_compareByHostModeName == text ) {
             m_mode = COMPARE_BY_HOST_MODE;
             ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
             ui->comboBox_MetricSelection->setEnabled( true );
         }
-        else if ( QStringLiteral("Compare By Process") == text ) {
+        else if ( s_compareByProcessModeName == text ) {
             m_mode = COMPARE_BY_PROCESS_MODE;
             ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
             ui->comboBox_MetricSelection->setEnabled( true );
         }
     }
-    else if ( QStringLiteral("Load Balance") == text ) {
+    else if ( s_loadBalanceModeName == text ) {
         m_mode = LOAD_BALANCE_MODE;
         ui->comboBox_ViewSelection->setModel( &m_loadBalanceViewModel );
         ui->comboBox_MetricSelection->setEnabled( true );
@@ -883,21 +937,21 @@ QString PerformanceDataMetricView::getMetricViewName() const
     QString metricViewName;
 
     if ( DETAILS_MODE == m_mode )
-        metricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
+        metricViewName = s_detailsModeName + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( CALLTREE_MODE == m_mode )
-        metricViewName = QStringLiteral("CallTree") + "-" + QStringLiteral("CallTree");
+        metricViewName = s_calltreeModeName + "-" + s_calltreeModeName;
     else if ( TRACE_MODE == m_mode )
-        metricViewName = QStringLiteral("Trace") + "-" + QStringLiteral("Trace");
+        metricViewName =s_traceModeName + "-" + s_traceModeName;
     else if ( COMPARE_MODE == m_mode )
-        metricViewName = QStringLiteral("Compare") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+        metricViewName = s_compareModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( COMPARE_BY_RANK_MODE == m_mode )
-        metricViewName = QStringLiteral("Compare By Rank") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+        metricViewName = s_compareByRankModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( COMPARE_BY_HOST_MODE == m_mode )
-        metricViewName = QStringLiteral("Compare By Host") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+        metricViewName = s_compareByHostModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( COMPARE_BY_PROCESS_MODE == m_mode )
-        metricViewName = QStringLiteral("Compare By Process") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+        metricViewName = s_compareByProcessModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( LOAD_BALANCE_MODE == m_mode )
-        metricViewName = QStringLiteral("Load Balance") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
+        metricViewName = s_loadBalanceModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else
         metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
 
@@ -967,22 +1021,22 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
 
             if ( view != Q_NULLPTR ) {
                 // now sorting can be enabled
-                if ( QStringLiteral("CallTree") == metricName ) {
+                if ( s_calltreeModeName == metricName ) {
                     // calltree has fixed order
                     view->setSortingEnabled( false );
                 }
                 else {
                     view->setSortingEnabled( true );
-                    if ( QStringLiteral("Details") == metricName ) {
-                        if ( QStringLiteral("All Events") == viewName )
+                    if ( s_detailsModeName == metricName ) {
+                        if ( s_allEventsDetailsName == viewName )
                             view->sortByColumn( 1, Qt::AscendingOrder );
                         else
                             view->sortByColumn( 2, Qt::AscendingOrder );
                     }
-                    else if ( metricName.startsWith( QStringLiteral("Compare") ) ) {
+                    else if ( metricName.startsWith( s_compareModeName ) ) {
                         view->sortByColumn( 1, Qt::DescendingOrder );
                     }
-                    else if ( metricName.startsWith( QStringLiteral("Trace") ) ) {
+                    else if ( metricName.startsWith( s_traceModeName ) ) {
                         view->sortByColumn( 0, Qt::AscendingOrder );
                     }
                     else

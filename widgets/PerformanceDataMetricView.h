@@ -85,6 +85,8 @@ public:
 
     void setAvailableMetricModes(const ModeTypes& modes);
 
+    static QString getMetricModeName(const ModeType mode);
+
 signals:
 
     void signalAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
@@ -132,6 +134,27 @@ private:
 
     static QString s_functionTitle;
     static QString s_deviceTitle;
+
+    static QString s_metricModeName;
+    static QString s_detailsModeName;
+    static QString s_calltreeModeName;
+    static QString s_compareModeName;
+    static QString s_compareByRankModeName;
+    static QString s_compareByHostModeName;
+    static QString s_compareByProcessModeName;
+    static QString s_loadBalanceModeName;
+    static QString s_traceModeName;
+
+    static QString s_functionViewName;
+    static QString s_statementsViewName;
+    static QString s_linkedObjectsViewName;
+    static QString s_loopsViewName;
+
+    static QString s_allEventsDetailsName;
+    static QString s_dataTransfersDetailsName;
+    static QString s_kernelExecutionsDetailsName;
+
+    static QString s_noneName;
 
     QString m_clusteringCritieriaName;                      // clustering criteria name associated to metric views
     QMutex m_mutex;                                         // mutex for the following QMap objects
