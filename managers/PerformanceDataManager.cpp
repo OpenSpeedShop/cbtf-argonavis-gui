@@ -63,6 +63,7 @@
 #include "collectors/pthreads/PthreadsDetail.hxx"
 #include "collectors/omptp/OmptPDetail.hxx"
 #include "collectors/mpit/MPITDetail.hxx"
+#include "collectors/mpip/MPIPDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -93,6 +94,13 @@ QString PerformanceDataManager::s_maximumTitle( tr("Maximum (msec)") );
 QString PerformanceDataManager::s_maximumThreadTitle( tr("Maximum (name)") );
 QString PerformanceDataManager::s_meanTitle( tr("Average (msec)") );
 QString PerformanceDataManager::s_meanThreadTitle( tr("Thread Nearest Avg (name)") );
+
+// define list of supported experiment types
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = { "mpit" };
+#else
+QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = QStringList() << "mpit";
+#endif
 
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral("Details");
 const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral("All Events");
@@ -653,14 +661,7 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
     const Collector collector( *info.getCollectors().begin() );
     const QString collectorId( collector.getMetadata().getUniqueId().c_str() );
 
-    // define list of supported experiment types
-#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-    static QStringList SUPPORTED_EXPERIMENTS{ "mpit" };
-#else
-    static QStringList SUPPORTED_EXPERIMENTS = QStringList() << "mpit";
-#endif
-
-    if ( ! SUPPORTED_EXPERIMENTS.contains( collectorId ) )
+    if ( ! s_TRACING_EXPERIMENTS.contains( collectorId ) )
         return;
 
     const QString metricViewName = metricName + "-" + viewName;
@@ -1542,6 +1543,9 @@ void PerformanceDataManager::processCalltreeView(const Collector& collector, con
     else if ( collectorId == "mpit" ) {
         ShowCalltreeDetail< std::vector<Framework::MPITDetail> >( collector, threads, interval, functions, "inclusive_details", metricDesc, clusteringCriteriaName );
     }
+    else if ( collectorId == "mpip" ) {
+        ShowCalltreeDetail< Framework::MPIPDetail >( collector, threads, interval, functions, "inclusive_detail", metricDesc, clusteringCriteriaName );
+    }
 }
 
 /**
@@ -1710,15 +1714,10 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         else {
             const QString collectorId( collector.get().getMetadata().getUniqueId().c_str() );
 
-            // define list of supported experiment types
-        #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-            static QStringList SUPPORTED_EXPERIMENTS{ "mpit" };
-        #else
-            static QStringList SUPPORTED_EXPERIMENTS = QStringList() << "mpit";
-        #endif
+            const bool hasTraceExperiment = s_TRACING_EXPERIMENTS.contains( collectorId );
 
             // set default metric view
-            emit signalSetDefaultMetricView( SUPPORTED_EXPERIMENTS.contains( collectorId ) ? TIMELINE_VIEW : CALLTREE_VIEW );
+            emit signalSetDefaultMetricView( hasTraceExperiment ? TIMELINE_VIEW : CALLTREE_VIEW );
 
             QVector< QString > clusterNames;
             foreach( const QString& clusterName, selected ) {
@@ -1727,15 +1726,19 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
             QVector< bool > isGpuSampleCounters;
             QVector< QString > sampleCounterNames;
 
-            double durationMs( 0.0 );
-            if ( ! interval.isEmpty() ) {
-                uint64_t duration = static_cast<uint64_t>( interval.getWidth() );
-                durationMs = qCeil( duration / 1000000.0 );
-            }
-
             emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, isGpuSampleCounters, sampleCounterNames );
-            emit addCluster( clusteringCriteriaName, clusteringCriteriaName );
-            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, durationMs, true, -1.0, rankCount );
+
+            if ( hasTraceExperiment ) {
+
+                double durationMs( 0.0 );
+                if ( ! interval.isEmpty() ) {
+                    uint64_t duration = static_cast<uint64_t>( interval.getWidth() );
+                    durationMs = qCeil( duration / 1000000.0 );
+                }
+
+                emit addCluster( clusteringCriteriaName, clusteringCriteriaName );
+                emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, durationMs, true, -1.0, rankCount );
+            }
         }
 
         const QString functionView = QStringLiteral("Functions");

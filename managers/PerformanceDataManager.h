@@ -387,6 +387,8 @@ private:
     static QString s_meanTitle;
     static QString s_meanThreadTitle;
 
+    static QStringList s_TRACING_EXPERIMENTS;
+
     QVector<double> m_sampleKeys;
     QMap< int, QVector<double> > m_sampleValues;
     QMap< int, QVector<double> > m_rawValues;

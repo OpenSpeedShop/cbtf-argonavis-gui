@@ -876,8 +876,6 @@ void PerformanceDataPlotView::handleAddTraceItem(const QString &clusteringCriter
     if ( Q_NULLPTR == axisRect )
         return;
 
-    double yAxisUpper = axisRect->axis( QCPAxis::atLeft )->range().upper;
-
     OSSTraceItem* traceItem = new OSSTraceItem( axisRect, ui->graphView );
 
     traceItem->setData( functionName, startTime, endTime, rankOrThread );
