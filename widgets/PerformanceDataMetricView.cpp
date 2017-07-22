@@ -437,7 +437,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
 
     QSortFilterProxyModel* proxyModel( Q_NULLPTR );
 
-    if ( s_compareModeName != metricName && s_traceModeName != metricName ) {
+    if ( s_compareModeName != metricName ) {
         ViewSortFilterProxyModel* viewProxyModel = new ViewSortFilterProxyModel;
 
         if ( Q_NULLPTR == viewProxyModel )
@@ -941,7 +941,7 @@ QString PerformanceDataMetricView::getMetricViewName() const
     else if ( CALLTREE_MODE == m_mode )
         metricViewName = s_calltreeModeName + "-" + s_calltreeModeName;
     else if ( TRACE_MODE == m_mode )
-        metricViewName =s_traceModeName + "-" + s_traceModeName;
+        metricViewName = s_traceModeName + "-" + s_traceModeName;
     else if ( COMPARE_MODE == m_mode )
         metricViewName = s_compareModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( COMPARE_BY_RANK_MODE == m_mode )
@@ -1036,8 +1036,8 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
                     else if ( metricName.startsWith( s_compareModeName ) ) {
                         view->sortByColumn( 1, Qt::DescendingOrder );
                     }
-                    else if ( metricName.startsWith( s_traceModeName ) ) {
-                        view->sortByColumn( 0, Qt::AscendingOrder );
+                    else if ( metricName == s_traceModeName ) {
+                        view->sortByColumn( 1, Qt::AscendingOrder );
                     }
                     else
                         view->sortByColumn( 0, Qt::DescendingOrder );

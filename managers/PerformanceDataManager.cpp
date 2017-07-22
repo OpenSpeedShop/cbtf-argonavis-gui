@@ -1738,6 +1738,9 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
                 emit addCluster( clusteringCriteriaName, clusteringCriteriaName );
                 emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, durationMs, true, -1.0, rankCount );
+
+                QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::handleRequestTraceView, clusteringCriteriaName, QStringLiteral("Trace"), QStringLiteral("Trace") );
+                synchronizer.addFuture( future );
             }
         }
 
@@ -1818,12 +1821,9 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
         if ( tokens.size() < 2 || tokens.size() > 3 )
             continue;
         if ( 2 == tokens.size() ) {
-            if ( tokens[0] == QStringLiteral("Details") ) {
+            if ( tokens[0] == QStringLiteral("Details") || tokens[0] == QStringLiteral("Trace") ) {
                 // Emit signal to update detail views corresponding to timeline in graph view
                 emit metricViewRangeChanged( clusteringCriteriaName, tokens[0], tokens[1], lower, upper );
-            }
-            else if ( tokens[0] != QStringLiteral("Calltree") ) {
-                handleRequestMetricView( clusteringCriteriaName, tokens[0], tokens[1] );
             }
         }
         else {
@@ -2921,7 +2921,7 @@ void PerformanceDataManager::getTraceMetricValues(const QString& functionName, c
         const double upper = ( detail.dm_interval.getEnd().getValue() / 1000000.0 ) - time_origin;
         const double time_in_call = detail.dm_time * 1000.0;
 
-        metricData.push_back( QVariantList() << lower << upper << time_in_call << detail.dm_source << detail.dm_destination << QVariant::fromValue<long>(detail.dm_size) << detail.dm_retval << detail.dm_id.first << functionName );
+        metricData.push_back( QVariantList() << functionName << lower << upper << time_in_call << detail.dm_source << detail.dm_destination << QVariant::fromValue<long>(detail.dm_size) << detail.dm_retval << detail.dm_id.first );
     }
 }
 
@@ -2937,8 +2937,9 @@ QStringList PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>() c
 {
     QStringList metrics;
 
-    metrics << tr("Start Time") << tr("End Time") << tr("Duration (ms)") << tr("From Rank") << tr("To Rank")
-            << tr("Message Size") << tr("Return Value") << tr("Rank") << s_functionTitle;
+    metrics << s_functionTitle << tr("Start Time") << tr("End Time") << tr("Duration (ms)")
+            << tr("From Rank") << tr("To Rank")
+            << tr("Message Size") << tr("Return Value") << tr("Rank");
 
     return metrics;
 }
@@ -2966,7 +2967,7 @@ void PerformanceDataManager::ShowTraceDetail(
         const std::set<Function> functions,
         const QString metric)
 {
-    // bet view name
+    // get view name
     const QString viewName = QStringLiteral("Trace");
 
     const QStringList metricDesc = getTraceMetrics<DETAIL_t>();
@@ -3018,7 +3019,7 @@ void PerformanceDataManager::ShowTraceDetail(
 
                 foreach( const QVariantList& list, traceList ) {
                     if ( list.size() == metricDesc.size() ) {
-                        emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, list[8].toString(), list[0].toDouble(), list[1].toDouble(), list[7].toInt() );
+                        emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, list[0].toString(), list[1].toDouble(), list[2].toDouble(), list[8].toInt() );
                     }
                 }
 
