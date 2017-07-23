@@ -108,25 +108,34 @@ void OSSTraceItem::setBrush(const QString &functionName)
  * @brief OSSTraceItem::draw
  * @param painter - the painter used for drawing
  *
- * Reimplements the OSSEventItem::draw method.
+ * Re-implements the OSSEventItem::draw method.
  */
 void OSSTraceItem::draw(QCPPainter *painter)
 {
-    // draw the event item as a rounded rectangle using the base class draw method implementation
-    OSSEventItem::draw( painter );
+    const QPointF p1 = topLeft->pixelPoint();
+    const QPointF p2 = bottomRight->pixelPoint();
 
-    // draw the name of the function inside the rectangle
-    if ( ! m_functionName.isEmpty() ) {
-        const QPointF p1 = topLeft->pixelPoint();
-        const QPointF p2 = bottomRight->pixelPoint();
+    const QRectF boundingRect = QRectF( p1, p2 ).normalized();
 
-        const QRectF boundingRect = QRectF( p1, p2 ).normalized();
+    if ( boundingRect.intersects( clipRect() ) ) { // only draw if bounding rect of rect item is visible in cliprect
+        QPainterPath path;
+        path.addRoundedRect( boundingRect, 5.0, 5.0 );
 
-        // set font color to white
-        //painter->setFont( QFont( "arial", 12 ) );
-        painter->setPen( Qt::white );
+        // set pen and brush
+        painter->setPen( mainPen() );
+        painter->setBrush( mainBrush() );
 
-        painter->drawText( boundingRect, Qt::AlignCenter, m_functionName );
+        // draw the rounded rectangle representing the trace event
+        painter->drawPath( path );
+
+        // draw the name of the function inside the rectangle
+        if ( ! m_functionName.isEmpty() ) {
+            // set font color to white
+            painter->setPen( Qt::white );
+
+            // write the text centered within the trace event rectangle
+            painter->drawText( boundingRect, Qt::AlignCenter, m_functionName );
+        }
     }
 }
 
