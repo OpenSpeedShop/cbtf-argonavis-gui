@@ -433,7 +433,7 @@ void PerformanceDataPlotView::handleRequestMetricViewComplete(const QString &clu
     if ( clusteringCriteriaName.isEmpty() || metricName.isEmpty() || viewName.isEmpty() )
         return;
 
-    if ( QStringLiteral("Trace") == metricName && QStringLiteral("Trace") == viewName ) {
+    if ( QStringLiteral("Trace") == metricName ) {
         ui->graphView->replot( QCustomPlot::rpQueued );
     }
 }

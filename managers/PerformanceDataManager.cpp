@@ -676,6 +676,16 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
     const TimeInterval interval( info.getInterval() );
     const std::set< Function > functions( info.getThreads().getFunctions() );
 
+    for ( std::set< Function >::iterator iter = functions.begin(); iter != functions.end(); iter++ ) {
+        const Function& function( *iter );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        const QString functionName = QString::fromStdString( function.getDemangledName() );
+#else
+        const QString functionName = QString( function.getDemangledName().c_str() );
+#endif
+        info.addMetricView( QStringLiteral("Trace") + "-" + functionName );
+    }
+
     // Determine full time interval extent of this experiment
     Extent extent = info.getExtent();
     Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
@@ -691,6 +701,16 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
     }
 
     emit requestMetricViewComplete( clusteringCriteriaName, metricName, viewName, lower, upper );
+
+    for ( std::set< Function >::iterator iter = functions.begin(); iter != functions.end(); iter++ ) {
+        const Function& function( *iter );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        const QString functionName = QString::fromStdString( function.getDemangledName() );
+#else
+        const QString functionName = QString( function.getDemangledName().c_str() );
+#endif
+        emit requestMetricViewComplete( clusteringCriteriaName, metricName, functionName, lower, upper );
+    }
 
     if ( cursorManager ) {
         cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
@@ -1739,7 +1759,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
                 emit addCluster( clusteringCriteriaName, clusteringCriteriaName );
                 emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, durationMs, true, -1.0, rankCount );
 
-                QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::handleRequestTraceView, clusteringCriteriaName, QStringLiteral("Trace"), QStringLiteral("Trace") );
+                QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::handleRequestTraceView, clusteringCriteriaName, QStringLiteral("Trace"), ALL_EVENTS_DETAILS_VIEW );
                 synchronizer.addFuture( future );
             }
         }
@@ -2968,11 +2988,12 @@ void PerformanceDataManager::ShowTraceDetail(
         const QString metric)
 {
     // get view name
-    const QString viewName = QStringLiteral("Trace");
+    const QString traceViewName = QStringLiteral("Trace");
 
     const QStringList metricDesc = getTraceMetrics<DETAIL_t>();
 
-    emit addMetricView( clusteringCriteriaName, viewName, viewName, metricDesc );
+    // for details view emit signal to create just the model
+    emit addMetricView( clusteringCriteriaName, traceViewName, ALL_EVENTS_DETAILS_VIEW, metricDesc );
 
     SmartPtr< std::map< Function,
                 std::map< Framework::Thread,
@@ -2987,8 +3008,22 @@ void PerformanceDataManager::ShowTraceDetail(
     std::vector< boost::tuple< std::string, double, double, double, double, int, int, long, int > > metrics;
 #endif
 
+    const QString metricViewName = traceViewName + "-" + ALL_EVENTS_DETAILS_VIEW;
+
+    // build the proxy views and tree views for the various trace views: "All Events"
+    // NOTE: functions[0] .. functions[N-10] will be added below
+    emit addAssociatedMetricView( clusteringCriteriaName, traceViewName, ALL_EVENTS_DETAILS_VIEW, metricViewName, metricDesc );
+
     for ( typename std::map< Function, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
         const Framework::Function& function( iter->first );
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        const QString functionName = QString::fromStdString( function.getDemangledName() );
+#else
+        const QString functionName = QString( function.getDemangledName().c_str() );
+#endif
+
+        emit addAssociatedMetricView( clusteringCriteriaName, traceViewName, functionName, metricViewName, metricDesc );
 
         typename std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > >& thread( iter->second );
 
@@ -3008,12 +3043,6 @@ void PerformanceDataManager::ShowTraceDetail(
                 if ( ! ret.second )
                     continue;
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-                const QString functionName = QString::fromStdString( function.getDemangledName() );
-#else
-                const QString functionName = QString( function.getDemangledName().c_str() );
-#endif
-
                 QVector< QVariantList > traceList;
                 getTraceMetricValues( functionName, time_origin, details, traceList );
 
@@ -3024,7 +3053,7 @@ void PerformanceDataManager::ShowTraceDetail(
                 }
 
                 foreach( const QVariantList& metricData, traceList ) {
-                    emit addMetricViewData( clusteringCriteriaName, viewName, viewName, metricData );
+                    emit addMetricViewData( clusteringCriteriaName, traceViewName, ALL_EVENTS_DETAILS_VIEW, metricData );
                 }
             }
         }

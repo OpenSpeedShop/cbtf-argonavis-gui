@@ -63,11 +63,9 @@ QString PerformanceDataMetricView::s_statementsViewName( tr("Statements") );
 QString PerformanceDataMetricView::s_linkedObjectsViewName( tr("LinkedObjects") );
 QString PerformanceDataMetricView::s_loopsViewName( tr("Loops") );
 
-QString PerformanceDataMetricView::s_allEventsDetailsName( tr("All Events") );
-QString PerformanceDataMetricView::s_dataTransfersDetailsName( tr("Data Transfers") );
-QString PerformanceDataMetricView::s_kernelExecutionsDetailsName( tr("Kernel Executions") );
-
 QString PerformanceDataMetricView::s_noneName( QStringLiteral("none") );
+
+QString PerformanceDataMetricView::s_allEventsDetailsName( tr("All Events") );
 
 
 /**
@@ -95,11 +93,6 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_views[ "none" ] = blankView;
     m_viewStack->addWidget( blankView );
 
-    // initialize model used for view combobox when in details mode
-    m_detailsViewModel.appendRow( new QStandardItem( s_allEventsDetailsName ) );
-    m_detailsViewModel.appendRow( new QStandardItem( s_dataTransfersDetailsName ) );
-    m_detailsViewModel.appendRow( new QStandardItem( s_kernelExecutionsDetailsName ) );
-
     // initialize model used for view combobox when in metric mode
     m_metricViewModel.appendRow( new QStandardItem( s_functionViewName ) );
     m_metricViewModel.appendRow( new QStandardItem( s_statementsViewName ) );
@@ -114,9 +107,6 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
 
     // initialize model used for view combobox when in calltree mode
     m_calltreeViewModel.appendRow( new QStandardItem( s_calltreeModeName) );
-
-    // initialize model used for view combobox when in trace mode
-    m_traceViewModel.appendRow( new QStandardItem( s_traceModeName ) );
 
     // initialize model used for view combobox when in compare mode
     m_compareViewModel.appendRow( new QStandardItem( s_functionViewName ) );
@@ -296,6 +286,8 @@ void PerformanceDataMetricView::resetUI()
     ui->comboBox_ViewSelection->blockSignals( true );
     ui->comboBox_ViewSelection->setModel( &m_dummyModel );
     ui->comboBox_ViewSelection->blockSignals( false );
+
+    m_detailsViewModel.clear();
 
     m_deviceDetailsDialog->clearAllDevices();
 
@@ -517,7 +509,8 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     }
 
     // Make sure metric view not already in combobox
-    if ( metricName != viewName && metricName != s_loadBalanceModeName && ! metricName.startsWith( s_compareModeName ) &&
+    if ( metricName != s_traceModeName && metricName != s_calltreeModeName &&
+         metricName != s_loadBalanceModeName && ! metricName.startsWith( s_compareModeName ) &&
          ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
         // Add metric view to combobox
         ui->comboBox_MetricSelection->addItem( metricName );
@@ -551,7 +544,7 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
 
     clearExistingModelsAndViews( metricViewName, false );
 
-    const QString type = ( viewName == "All Events" ) ? "*" : viewName.left( viewName.length()-1 );    // remove 's' at end
+    const QString type = ( viewName == s_allEventsDetailsName ) ? "*" : viewName.left( viewName.length()-1 );    // remove 's' at end
 
     ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel( type );
 
@@ -618,6 +611,12 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
         if ( newViewCreated ) {
             m_viewStack->addWidget( view );
             m_views[ metricViewName ] = view;
+
+            if ( s_detailsModeName == metricName ) {
+                m_detailsViewModel.appendRow( new QStandardItem( viewName ) );
+            } else if ( s_traceModeName == metricName ) {
+                m_traceViewModel.appendRow( new QStandardItem( viewName ) );
+            }
         }
     }
 }
@@ -863,7 +862,7 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
         emit signalRequestCalltreeView( m_clusteringCritieriaName, s_calltreeModeName, s_calltreeModeName );
         break;
     case TRACE_MODE:
-        emit signalRequestTraceView( m_clusteringCritieriaName, s_traceModeName, s_traceModeName );
+        emit signalRequestTraceView( m_clusteringCritieriaName, s_traceModeName, ui->comboBox_ViewSelection->currentText() );
         break;
     case LOAD_BALANCE_MODE:
         emit signalRequestLoadBalanceView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
@@ -940,7 +939,7 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
  *
  * Build metric view name string formed from internal class state and values of UI comboboxes.
  */
-QString PerformanceDataMetricView::getMetricViewName() const
+QString PerformanceDataMetricView::getMetricViewName(const QString& metric) const
 {
     QString metricViewName;
 
@@ -979,9 +978,11 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
     if ( ui->comboBox_MetricSelection->currentText().isEmpty() )
         return;
 
+    QComboBox* sendingWidget = qobject_cast< QComboBox* >( sender() );
+
     QTreeView* view( Q_NULLPTR );
 
-    const QString metricViewName = getMetricViewName();
+    const QString metricViewName = getMetricViewName( text );
 
     {
         QMutexLocker guard( &m_mutex );
@@ -1056,7 +1057,7 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
         if ( Q_NULLPTR != view ) {
             handleRangeChanged( clusteringCriteriaName, metricName, viewName, lower, upper );
 
-            const QString currentMetricViewName = getMetricViewName();
+            const QString currentMetricViewName = getMetricViewName( metricName );
 
             if ( currentMetricViewName == metricViewName )
                 m_viewStack->setCurrentWidget( view );

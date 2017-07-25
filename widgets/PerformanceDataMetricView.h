@@ -126,7 +126,7 @@ private:
     void deleteModelsAndViews(bool all);
     void resetUI();
 
-    QString getMetricViewName() const;
+    QString getMetricViewName(const QString &metric) const;
 
 private:
 
