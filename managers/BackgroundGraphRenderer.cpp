@@ -202,14 +202,16 @@ void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clus
         if ( axisRect ) {
             QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
             if ( xAxis ) {
-                ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
-                if ( cursorManager ) {
-                    cursorManager->startWaitingOperation( QStringLiteral("cuda-events") );
+                if ( 0 != size.width() && 0 != size.height() && lower != upper ) {
+                    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+                    if ( cursorManager ) {
+                        cursorManager->startWaitingOperation( QStringLiteral("cuda-events") );
+                    }
+                    plot->setProperty( "imageWidth", size.width() );
+                    plot->setProperty( "imageHeight", size.height() );
+                    xAxis->setRange( lower, upper );
+                    plot->replot();
                 }
-                xAxis->setRange( lower, upper );
-                plot->setProperty( "imageWidth", size.width() );
-                plot->setProperty( "imageHeight", size.height() );
-                plot->replot();
             }
         }
     }

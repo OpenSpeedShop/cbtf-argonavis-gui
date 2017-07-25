@@ -93,6 +93,9 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     // initialize model used for view combobox when in calltree mode
     m_calltreeViewModel.appendRow( new QStandardItem( QStringLiteral("CallTree") ) );
 
+    // initialize model used for view combobox when in trace mode
+    m_traceViewModel.appendRow( new QStandardItem( QStringLiteral("Trace") ) );
+
     // initialize model used for view combobox when in compare mode
     m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("Functions") ) );
     m_compareViewModel.appendRow( new QStandardItem( QStringLiteral("Statements") ) );
@@ -308,6 +311,9 @@ void PerformanceDataMetricView::setAvailableMetricModes(const ModeTypes &modes)
 
     if ( modes.testFlag( LOAD_BALANCE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Load Balance") ) ) )
         ui->comboBox_ModeSelection->addItem( QStringLiteral("Load Balance") );
+
+    if ( modes.testFlag( TRACE_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( QStringLiteral("Trace") ) ) )
+        ui->comboBox_ModeSelection->addItem( QStringLiteral("Trace") );
 }
 
 /**
@@ -378,7 +384,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
 
     QSortFilterProxyModel* proxyModel( Q_NULLPTR );
 
-    if ( QStringLiteral("Compare") != metricName  ) {
+    if ( QStringLiteral("Compare") != metricName && QStringLiteral("Trace") != metricName ) {
         ViewSortFilterProxyModel* viewProxyModel = new ViewSortFilterProxyModel;
 
         if ( Q_NULLPTR == viewProxyModel )
@@ -794,6 +800,9 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
     case CALLTREE_MODE:
         emit signalRequestCalltreeView( m_clusteringCritieriaName, QStringLiteral("CallTree"), QStringLiteral("CallTree") );
         break;
+    case TRACE_MODE:
+        emit signalRequestTraceView( m_clusteringCritieriaName, QStringLiteral("Trace"), QStringLiteral("Trace") );
+        break;
     case LOAD_BALANCE_MODE:
         emit signalRequestLoadBalanceView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
@@ -819,6 +828,11 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
     else if ( QStringLiteral("CallTree") == text ) {
         m_mode = CALLTREE_MODE;
         ui->comboBox_ViewSelection->setModel( &m_calltreeViewModel );
+        ui->comboBox_MetricSelection->setEnabled( false );
+    }
+    else if ( QStringLiteral("Trace") == text ) {
+        m_mode = TRACE_MODE;
+        ui->comboBox_ViewSelection->setModel( &m_traceViewModel );
         ui->comboBox_MetricSelection->setEnabled( false );
     }
     else if ( text.startsWith( QStringLiteral("Compare") ) ) {
@@ -872,6 +886,8 @@ QString PerformanceDataMetricView::getMetricViewName() const
         metricViewName = QStringLiteral("Details") + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( CALLTREE_MODE == m_mode )
         metricViewName = QStringLiteral("CallTree") + "-" + QStringLiteral("CallTree");
+    else if ( TRACE_MODE == m_mode )
+        metricViewName = QStringLiteral("Trace") + "-" + QStringLiteral("Trace");
     else if ( COMPARE_MODE == m_mode )
         metricViewName = QStringLiteral("Compare") + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
     else if ( COMPARE_BY_RANK_MODE == m_mode )
@@ -965,6 +981,9 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
                     }
                     else if ( metricName.startsWith( QStringLiteral("Compare") ) ) {
                         view->sortByColumn( 1, Qt::DescendingOrder );
+                    }
+                    else if ( metricName.startsWith( QStringLiteral("Trace") ) ) {
+                        view->sortByColumn( 0, Qt::AscendingOrder );
                     }
                     else
                         view->sortByColumn( 0, Qt::DescendingOrder );

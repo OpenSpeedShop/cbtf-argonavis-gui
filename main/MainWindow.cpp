@@ -96,6 +96,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestMetricView, dataMgr, &PerformanceDataManager::handleRequestMetricView );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestLoadBalanceView, dataMgr, &PerformanceDataManager::handleRequestLoadBalanceView );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestCalltreeView, dataMgr, &PerformanceDataManager::handleRequestMetricView );
+        connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestTraceView, dataMgr, &PerformanceDataManager::handleRequestTraceView );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalRequestCompareView, dataMgr, &PerformanceDataManager::handleRequestCompareView );
         connect( dataMgr, &PerformanceDataManager::addCluster, this, &MainWindow::handleAdjustPlotViewScrollArea );
         connect( dataMgr, &PerformanceDataManager::removeCluster, this, &MainWindow::handleRemoveCluster );
@@ -118,7 +119,10 @@ MainWindow::MainWindow(QWidget *parent)
                  dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestLoadBalanceView(QString,QString,QString)),
                  dataMgr, SLOT(handleRequestLoadBalanceView(QString,QString,QString)) );
-        connect( ui->widget_MetricTableView, SIGNAL(signalRequestCalltreeView(QString,QString,QString)), dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalRequestCalltreeView(QString,QString,QString)),
+                 dataMgr, SLOT(handleRequestMetricView(QString,QString,QString)) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalRequestTraceView(QString,QString,QString)),
+                 dataMgr, SLOT(handleRequestTraceView(QString,QString,QString)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestCompareView(QString,QString,QString,QString)), dataMgr, SLOT(handleRequestCompareView(QString,QString,QString,QString)) );
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
@@ -372,6 +376,7 @@ void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view)
     PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE |
                                                 PerformanceDataMetricView::LOAD_BALANCE_MODE |
                                                 PerformanceDataMetricView::CALLTREE_MODE |
+                                                PerformanceDataMetricView::TRACE_MODE |
                                                 PerformanceDataMetricView::COMPARE_MODE |
                                                 PerformanceDataMetricView::COMPARE_BY_RANK_MODE |
                                                 PerformanceDataMetricView::COMPARE_BY_HOST_MODE |
