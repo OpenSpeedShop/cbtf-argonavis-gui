@@ -29,6 +29,7 @@
 #include "MetricViewDelegate.h"
 
 #include "managers/PerformanceDataManager.h"
+#include "managers/ApplicationOverrideCursorManager.h"
 #include "SourceView/ModifyPathSubstitutionsDialog.h"
 #include "widgets/ShowDeviceDetailsDialog.h"
 
@@ -808,21 +809,28 @@ void PerformanceDataMetricView::handleRangeChanged(const QString &clusteringCrit
     if ( m_clusteringCritieriaName != clusteringCriteriaName )
         return;
 
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QStringLiteral("metric-view-filtering") );
+    }
+
     const QString metricViewName = metricName + "-" + viewName;
 
     QMutexLocker guard( &m_mutex );
 
     QSortFilterProxyModel* sortFilterProxyModel = m_proxyModels.value( metricViewName );
 
-    if ( Q_NULLPTR == sortFilterProxyModel )
-        return;
+    if ( sortFilterProxyModel != Q_NULLPTR ) {
+        ViewSortFilterProxyModel* proxyModel = qobject_cast< ViewSortFilterProxyModel* >( sortFilterProxyModel );
 
-    ViewSortFilterProxyModel* proxyModel = qobject_cast< ViewSortFilterProxyModel* >( sortFilterProxyModel );
+        if ( proxyModel != Q_NULLPTR ) {
+            proxyModel->setFilterRange( lower, upper );
+        }
+    }
 
-    if ( Q_NULLPTR == proxyModel )
-        return;
-
-    proxyModel->setFilterRange( lower, upper );
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QStringLiteral("metric-view-filtering") );
+    }
 }
 
 /**
