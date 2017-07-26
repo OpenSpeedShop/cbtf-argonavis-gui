@@ -103,7 +103,7 @@ QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = QStringList() << "mp
 #endif
 
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral("Details");
-const QString TRACE_EVENT_DETAILS_METRIC = TRACE_EVENT_DETAILS_METRIC;
+const QString TRACE_EVENT_DETAILS_METRIC = QStringLiteral("Trace");
 const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral("All Events");
 const QString KERNEL_EXECUTION_DETAILS_VIEW = QStringLiteral("Kernel Execution");
 const QString DATA_TRANSFER_DETAILS_VIEW = QStringLiteral("Data Transfer");
