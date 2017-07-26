@@ -103,9 +103,10 @@ QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = QStringList() << "mp
 #endif
 
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral("Details");
+const QString TRACE_EVENT_DETAILS_METRIC = TRACE_EVENT_DETAILS_METRIC;
 const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral("All Events");
-const QString KERNEL_EXECUTION_DETAILS_VIEW = QStringLiteral("Kernel Executions");
-const QString DATA_TRANSFER_DETAILS_VIEW = QStringLiteral("Data Transfers");
+const QString KERNEL_EXECUTION_DETAILS_VIEW = QStringLiteral("Kernel Execution");
+const QString DATA_TRANSFER_DETAILS_VIEW = QStringLiteral("Data Transfer");
 
 QAtomicPointer< PerformanceDataManager > PerformanceDataManager::s_instance;
 
@@ -683,7 +684,7 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
 #else
         const QString functionName = QString( function.getDemangledName().c_str() );
 #endif
-        info.addMetricView( QStringLiteral("Trace") + "-" + functionName );
+        info.addMetricView( TRACE_EVENT_DETAILS_METRIC + "-" + functionName );
     }
 
     // Determine full time interval extent of this experiment
@@ -1759,7 +1760,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
                 emit addCluster( clusteringCriteriaName, clusteringCriteriaName );
                 emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, durationMs, true, -1.0, rankCount );
 
-                QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::handleRequestTraceView, clusteringCriteriaName, QStringLiteral("Trace"), ALL_EVENTS_DETAILS_VIEW );
+                QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::handleRequestTraceView, clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW );
                 synchronizer.addFuture( future );
             }
         }
@@ -1841,9 +1842,12 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
         if ( tokens.size() < 2 || tokens.size() > 3 )
             continue;
         if ( 2 == tokens.size() ) {
-            if ( tokens[0] == QStringLiteral("Details") || tokens[0] == QStringLiteral("Trace") ) {
+            if ( tokens[0] == CUDA_EVENT_DETAILS_METRIC || tokens[0] == TRACE_EVENT_DETAILS_METRIC ) {
                 // Emit signal to update detail views corresponding to timeline in graph view
                 emit metricViewRangeChanged( clusteringCriteriaName, tokens[0], tokens[1], lower, upper );
+            }
+            else {
+                handleRequestMetricView( clusteringCriteriaName, tokens[0], tokens[1] );
             }
         }
         else {
@@ -2988,7 +2992,7 @@ void PerformanceDataManager::ShowTraceDetail(
         const QString metric)
 {
     // get view name
-    const QString traceViewName = QStringLiteral("Trace");
+    const QString traceViewName = TRACE_EVENT_DETAILS_METRIC;
 
     const QStringList metricDesc = getTraceMetrics<DETAIL_t>();
 
