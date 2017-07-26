@@ -802,6 +802,8 @@ void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringC
         if ( yAxisVisible ) {
             yAxis->setAutoTicks( true );
             yAxis->setAutoTickLabels( true );
+            const int factor = ( yAxisUpper > 8 ) ? 50 : 80;
+            setFixedHeight( factor * yAxisUpper );
         }
         yAxis->setLabel( clusterName );
         yAxis->setVisible( true );
