@@ -130,6 +130,11 @@ void OSSTraceItem::draw(QCPPainter *painter)
 
         // draw the name of the function inside the rectangle
         if ( ! m_functionName.isEmpty() ) {
+            // set current font size
+            QFont currentFont = painter->font();
+            currentFont.setPointSize( 10 );
+            currentFont.setBold( true );
+            painter->setFont( currentFont );
             // set font color to white
             painter->setPen( Qt::white );
 
