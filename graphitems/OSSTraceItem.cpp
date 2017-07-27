@@ -27,7 +27,7 @@
 namespace ArgoNavis { namespace GUI {
 
 
-double OSSTraceItem::s_halfHeight = 0.2;
+double OSSTraceItem::s_halfHeight = 0.3;
 
 
 /**
@@ -91,9 +91,9 @@ void OSSTraceItem::setData(const QString& functionName, double timeBegin, double
 void OSSTraceItem::setBrush(const QString &functionName)
 {
     if ( functionName.contains( QStringLiteral("MPI_Init") ) )
-        OSSEventItem::setBrush( QColor( 0x3d, 0xea, 0x63 ) );
+        OSSEventItem::setBrush( QColor( 0x95, 0xd0, 0xaa ) );
     else if ( functionName.contains( QStringLiteral("MPI_Finalize") ) )
-        OSSEventItem::setBrush( QColor( 0xca, 0x2b, 0x2b ) );
+        OSSEventItem::setBrush( QColor( 0xa3, 0x21, 0x3e ) );
     else if ( functionName.contains( QStringLiteral("MPI_Barrier") ) )
         OSSEventItem::setBrush( QColor( 0xca, 0x2b, 0x2b ) );
     else if ( functionName.contains( QStringLiteral("MPI_Send") ) )
