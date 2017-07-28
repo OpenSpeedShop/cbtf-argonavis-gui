@@ -102,11 +102,12 @@ QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = { "mpit" };
 QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = QStringList() << "mpit";
 #endif
 
-const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral("Details");
-const QString TRACE_EVENT_DETAILS_METRIC = QStringLiteral("Trace");
-const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral("All Events");
-const QString KERNEL_EXECUTION_DETAILS_VIEW = QStringLiteral("Kernel Execution");
-const QString DATA_TRANSFER_DETAILS_VIEW = QStringLiteral("Data Transfer");
+const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral( "Details" );
+const QString TRACE_EVENT_DETAILS_METRIC = QStringLiteral( "Trace" );
+const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral( "All Events" );
+const QString KERNEL_EXECUTION_DETAILS_VIEW = QStringLiteral( "Kernel Execution" );
+const QString DATA_TRANSFER_DETAILS_VIEW = QStringLiteral( "Data Transfer" );
+const QString TIME_METRIC = QStringLiteral( "time" );
 
 QAtomicPointer< PerformanceDataManager > PerformanceDataManager::s_instance;
 
@@ -610,7 +611,7 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusteringC
 
     QFutureSynchronizer<void> synchronizer;
 
-    Base::TimeInterval interval = data.interval();
+    const Base::TimeInterval interval( ConvertToArgoNavis( info.getInterval() ) );
 
     foreach( const ArgoNavis::Base::ThreadName thread, threads.keys() ) {
         synchronizer.addFuture( QtConcurrent::run( &data, &CUDA::PerformanceData::visitDataTransfers, thread, interval,
@@ -622,14 +623,13 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusteringC
                                                                 boost::cref(clusteringCriteriaName), boost::cref(data.interval().begin()), _1 ) ) );
     }
 
-    double durationMs( 0.0 );
-    if ( ! interval.empty() ) {
-        uint64_t duration = static_cast<uint64_t>(interval.end() - interval.begin());
-        durationMs = qCeil( duration / 1000000.0 );
-    }
+    // Determine full time interval extent of this experiment
+    Extent extent = info.getExtent();
 
-    const double lower = 0.0;
-    const double upper = durationMs;
+    Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
+
+    const double lower = ( interval.begin() - experimentInterval.begin() ) / 1000000.0;
+    const double upper = ( interval.end() - experimentInterval.begin() ) / 1000000.0;
 
     synchronizer.waitForFinished();
 
@@ -1642,9 +1642,17 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
     // Determine full time interval extent of this experiment
     Extent extent = experiment->getPerformanceDataExtent();
-    TimeInterval interval = extent.getTimeInterval();
+    //TimeInterval interval = extent.getTimeInterval();
+    TimeInterval experiment_interval = extent.getTimeInterval();
+    const Time stime = experiment_interval.getBegin();
+    const Time etime = experiment_interval.getEnd();
+    const double time_origin = experiment_interval.getBegin().getValue();
+    //TimeInterval interval = TimeInterval( stime + experiment_interval.getWidth() / 32, stime + experiment_interval.getWidth() / 16 );
+    TimeInterval interval = TimeInterval( etime - experiment_interval.getWidth() / 32, etime );
 
-    const QString timeMetric( "time" );
+    const double lower = ( interval.getBegin().getValue() - time_origin ) / 1000000.0;
+    const double upper = ( interval.getEnd().getValue() - time_origin ) / 1000000.0;
+
     QStringList metricList;
 
     CollectorGroup collectors = experiment->getCollectors();
@@ -1663,7 +1671,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
             QString metricName( metadata.getUniqueId().c_str() );
             QString metricDesc( metadata.getShortName().c_str() );
 #endif
-            if ( metricName.contains( timeMetric ) && metadata.isType( typeid(double) ) ) {
+            if ( metricName.contains( TIME_METRIC ) && metadata.isType( typeid(double) ) ) {
                 metricList << metricName;
                 foundOne = true;
             }
@@ -1750,15 +1758,8 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
             emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, isGpuSampleCounters, sampleCounterNames );
 
             if ( hasTraceExperiment ) {
-
-                double durationMs( 0.0 );
-                if ( ! interval.isEmpty() ) {
-                    uint64_t duration = static_cast<uint64_t>( interval.getWidth() );
-                    durationMs = qCeil( duration / 1000000.0 );
-                }
-
                 emit addCluster( clusteringCriteriaName, clusteringCriteriaName );
-                emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, durationMs, true, -1.0, rankCount );
+                emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper, true, -1.0, rankCount );
 
                 QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::handleRequestTraceView, clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW );
                 synchronizer.addFuture( future );
@@ -2256,6 +2257,9 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
     qDebug() << "PerformanceDataManager::loadCudaView STARTED!!";
 #endif
 
+    if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) )
+        return;
+
     QMap< Base::ThreadName, bool > flags;
 
     // initialize all thread flags to true in order to add all threads to PerformanceData object instance
@@ -2278,11 +2282,22 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
         mapiter.value() = false;
     }
 
-    double durationMs( 0.0 );
-    if ( ! data.interval().empty() ) {
-        uint64_t duration = static_cast<uint64_t>(data.interval().end() - data.interval().begin());
-        durationMs = qCeil( duration / 1000000.0 );
-    }
+    MetricTableViewInfo& info = m_tableViewInfo[ clusteringCriteriaName ];
+
+    // Determine full time interval extent of this experiment
+    Extent extent = info.getExtent();
+    // Get full experiment time interval
+    TimeInterval experiment_interval = extent.getTimeInterval();
+    // Get experiment start time
+    const Time stime = experiment_interval.getBegin();
+    const Time etime = experiment_interval.getEnd();
+    const double time_origin = experiment_interval.getBegin().getValue();
+    // Get part of experiment time interval to actual process (may be have user constraint)
+    //TimeInterval interval = TimeInterval( stime + experiment_interval.getWidth() / 32, stime + experiment_interval.getWidth() / 16 );
+    TimeInterval interval = TimeInterval( etime - experiment_interval.getWidth() / 32, etime );
+
+    const double lower = ( interval.getBegin().getValue() - time_origin ) / 1000000.0;
+    const double upper = ( interval.getEnd().getValue() - time_origin ) / 1000000.0;
 
     QVector< QString > sampleCounterNames;
     QSet< int > gpuCounterIndexes;
@@ -2369,7 +2384,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
 
         foreach( const QString& clusterName, clusterNames ) {
             bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
-            emit setMetricDuration( clusteringCriteriaName, clusterName, durationMs, false, 0.0, hasGpuPercentageCounter ? 100.0 : -1.0 );
+            emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper, false, 0.0, hasGpuPercentageCounter ? 100.0 : -1.0 );
             qDebug() << "CLUSTER NAME: " << clusterName << " PERCENTAGE SAMPLE COUNTER? " << hasGpuPercentageCounter;
         }
 

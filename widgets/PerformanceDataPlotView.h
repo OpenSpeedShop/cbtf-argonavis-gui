@@ -83,7 +83,7 @@ private slots:
 
     void handleAddCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
-    void handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double duration, bool yAxisVisible, double yAxisLower, double yAxisUpper);
+    void handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
 
     void handleAddDataTransfer(const QString &clusteringCriteriaName,
                                const QString &clusterName,
@@ -126,14 +126,14 @@ private:
     void initPlotView(const QString& metricGroupName, QCPAxisRect* axisRect);
     QList< QCPAxis* > getAxesForMetricGroup(const QCPAxis::AxisType axisType, const QString& metricGroupName);
     const QCPRange getRange(const QVector<double> &values, bool sortHint = false);
-    double getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusteringCriteriaName, QString& clusterName, QSize& size);
+    QCPRange getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusteringCriteriaName, QString& clusterName, QSize& size);
 
 private:
 
     Ui::PerformanceDataPlotView *ui;
 
     typedef struct {
-        double duration;                          // duration for metric group
+        QCPRange range;                           // time range for metric group
         QCPLayoutGrid* layout;                    // layout for the axis rects
         QMap< QString, QCPAxisRect* > axisRects;  // an axis rect for each group item
         QStringList metricList;                   // list of metrics
