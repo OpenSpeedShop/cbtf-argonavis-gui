@@ -1758,7 +1758,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
             emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, isGpuSampleCounters, sampleCounterNames );
 
             if ( hasTraceExperiment ) {
-                emit addCluster( clusteringCriteriaName, clusteringCriteriaName );
+                emit addCluster( clusteringCriteriaName, clusteringCriteriaName, lower, upper, true, -1.0, rankCount );
                 emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper, true, -1.0, rankCount );
 
                 QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::handleRequestTraceView, clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW );
@@ -2375,7 +2375,8 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
         m_renderer->setPerformanceData( clusteringCriteriaName, clusterNames, data );
 
         foreach( const QString& clusterName, clusterNames ) {
-            emit addCluster( clusteringCriteriaName, clusterName );
+            bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
+            emit addCluster( clusteringCriteriaName, clusterName, lower, upper, false, 0.0, hasGpuPercentageCounter ? 100.0 : -1.0 );
         }
 
         data.visitThreads( boost::bind(

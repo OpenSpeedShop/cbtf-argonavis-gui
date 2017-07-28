@@ -516,6 +516,11 @@ QCPRange PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis
  * @brief PerformanceDataPlotView::initPlotView
  * @param metricGroupName - the name of the metric group
  * @param axisRect - initialize the x and y axis appropriate for metric graph
+ * @param xAxisLower - the specified lower value of the x axis range
+ * @param xAxisUpper - the specified upper value of the x axis range
+ * @param yAxisVisible - whether the y axis tick marks and label are visible
+ * @param yAxisLower - the specified lower value of the y axis range
+ * @param yAxisUpper - the specified upper value of the y axis range (-1 means that it is dynamically set based on y values)
  *
  * Initialize desired properties for the axes of the metric graphs, including:
  * - no auto tick value and label computation
@@ -524,7 +529,7 @@ QCPRange PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis
  * - allow dragging and zoom of axis range
  * - setup signal/slot connections to handle axis range changes for individual axis and for metric group
  */
-void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAxisRect *axisRect)
+void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAxisRect *axisRect, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
 {
     if ( ! axisRect )
         return;
@@ -554,11 +559,8 @@ void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAx
         xAxis->grid()->setSubGridVisible( false );
         xAxis->setAutoSubTicks( false );
 
-        // display no axis until metric activated
-        xAxis->setVisible( false );
-
-        // set X and Y axis lower range
-        xAxis->setRangeLower( 0.0 );
+        // set X axis graph range
+        xAxis->setRange( QCPRange( xAxisLower, xAxisUpper ) );
 
         // set associated metric group property
         xAxis->setProperty( "associatedMetricGroup", metricGroupName );
@@ -589,11 +591,20 @@ void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAx
         yAxis->grid()->setPen( gridPen );
         yAxis->setTickPen( Qt::NoPen );
 
-        // display no axis until metric activated
-        yAxis->setVisible( false );
+        // display no axis unless specified
+        yAxis->setVisible( yAxisVisible );
+        if ( yAxisVisible ) {
+            yAxis->setAutoTicks( true );
+            yAxis->setAutoTickLabels( true );
+            const int factor = ( yAxisUpper > 8 ) ? 50 : 80;
+            setFixedHeight( factor * yAxisUpper );
+        }
+        else {
+            setFixedHeight( 150 );
+        }
 
-        // set X and Y axis lower range
-        yAxis->setRangeLower( 0.0 );
+        // set Y axis graph range
+        yAxis->setRange( QCPRange( yAxisLower, yAxisUpper ) );
     }
 }
 
@@ -698,6 +709,11 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
  * @brief PerformanceDataPlotView::handleAddCluster
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterName - the cluster name
+ * @param xAxisLower - the specified lower value of the x axis range
+ * @param xAxisUpper - the specified upper value of the x axis range
+ * @param yAxisVisible - whether the y axis tick marks and label are visible
+ * @param yAxisLower - the specified lower value of the y axis range
+ * @param yAxisUpper - the specified upper value of the y axis range (-1 means that it is dynamically set based on y values)
  *
  * Setup a graph representing a metric for a specific cluster.  If this is for a new clustering criteria, then
  * initialize the clustering critera which is a new grid layout to be added to the QCustomPlot layout.  A new axis rect
@@ -705,7 +721,7 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
  * grid layout for the metric group.  A metric group has synchronized x axis ranges; thus, if one axis has been
  * dragged or zoomed, then the ranges for the other axes of the metric group will be modified to be identical.
  */
-void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteriaName, const QString &clusterName)
+void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteriaName, const QString &clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
 {
     // create axis rect for this metric
     QCPAxisRect *axisRect = new QCPAxisRect( ui->graphView );
@@ -743,9 +759,10 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
     int idx = metricGroup->axisRects.size();
 
     // set/update attributes of metric group
-    metricGroup->layout->addElement( idx, 0, axisRect );  // add axis rect to layout
-    metricGroup->axisRects[ clusterName ] = axisRect;      // save axis rect in map
-    metricGroup->metricList << clusterName;                // add new metric name to metric list
+    metricGroup->layout->addElement( idx, 0, axisRect );      // add axis rect to layout
+    metricGroup->axisRects[ clusterName ] = axisRect;         // save axis rect in map
+    metricGroup->metricList << clusterName;                   // add new metric name to metric list
+    metricGroup->range = QCPRange( xAxisLower, xAxisUpper );  // range for metric group
 
     // initialize axis rect
     foreach ( QCPAxis *axis, axisRect->axes() ) {
@@ -757,7 +774,7 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
     axisRect->setAutoMargins( QCP::msLeft | QCP::msRight | QCP::msBottom );
     axisRect->setMargins( QMargins( 0, 0, 0, 0 ) );
 
-    initPlotView( clusteringCriteriaName, axisRect );
+    initPlotView( clusteringCriteriaName, axisRect, xAxisLower, xAxisUpper, yAxisVisible, yAxisLower, yAxisUpper );
 
     if ( needLegend ) {
         addLegend( axisRect );
@@ -787,13 +804,16 @@ void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringC
         if ( m_metricGroups.contains( clusteringCriteriaName ) &&
              m_metricGroups[ clusteringCriteriaName ]->axisRects.contains( clusterName ) ) {
             axisRect = m_metricGroups[ clusteringCriteriaName ]->axisRects[ clusterName ];
+#if 0
             if ( axisRect ) {
                 m_metricGroups[ clusteringCriteriaName ]->range = QCPRange( xAxisLower, xAxisUpper );
             }
+#endif
         }
     }
 
     if ( axisRect ) {
+#if 0
         QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
         QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
 
@@ -811,7 +831,7 @@ void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringC
 
         xAxis->setRange( xAxisLower, xAxisUpper );
         xAxis->setVisible( true );
-
+#endif
         // emit signal to provide initial graph range and size
         emit graphRangeChanged( clusteringCriteriaName, clusterName, xAxisLower, xAxisUpper, axisRect->size());
     }

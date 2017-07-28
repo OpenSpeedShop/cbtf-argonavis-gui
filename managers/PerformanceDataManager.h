@@ -166,7 +166,7 @@ signals:
 
     void addMetricViewData(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
 
-    void addCluster(const QString& clusteringCriteriaName, const QString& clusterName);
+    void addCluster(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
     void removeCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
     void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
