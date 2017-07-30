@@ -1069,7 +1069,10 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
                         view->sortByColumn( 1, Qt::DescendingOrder );
                     }
                     else if ( metricName == s_traceModeName ) {
-                        view->sortByColumn( 1, Qt::AscendingOrder );
+                        if ( s_allEventsDetailsName == viewName )
+                            view->sortByColumn( 1, Qt::AscendingOrder );
+                        else
+                            view->sortByColumn( 0, Qt::AscendingOrder );
                     }
                     else
                         view->sortByColumn( 0, Qt::DescendingOrder );
