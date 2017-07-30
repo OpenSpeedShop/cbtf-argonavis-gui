@@ -338,9 +338,7 @@ void MainWindow::handleAdjustPlotViewScrollArea(const QString& clusteringCriteri
     m_plotsMap.insert( key );
 
     if ( clusteringCriteriaName != clusterName ) {
-        const int currentHeight( m_plotsMap.size() == 0 ? 0 : ui->widget_MetricViewManager->height() );
-
-        ui->widget_MetricViewManager->setFixedHeight( currentHeight + 150 );
+        ui->widget_MetricViewManager->setFixedHeight( m_plotsMap.size() * 150 );
     }
 }
 
@@ -359,9 +357,7 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
     m_plotsMap.remove( key );
 
     if ( clusteringCriteriaName != clusterName ) {
-        const int currentHeight = ui->widget_MetricViewManager->height();
-
-        ui->widget_MetricViewManager->setFixedHeight( currentHeight - 150 );
+        ui->widget_MetricViewManager->setFixedHeight( m_plotsMap.size() * 150 );
     }
 }
 

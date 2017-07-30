@@ -1642,13 +1642,18 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
     // Determine full time interval extent of this experiment
     Extent extent = experiment->getPerformanceDataExtent();
-    //TimeInterval interval = extent.getTimeInterval();
+    // Get full experiment time interval
     TimeInterval experiment_interval = extent.getTimeInterval();
+    // Compute time origin
+    const double time_origin = experiment_interval.getBegin().getValue();
+#ifdef HAS_TEST_DATA_RANGE_CONSTRAINT
     const Time stime = experiment_interval.getBegin();
     const Time etime = experiment_interval.getEnd();
-    const double time_origin = experiment_interval.getBegin().getValue();
     //TimeInterval interval = TimeInterval( stime + experiment_interval.getWidth() / 32, stime + experiment_interval.getWidth() / 16 );
-    TimeInterval interval = TimeInterval( etime - experiment_interval.getWidth() / 32, etime );
+    TimeInterval interval = TimeInterval( etime - experiment_interval.getWidth() / 2, etime );
+#else
+    TimeInterval interval = extent.getTimeInterval();
+#endif
 
     const double lower = ( interval.getBegin().getValue() - time_origin ) / 1000000.0;
     const double upper = ( interval.getEnd().getValue() - time_origin ) / 1000000.0;
@@ -1759,7 +1764,6 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
             if ( hasTraceExperiment ) {
                 emit addCluster( clusteringCriteriaName, clusteringCriteriaName, lower, upper, true, -1.0, rankCount );
-                emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper, true, -1.0, rankCount );
 
                 QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::handleRequestTraceView, clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW );
                 synchronizer.addFuture( future );
@@ -2288,13 +2292,19 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
     Extent extent = info.getExtent();
     // Get full experiment time interval
     TimeInterval experiment_interval = extent.getTimeInterval();
+    // Compute time origin
+    const double time_origin = experiment_interval.getBegin().getValue();
+#ifdef HAS_TEST_DATA_RANGE_CONSTRAINT
     // Get experiment start time
     const Time stime = experiment_interval.getBegin();
     const Time etime = experiment_interval.getEnd();
-    const double time_origin = experiment_interval.getBegin().getValue();
     // Get part of experiment time interval to actual process (may be have user constraint)
     //TimeInterval interval = TimeInterval( stime + experiment_interval.getWidth() / 32, stime + experiment_interval.getWidth() / 16 );
-    TimeInterval interval = TimeInterval( etime - experiment_interval.getWidth() / 32, etime );
+    //TimeInterval interval = TimeInterval( etime - experiment_interval.getWidth() / 32, etime );
+    TimeInterval interval = TimeInterval( etime - experiment_interval.getWidth() / 2, etime );
+#else
+    TimeInterval interval = info.getInterval();
+#endif
 
     const double lower = ( interval.getBegin().getValue() - time_origin ) / 1000000.0;
     const double upper = ( interval.getEnd().getValue() - time_origin ) / 1000000.0;
@@ -2382,12 +2392,6 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
         data.visitThreads( boost::bind(
                                &PerformanceDataManager::processPerformanceData, instance(),
                                boost::cref(data), _1, boost::cref(gpuCounterIndexes), boost::cref(clusteringCriteriaName) ) );
-
-        foreach( const QString& clusterName, clusterNames ) {
-            bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
-            emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper, false, 0.0, hasGpuPercentageCounter ? 100.0 : -1.0 );
-            qDebug() << "CLUSTER NAME: " << clusterName << " PERCENTAGE SAMPLE COUNTER? " << hasGpuPercentageCounter;
-        }
 
         std::vector<CUDA::Device> devices;
 

@@ -83,8 +83,6 @@ private slots:
 
     void handleAddCluster(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
 
-    void handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
-
     void handleAddDataTransfer(const QString &clusteringCriteriaName,
                                const QString &clusterName,
                                const Base::Time &time_origin,
@@ -123,7 +121,7 @@ private slots:
 private:
 
     void addLegend(QCPAxisRect *axisRect);
-    void initPlotView(const QString& metricGroupName, QCPAxisRect* axisRect, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
+    void initPlotView(const QString &clusteringCriteriaName, const QString clusterName, QCPAxisRect* axisRect, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
     QList< QCPAxis* > getAxesForMetricGroup(const QCPAxis::AxisType axisType, const QString& metricGroupName);
     const QCPRange getRange(const QVector<double> &values, bool sortHint = false);
     QCPRange getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusteringCriteriaName, QString& clusterName, QSize& size);

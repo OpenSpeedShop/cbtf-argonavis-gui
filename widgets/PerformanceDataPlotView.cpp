@@ -86,7 +86,6 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
     if ( dataMgr ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         connect( dataMgr, &PerformanceDataManager::addCluster, this, &PerformanceDataPlotView::handleAddCluster, Qt::QueuedConnection );
-        connect( dataMgr, &PerformanceDataManager::setMetricDuration, this, &PerformanceDataPlotView::handleSetMetricDuration, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addDataTransfer, this, &PerformanceDataPlotView::handleAddDataTransfer, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addKernelExecution, this, &PerformanceDataPlotView::handleAddKernelExecution, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::addPeriodicSample, this, &PerformanceDataPlotView::handleAddPeriodicSample, Qt::QueuedConnection );
@@ -96,7 +95,6 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataPlotView::handleRequestMetricViewComplete, Qt::QueuedConnection );
 #else
         connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAddCluster(QString,QString)), Qt::QueuedConnection );
-        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double,double,bool,double,double)), this, SLOT(handleSetMetricDuration(QString,QString,double,double,bool,double,double)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), this, SLOT(handleAddDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addPeriodicSample(QString,QString,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,QString,double,double,double)), Qt::QueuedConnection );
@@ -167,24 +165,36 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
 {
     // get the sender axis
     QCPAxis* xAxis = qobject_cast< QCPAxis* >( sender() );
+
+    // get data range of the metric group
     QString clusteringCriteriaName;
     QString clusterName;
     QSize size;
+
     QCPRange dataRange = getGraphInfoForMetricGroup( xAxis, clusteringCriteriaName, clusterName, size );
 
+    // return if the size has zero height or width
     if ( 0 == size.width() || 0 == size.height() )
         return;
 
-    //qDebug() << "rangeChanged: lower: " << requestedRange.lower << "upper: " << requestedRange.upper;
-    // clamp requested range to 0 .. duration but minimum allowed range is 'minXspread'
     const double minXspread = 2.0;
-    double upper = qMax( minXspread, qMin( dataRange.upper, requestedRange.upper ) );
-    double lower = qMin( upper - minXspread, qMax( dataRange.lower, requestedRange.lower ) );
+
+    // clamp requested range to dataRange.lower .. dataRange.upper
+    double lower = qMax( requestedRange.lower, dataRange.lower );
+    double upper = qMin( requestedRange.upper, dataRange.upper );
+
+    // but may need to adjust lower or upper bound to maintain minimum graph range
+    if ( upper - lower < minXspread ) {
+        if ( upper - minXspread > dataRange.lower )
+            lower = upper - minXspread;
+        else
+            upper = lower + minXspread;
+    }
 
     // temporarily block signals for X Axis
     xAxis->blockSignals( true );
 
-    qDebug() << "requestedRange: lower: " << lower << "upper: " << upper;
+    //qDebug() << "requestedRange: lower: " << lower << "upper: " << upper;
     xAxis->setRange( lower, upper );
 
     emit graphRangeChanged( clusteringCriteriaName, clusterName, lower, upper, size );
@@ -204,7 +214,7 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
     xAxis->setSubTickCount( qMax( 1.0, (qreal) qCeil( tickStepMantissa ) ) - 1 );
 
     // Generate tick positions according to mTickStep:
-    qint64 firstStep = qMax( dataRange.lower, floor( newRange.lower / mTickStep ) ); // do not use qFloor here, or we'll lose 64 bit precision
+    qint64 firstStep = floor( newRange.lower / mTickStep ); // do not use qFloor here, or we'll lose 64 bit precision
     qint64 lastStep = qMin( dataRange.upper, ceil( newRange.upper / mTickStep ) ); // do not use qCeil here, or we'll lose 64 bit precision
 
     int tickcount = qMax( 0LL, lastStep - firstStep + 1 );
@@ -433,7 +443,7 @@ void PerformanceDataPlotView::handleRequestMetricViewComplete(const QString &clu
     if ( clusteringCriteriaName.isEmpty() || metricName.isEmpty() || viewName.isEmpty() )
         return;
 
-    if ( QStringLiteral("Trace") == metricName ) {
+    if ( ( QStringLiteral("Trace") == metricName || QStringLiteral("Details") == metricName ) && QStringLiteral("All Events") == viewName ) {
         ui->graphView->replot( QCustomPlot::rpQueued );
     }
 }
@@ -514,7 +524,8 @@ QCPRange PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis
 
 /**
  * @brief PerformanceDataPlotView::initPlotView
- * @param metricGroupName - the name of the metric group
+ * @param clusteringCriteriaName - the name of the metric group
+ * @param clusterName - the cluster name
  * @param axisRect - initialize the x and y axis appropriate for metric graph
  * @param xAxisLower - the specified lower value of the x axis range
  * @param xAxisUpper - the specified upper value of the x axis range
@@ -529,7 +540,7 @@ QCPRange PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis
  * - allow dragging and zoom of axis range
  * - setup signal/slot connections to handle axis range changes for individual axis and for metric group
  */
-void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAxisRect *axisRect, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
+void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName, const QString clusterName, QCPAxisRect *axisRect, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
 {
     if ( ! axisRect )
         return;
@@ -559,11 +570,14 @@ void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAx
         xAxis->grid()->setSubGridVisible( false );
         xAxis->setAutoSubTicks( false );
 
+        // X axis always visible
+        xAxis->setVisible( true );
+
         // set X axis graph range
         xAxis->setRange( QCPRange( xAxisLower, xAxisUpper ) );
 
         // set associated metric group property
-        xAxis->setProperty( "associatedMetricGroup", metricGroupName );
+        xAxis->setProperty( "associatedMetricGroup", clusteringCriteriaName );
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         // connect slot to handle value axis range changes and regenerate the tick marks appropriately
@@ -591,20 +605,22 @@ void PerformanceDataPlotView::initPlotView(const QString &metricGroupName, QCPAx
         yAxis->grid()->setPen( gridPen );
         yAxis->setTickPen( Qt::NoPen );
 
-        // display no axis unless specified
-        yAxis->setVisible( yAxisVisible );
+        yAxis->setVisible( true );
         if ( yAxisVisible ) {
+            // display no tick marks and labels unless specified
             yAxis->setAutoTicks( true );
             yAxis->setAutoTickLabels( true );
             const int factor = ( yAxisUpper > 8 ) ? 50 : 80;
             setFixedHeight( factor * yAxisUpper );
         }
-        else {
-            setFixedHeight( 150 );
-        }
+
+        yAxis->setLabel( clusterName );
 
         // set Y axis graph range
-        yAxis->setRange( QCPRange( yAxisLower, yAxisUpper ) );
+        if ( yAxisUpper != -1.0 )
+            yAxis->setRange( QCPRange( yAxisLower, yAxisUpper ) );
+        else
+            yAxis->setRangeLower( yAxisLower );
     }
 }
 
@@ -774,66 +790,10 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
     axisRect->setAutoMargins( QCP::msLeft | QCP::msRight | QCP::msBottom );
     axisRect->setMargins( QMargins( 0, 0, 0, 0 ) );
 
-    initPlotView( clusteringCriteriaName, axisRect, xAxisLower, xAxisUpper, yAxisVisible, yAxisLower, yAxisUpper );
+    initPlotView( clusteringCriteriaName, clusterName, axisRect, xAxisLower, xAxisUpper, yAxisVisible, yAxisLower, yAxisUpper );
 
     if ( needLegend ) {
         addLegend( axisRect );
-    }
-}
-
-/**
- * @brief PerformanceDataPlotView::handleSetMetricDuration
- * @param clusteringCriteriaName - the clustering criteria name
- * @param clusterName - the cluster name
- * @param xAxisLower - the specified lower value of the x axis range
- * @param xAxisUpper - the specified upper value of the x axis range
- * @param yAxisVisible - whether the y axis tick marks and label are visible
- * @param yAxisLower - the specified lower value of the y axis range
- * @param yAxisUpper - the specified upper value of the y axis range (-1 means that it is dynamically set based on y values)
- *
- * This method sets the upper value of the visible range of data in the graph view.  Also cause update of metric graph by calling QCustomPlot::replot method.
- */
-void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
-{
-    QCPAxisRect* axisRect( Q_NULLPTR );
-
-    {
-        // handle references to metric group map inside this local block
-        QMutexLocker guard( &m_mutex );
-
-        if ( m_metricGroups.contains( clusteringCriteriaName ) &&
-             m_metricGroups[ clusteringCriteriaName ]->axisRects.contains( clusterName ) ) {
-            axisRect = m_metricGroups[ clusteringCriteriaName ]->axisRects[ clusterName ];
-#if 0
-            if ( axisRect ) {
-                m_metricGroups[ clusteringCriteriaName ]->range = QCPRange( xAxisLower, xAxisUpper );
-            }
-#endif
-        }
-    }
-
-    if ( axisRect ) {
-#if 0
-        QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
-        QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
-
-        if ( yAxisUpper != -1.0 ) {
-            yAxis->setRange( yAxisLower, yAxisUpper );
-        }
-        if ( yAxisVisible ) {
-            yAxis->setAutoTicks( true );
-            yAxis->setAutoTickLabels( true );
-            const int factor = ( yAxisUpper > 8 ) ? 50 : 80;
-            setFixedHeight( factor * yAxisUpper );
-        }
-        yAxis->setLabel( clusterName );
-        yAxis->setVisible( true );
-
-        xAxis->setRange( xAxisLower, xAxisUpper );
-        xAxis->setVisible( true );
-#endif
-        // emit signal to provide initial graph range and size
-        emit graphRangeChanged( clusteringCriteriaName, clusterName, xAxisLower, xAxisUpper, axisRect->size());
     }
 }
 
