@@ -333,7 +333,7 @@ void MainWindow::handleLoadComplete()
  */
 void MainWindow::handleAdjustPlotViewScrollArea(const QString& clusteringCriteriaName, const QString& clusterName)
 {
-    const QString key( clusteringCriteriaName + clusterName );
+    const QString key( clusteringCriteriaName + QStringLiteral("-") + clusterName );
 
     m_plotsMap.insert( key );
 
@@ -352,7 +352,7 @@ void MainWindow::handleAdjustPlotViewScrollArea(const QString& clusteringCriteri
  */
 void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, const QString &clusterName)
 {
-    const QString key( clusteringCriteriaName + clusterName );
+    const QString key( clusteringCriteriaName + QStringLiteral("-") + clusterName );
 
     m_plotsMap.remove( key );
 
