@@ -570,14 +570,14 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
         xAxis->grid()->setSubGridVisible( false );
         xAxis->setAutoSubTicks( false );
 
+        // set associated metric group property
+        xAxis->setProperty( "associatedMetricGroup", clusteringCriteriaName );
+
         // X axis always visible
         xAxis->setVisible( true );
 
         // set X axis graph range
         xAxis->setRange( QCPRange( xAxisLower, xAxisUpper ) );
-
-        // set associated metric group property
-        xAxis->setProperty( "associatedMetricGroup", clusteringCriteriaName );
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         // connect slot to handle value axis range changes and regenerate the tick marks appropriately
