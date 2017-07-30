@@ -321,6 +321,8 @@ private:
                          const OpenSpeedShop::Framework::Collector &collector,
                          const OpenSpeedShop::Framework::ThreadGroup &threadGroup,
                          const double time_origin,
+                         const double lower,
+                         const double upper,
                          const OpenSpeedShop::Framework::TimeInterval &interval,
                          const std::set<OpenSpeedShop::Framework::Function> functions,
                          const QString metric);

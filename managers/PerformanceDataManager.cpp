@@ -690,27 +690,13 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
     // Determine full time interval extent of this experiment
     Extent extent = info.getExtent();
     Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
-
     Base::TimeInterval graphInterval = ConvertToArgoNavis( interval );
-
-    const double time_origin = ( experimentInterval.begin() ) / 1000000.0;
     const double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
     const double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
+    const double time_origin = ( experimentInterval.begin() ) / 1000000.0;
 
     if ( collectorId == "mpit" ) {
-        ShowTraceDetail< std::vector<Framework::MPITDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, interval, functions, "exclusive_details" );
-    }
-
-    emit requestMetricViewComplete( clusteringCriteriaName, metricName, viewName, lower, upper );
-
-    for ( std::set< Function >::iterator iter = functions.begin(); iter != functions.end(); iter++ ) {
-        const Function& function( *iter );
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        const QString functionName = QString::fromStdString( function.getDemangledName() );
-#else
-        const QString functionName = QString( function.getDemangledName().c_str() );
-#endif
-        emit requestMetricViewComplete( clusteringCriteriaName, metricName, functionName, lower, upper );
+        ShowTraceDetail< std::vector<Framework::MPITDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
     }
 
     if ( cursorManager ) {
@@ -2994,6 +2980,8 @@ QStringList PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>() c
  * @param collector - the experiment collector used for the trace view
  * @param threadGroup - the set of threads applicable to the trace view
  * @param time_origin - the start time of the experiment
+ * @param lower - the start time of the trace view
+ * @param upper - the end time of the trace view
  * @param interval - the time interval for the trace view
  * @param functions - the set of functions involved in the trace view
  * @param metric - the metric computed in the trace view
@@ -3002,11 +2990,12 @@ QStringList PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>() c
  * set of threads, set of functions, time interval and the metric name.
  */
 template <typename DETAIL_t>
-void PerformanceDataManager::ShowTraceDetail(
-        const QString& clusteringCriteriaName,
+void PerformanceDataManager::ShowTraceDetail(const QString& clusteringCriteriaName,
         const Framework::Collector& collector,
         const Framework::ThreadGroup& threadGroup,
         const double time_origin,
+        const double lower,
+        const double upper,
         const Framework::TimeInterval& interval,
         const std::set<Function> functions,
         const QString metric)
@@ -3081,6 +3070,10 @@ void PerformanceDataManager::ShowTraceDetail(
                 }
             }
         }
+
+        emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, ALL_EVENTS_DETAILS_VIEW, lower, upper );
+
+        emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, functionName, lower, upper );
     }
 }
 
