@@ -1767,9 +1767,9 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
         if ( hasTraceExperiment ) {
             foreach( const QString& clusterName, selected ) {
-                emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper, false, 0.0, 100.0 );
+                emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
             }
-            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper, false, 0.0, 100.0 );
+            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper );
         }
     }
 
@@ -2388,9 +2388,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
                                boost::cref(data), _1, boost::cref(gpuCounterIndexes), boost::cref(clusteringCriteriaName) ) );
 
         foreach( const QString& clusterName, clusterNames ) {
-            bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
-            emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper, false, 0.0, hasGpuPercentageCounter ? 100.0 : -1.0 );
-            qDebug() << "CLUSTER NAME: " << clusterName << " PERCENTAGE SAMPLE COUNTER? " << hasGpuPercentageCounter;
+            emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
         }
 
         std::vector<CUDA::Device> devices;

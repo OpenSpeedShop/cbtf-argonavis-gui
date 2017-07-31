@@ -124,7 +124,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestTraceView(QString,QString,QString)),
                  dataMgr, SLOT(handleRequestTraceView(QString,QString,QString)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestCompareView(QString,QString,QString,QString)), dataMgr, SLOT(handleRequestCompareView(QString,QString,QString,QString)) );
-        connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
+        connect( dataMgr, SIGNAL(addCluster(QString,QString,double,double,bool,double,double)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );  
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes)) );

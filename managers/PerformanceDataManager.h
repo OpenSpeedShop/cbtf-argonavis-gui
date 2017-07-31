@@ -128,7 +128,7 @@ signals:
 
     void signalSetDefaultMetricView(const MetricViewTypes viewType);
 
-    void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
+    void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper);
 
     void addExperiment(const QString& name,
                        const QString& clusteringCriteriaName,

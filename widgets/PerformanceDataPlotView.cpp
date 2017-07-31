@@ -95,7 +95,8 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataPlotView::handleRequestMetricViewComplete, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::setMetricDuration, this, &PerformanceDataPlotView::handleSetMetricDuration, Qt::QueuedConnection );
 #else
-        connect( dataMgr, SIGNAL(addCluster(QString,QString)), this, SLOT(handleAddCluster(QString,QString)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addCluster(QString,QString,double,double,bool,double,double)),
+                 this, SLOT(handleAddCluster(QString,QString,double,double,bool,double,double)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), this, SLOT(handleAddDataTransfer(QString,QString,Base::Time,CUDA::DataTransfer)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), this, SLOT(handleAddKernelExecution(QString,QString,Base::Time,CUDA::KernelExecution)), Qt::QueuedConnection );
         connect( dataMgr, SIGNAL(addPeriodicSample(QString,QString,double,double,double)), this, SLOT(handleAddPeriodicSample(QString,QString,double,double,double)), Qt::QueuedConnection );
@@ -106,8 +107,8 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
         connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), dataMgr, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)) );
         connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,double,double)),
                  this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,double,double)) );
-        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double,bool,double,double)),
-                 this, SLOT(handleSetMetricDuration(QString,QString,double,bool,double,double)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(setMetricDuration(QString,QString,double,double)),
+                 this, SLOT(handleSetMetricDuration(QString,QString,double,double)), Qt::QueuedConnection );
 #endif
     }
 }
@@ -1021,13 +1022,10 @@ QList<QCPAxis *> PerformanceDataPlotView::getAxesForMetricGroup(const QCPAxis::A
  * @param clusterName - the cluster name
  * @param xAxisLower - the specified lower value of the x axis range
  * @param xAxisUpper - the specified upper value of the x axis range
- * @param yAxisVisible - whether the y axis tick marks and label are visible
- * @param yAxisLower - the specified lower value of the y axis range
- * @param yAxisUpper - the specified upper value of the y axis range (-1 means that it is dynamically set based on y values)
  *
  * This method sets the upper value of the visible range of data in the graph view.  Also cause update of metric graph by calling QCustom
  */
-void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
+void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
