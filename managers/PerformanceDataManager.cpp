@@ -1672,7 +1672,11 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
     }
 
     if ( collector ) {
-        bool hasCudaCollector( "cuda" == collector.get().getMetadata().getUniqueId() );
+        const QString collectorId( collector.get().getMetadata().getUniqueId().c_str() );
+
+        const bool hasCudaCollector( "cuda" == collectorId );
+
+        const bool hasTraceExperiment = s_TRACING_EXPERIMENTS.contains( collectorId );
 
         QFutureSynchronizer<void> synchronizer;
 
@@ -1724,6 +1728,11 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
 
         m_tableViewInfo.insert( clusteringCriteriaName, info );
 
+        QVector< QString > clusterNames;
+        foreach( const QString& clusterName, selected ) {
+            clusterNames << clusterName;
+        }
+
         if ( hasCudaCollector ) {
             QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment->getThreads() );
             synchronizer.addFuture( future1 );
@@ -1732,17 +1741,9 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
             synchronizer.addFuture( future2 );
         }
         else {
-            const QString collectorId( collector.get().getMetadata().getUniqueId().c_str() );
-
-            const bool hasTraceExperiment = s_TRACING_EXPERIMENTS.contains( collectorId );
-
             // set default metric view
             emit signalSetDefaultMetricView( hasTraceExperiment ? TIMELINE_VIEW : CALLTREE_VIEW );
 
-            QVector< QString > clusterNames;
-            foreach( const QString& clusterName, selected ) {
-                clusterNames << clusterName;
-            }
             QVector< bool > isGpuSampleCounters;
             QVector< QString > sampleCounterNames;
 
@@ -1763,6 +1764,13 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         }
 
         synchronizer.waitForFinished();
+
+        if ( hasTraceExperiment ) {
+            foreach( const QString& clusterName, selected ) {
+                emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper, false, 0.0, 100.0 );
+            }
+            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper, false, 0.0, 100.0 );
+        }
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -2378,6 +2386,12 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
         data.visitThreads( boost::bind(
                                &PerformanceDataManager::processPerformanceData, instance(),
                                boost::cref(data), _1, boost::cref(gpuCounterIndexes), boost::cref(clusteringCriteriaName) ) );
+
+        foreach( const QString& clusterName, clusterNames ) {
+            bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
+            emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper, false, 0.0, hasGpuPercentageCounter ? 100.0 : -1.0 );
+            qDebug() << "CLUSTER NAME: " << clusterName << " PERCENTAGE SAMPLE COUNTER? " << hasGpuPercentageCounter;
+        }
 
         std::vector<CUDA::Device> devices;
 

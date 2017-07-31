@@ -118,6 +118,14 @@ private slots:
                                          double lower,
                                          double upper);
 
+    void handleSetMetricDuration(const QString &clusteringCriteriaName,
+                                 const QString &clusterName,
+                                 double xAxisLower,
+                                 double xAxisUpper,
+                                 bool yAxisVisible,
+                                 double yAxisLower,
+                                 double yAxisUpper);
+
 private:
 
     void addLegend(QCPAxisRect *axisRect);
