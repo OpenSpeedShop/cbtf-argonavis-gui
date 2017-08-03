@@ -238,35 +238,37 @@ void PerformanceDataMetricView::deleteAllModelsViews()
 
 /**
  * @brief PerformanceDataMetricView::deleteModelsAndViews
- * @param all - flag indicating that all models and views including 'Details' related ones should be deleted.
+ * @return - boolean value representing whether current view was deleted
  *
- * This method deletes all models and views or just the ones not pertaining to the 'Details' mode views.
+ * This method deletes all models and views not pertaining to the 'Details' and 'Trace' mode views.
  */
-void PerformanceDataMetricView::deleteModelsAndViews(bool all)
+bool PerformanceDataMetricView::deleteModelsAndViews()
 {
-    showBlankView();
+    bool currentDeleted( false );
 
-    {
-        QMutexLocker guard( &m_mutex );
+    QMutexLocker guard( &m_mutex );
 
-        QMutableMapIterator< QString, QTreeView* > viter( m_views );
-        while ( viter.hasNext() ) {
-            viter.next();
+    QMutableMapIterator< QString, QTreeView* > viter( m_views );
+    while ( viter.hasNext() ) {
+        viter.next();
 
-            const QString key = viter.key();
+        const QString key = viter.key();
 
-            // don't delete trace or details views or the blank view
-            if ( key == s_noneName || key.startsWith( s_detailsModeName ) || key.startsWith( s_traceModeName ) )
-                 continue;
+        // don't delete trace or details views or the blank view
+        if ( key == s_noneName || key.startsWith( s_detailsModeName ) || key.startsWith( s_traceModeName ) )
+            continue;
 
-            m_viewStack->removeWidget( viter.value() );
-            delete viter.value();
-            viter.remove();
+        currentDeleted = ( viter.value() == m_viewStack->currentWidget() );
 
-            m_proxyModels.remove( key );
-            m_models.remove( key );
-        }
+        m_viewStack->removeWidget( viter.value() );
+        delete viter.value();
+        viter.remove();
+
+        m_proxyModels.remove( key );
+        m_models.remove( key );
     }
+
+    return currentDeleted;
 }
 
 /**
@@ -859,13 +861,17 @@ void PerformanceDataMetricView::handleRangeChanged(const QString &clusteringCrit
 /**
  * @brief PerformanceDataMetricView::handleRequestViewUpdate
  *
- * Handle request to update the current view by emitting the appropriate signal for the mode selected.
+ * Handle request to update the current view by emitting the appropriate signal for the mode selected.  The 'clearExistingViews'
+ * flag would be set true when the originator of the signal is the ExperimentPanel when a metric view update was requested.
  */
 void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
 {
+    bool currentDeleted( false );
+
     if ( clearExistingViews ) {
-       deleteModelsAndViews( false );
+       currentDeleted = deleteModelsAndViews();
     }
+
     switch( m_mode ) {
     case COMPARE_MODE:
         emit signalRequestCompareView( m_clusteringCritieriaName, s_compareModeName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
@@ -894,6 +900,10 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
         break;
     default:
         emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+    }
+
+    if ( currentDeleted ) {
+        showBlankView();
     }
 }
 

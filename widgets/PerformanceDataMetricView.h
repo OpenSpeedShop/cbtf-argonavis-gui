@@ -123,7 +123,7 @@ private:
     void processTableViewItemClicked(QTreeView* view, const QModelIndex& index);
     void processCustomContextMenuRequested(QTreeView* view, const QPoint &pos);
     void clearExistingModelsAndViews(const QString &metricViewName, bool deleteModel = true, bool deleteView = false);
-    void deleteModelsAndViews(bool all);
+    bool deleteModelsAndViews();
     void resetUI();
 
     QString getMetricViewName() const;
