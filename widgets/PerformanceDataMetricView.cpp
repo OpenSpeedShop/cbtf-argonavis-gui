@@ -90,7 +90,7 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
 
     // define blank view
     QTreeView* blankView = new QTreeView;
-    m_views[ "none" ] = blankView;
+    m_views[ s_noneName ] = blankView;
     m_viewStack->addWidget( blankView );
 
     // initialize model used for view combobox when in metric mode
@@ -255,7 +255,8 @@ void PerformanceDataMetricView::deleteModelsAndViews(bool all)
 
             const QString key = viter.key();
 
-            if ( key == "none" || ( ! all && key.startsWith( s_detailsModeName ) ) )
+            // don't delete trace or details views or the blank view
+            if ( key == s_noneName || key.startsWith( s_detailsModeName ) || key.startsWith( s_traceModeName ) )
                  continue;
 
             m_viewStack->removeWidget( viter.value() );
@@ -377,6 +378,7 @@ QString PerformanceDataMetricView::getMetricModeName(const PerformanceDataMetric
  */
 void PerformanceDataMetricView::clearExistingModelsAndViews(const QString& metricViewName, bool deleteModel, bool deleteView)
 {
+    qDebug() << Q_FUNC_INFO << "metricViewName=" << metricViewName << " deleteModel=" << deleteModel << " deleteView=" << deleteView;
     QMutexLocker guard( &m_mutex );
 
     QSortFilterProxyModel* proxyModel = m_proxyModels.value( metricViewName, Q_NULLPTR );
@@ -525,7 +527,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     }
 
     // initialize this as the current view only when the blank view is active
-    if ( m_viewStack->currentWidget() == m_views[ "none" ] ) {
+    if ( m_viewStack->currentWidget() == m_views[ s_noneName ] ) {
         m_viewStack->setCurrentWidget( view );
     }
 }
@@ -883,15 +885,13 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
     case LOAD_BALANCE_MODE:
         emit signalRequestLoadBalanceView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
-#if 0
     // NOTE: This views are currently pre-built and never should be requested
     case DETAILS_MODE:
-        emit signalRequestDetailView( m_clusteringCritieriaName, ui->comboBox_ViewSelection->currentText() );
+        //emit signalRequestDetailView( m_clusteringCritieriaName, ui->comboBox_ViewSelection->currentText() );
         break;
     case TRACE_MODE:
-        emit signalRequestTraceView( m_clusteringCritieriaName, s_traceModeName, s_allEventsDetailsName );
+        //emit signalRequestTraceView( m_clusteringCritieriaName, s_traceModeName, s_allEventsDetailsName );
         break;
-#endif
     default:
         emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
     }
@@ -1082,11 +1082,6 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
 
         if ( Q_NULLPTR != view ) {
             handleRangeChanged( clusteringCriteriaName, metricName, viewName, lower, upper );
-
-            const QString currentMetricViewName = getMetricViewName();
-
-            if ( currentMetricViewName == metricViewName )
-                m_viewStack->setCurrentWidget( view );
 
             return;
         }
