@@ -31,25 +31,34 @@ CBTF_MESSAGES_PRI_INCLUDED = 1
 
   } else {
 
-    INCLUDEPATH += $$quote($${CBTF_MESSAGES_PATH}/include)
-    DEPENDPATH  += $$quote($${CBTF_MESSAGES_PATH}/include)
+    #CBTF_INCLUDEPATH += $$quote($${CBTF_MESSAGES_PATH}/include)
+    #CBTF_DEPENDPATH  += $$quote($${CBTF_MESSAGES_PATH}/include)
+    #CBTFK_INCLUDEPATH += $$quote($${CBTF_KRELL_MESSAGES_PATH}/include)
+    #CBTFK_DEPENDPATH  += $$quote($${CBTF_KRELL_MESSAGES_PATH}/include)
+    #CBTFARGO_INCLUDEPATH += $$quote($${CBTF_ARGONAVIS_MESSAGES_PATH}/include)
+    #CBTFARGO_DEPENDPATH  += $$quote($${CBTF_ARGONAVIS_MESSAGES_PATH}/include)
 
     isEmpty(CBTF_MESSAGES_LIBPATH): CBTF_MESSAGES_LIBPATH = $${CBTF_MESSAGES_PATH}
+    isEmpty(CBTF_KRELL_MESSAGES_LIBPATH): CBTF_KRELL_MESSAGES_LIBPATH = $${CBTF_KRELL_MESSAGES_PATH}
+    isEmpty(CBTF_ARGONAVIS_MESSAGES_LIBPATH): CBTF_ARGONAVIS_MESSAGES_LIBPATH = $${CBTF_ARGONAVIS_MESSAGES_PATH}
 
     CBTF_MESSAGES_LIBFILES = cbtf
-    CBTF_MESSAGES_LIBFILES += cbtf-core
     CBTF_MESSAGES_LIBFILES += cbtf-mrnet
-    CBTF_MESSAGES_LIBFILES += cbtf-core-mrnet
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-base
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-collector
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-events
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-instrumentation
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-perfdata
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-symtab
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-thread
-    CBTF_MESSAGES_LIBFILES += cbtf-messages-cuda
     CBTF_MESSAGES_LIBFILES += cbtf-xml
 
+    CBTF_KRELL_MESSAGES_LIBFILES += cbtf-core
+    CBTF_KRELL_MESSAGES_LIBFILES += cbtf-core-mrnet
+    CBTF_KRELL_MESSAGES_LIBFILES += cbtf-messages-base
+    CBTF_KRELL_MESSAGES_LIBFILES += cbtf-messages-collector
+    CBTF_KRELL_MESSAGES_LIBFILES += cbtf-messages-events
+    CBTF_KRELL_MESSAGES_LIBFILES += cbtf-messages-instrumentation
+    CBTF_KRELL_MESSAGES_LIBFILES += cbtf-messages-perfdata
+    CBTF_KRELL_MESSAGES_LIBFILES += cbtf-messages-symtab
+    CBTF_KRELL_MESSAGES_LIBFILES += cbtf-messages-thread
+
+    CBTF_ARGONAVIS_MESSAGES_LIBFILES += cbtf-messages-cuda
+
+    # Handle the cbtf repository message files
     for(CBTF_MESSAGES_LIBFILE, CBTF_MESSAGES_LIBFILES) {
       CBTF_MESSAGES_FILENAME = lib$${CBTF_MESSAGES_LIBFILE}.so
 
@@ -69,6 +78,56 @@ CBTF_MESSAGES_PRI_INCLUDED = 1
       !isEmpty(CBTF_MESSAGES_DIRECTORIES) {
         for(CBTF_MESSAGES_DIRECTORY, CBTF_MESSAGES_DIRECTORIES) {
           warning("$${CBTF_MESSAGES_DIRECTORY}/$${CBTF_MESSAGES_FILENAME} was not found")
+         }
+         error("Please ensure that you have already built the CBTF Messages Framwework.")
+      }
+    }
+
+    # Handle the cbtf-krell repository message files
+    for(CBTF_KRELL_MESSAGES_LIBFILE, CBTF_KRELL_MESSAGES_LIBFILES) {
+      CBTF_KRELL_MESSAGES_FILENAME = lib$${CBTF_KRELL_MESSAGES_LIBFILE}.so
+
+      CBTF_KRELL_MESSAGES_DIRECTORIES = $${CBTF_KRELL_MESSAGES_LIBPATH}
+      CBTF_KRELL_MESSAGES_DIRECTORIES += $${CBTF_KRELL_MESSAGES_LIBPATH}/lib
+      CBTF_KRELL_MESSAGES_DIRECTORIES += $${CBTF_KRELL_MESSAGES_LIBPATH}/lib64
+
+      for(CBTF_KRELL_MESSAGES_DIRECTORY, CBTF_KRELL_MESSAGES_DIRECTORIES) {
+        exists($${CBTF_KRELL_MESSAGES_DIRECTORY}/$${CBTF_KRELL_MESSAGES_FILENAME}) {
+           LIBS += -L$$quote($${CBTF_KRELL_MESSAGES_DIRECTORY}) -l$${CBTF_KRELL_MESSAGES_LIBFILE}
+           LIBS += -Wl,-rpath $$quote($${CBTF_KRELL_MESSAGES_DIRECTORY})
+           unset(CBTF_KRELL_MESSAGES_DIRECTORIES)
+           break()
+        }
+      }
+
+      !isEmpty(CBTF_KRELL_MESSAGES_DIRECTORIES) {
+        for(CBTF_KRELL_MESSAGES_DIRECTORY, CBTF_KRELL_MESSAGES_DIRECTORIES) {
+          warning("$${CBTF_KRELL_MESSAGES_DIRECTORY}/$${CBTF_KRELL_MESSAGES_FILENAME} was not found")
+         }
+         error("Please ensure that you have already built the CBTF Messages Framwework.")
+      }
+    }
+
+    # Handle the cbtf-argonavis repository message files
+    for(CBTF_ARGONAVIS_MESSAGES_LIBFILE, CBTF_ARGONAVIS_MESSAGES_LIBFILES) {
+      CBTF_ARGONAVIS_MESSAGES_FILENAME = lib$${CBTF_ARGONAVIS_MESSAGES_LIBFILE}.so
+
+      CBTF_ARGONAVIS_MESSAGES_DIRECTORIES = $${CBTF_ARGONAVIS_MESSAGES_LIBPATH}
+      CBTF_ARGONAVIS_MESSAGES_DIRECTORIES += $${CBTF_ARGONAVIS_MESSAGES_LIBPATH}/lib
+      CBTF_ARGONAVIS_MESSAGES_DIRECTORIES += $${CBTF_ARGONAVIS_MESSAGES_LIBPATH}/lib64
+
+      for(CBTF_ARGONAVIS_MESSAGES_DIRECTORY, CBTF_ARGONAVIS_MESSAGES_DIRECTORIES) {
+        exists($${CBTF_ARGONAVIS_MESSAGES_DIRECTORY}/$${CBTF_ARGONAVIS_MESSAGES_FILENAME}) {
+           LIBS += -L$$quote($${CBTF_ARGONAVIS_MESSAGES_DIRECTORY}) -l$${CBTF_ARGONAVIS_MESSAGES_LIBFILE}
+           LIBS += -Wl,-rpath $$quote($${CBTF_ARGONAVIS_MESSAGES_DIRECTORY})
+           unset(CBTF_ARGONAVIS_MESSAGES_DIRECTORIES)
+           break()
+        }
+      }
+
+      !isEmpty(CBTF_ARGONAVIS_MESSAGES_DIRECTORIES) {
+        for(CBTF_ARGONAVIS_MESSAGES_DIRECTORY, CBTF_ARGONAVIS_MESSAGES_DIRECTORIES) {
+          warning("$${CBTF_ARGONAVIS_MESSAGES_DIRECTORY}/$${CBTF_ARGONAVIS_MESSAGES_FILENAME} was not found")
          }
          error("Please ensure that you have already built the CBTF Messages Framwework.")
       }
