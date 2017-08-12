@@ -197,7 +197,7 @@ SOURCES += \
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
-DEFINES += HAS_OSSCUDA2XML
+#DEFINES += HAS_OSSCUDA2XML
 contains(DEFINES, HAS_OSSCUDA2XML): {
     SOURCES += \
     util/osscuda2xml.cxx \
