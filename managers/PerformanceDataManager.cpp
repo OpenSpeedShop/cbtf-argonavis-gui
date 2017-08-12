@@ -64,6 +64,9 @@
 #include "collectors/omptp/OmptPDetail.hxx"
 #include "collectors/mpit/MPITDetail.hxx"
 #include "collectors/mpip/MPIPDetail.hxx"
+#include "collectors/io/IODetail.hxx"
+#include "collectors/iop/IOPDetail.hxx"
+#include "collectors/iot/IOTDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -1553,6 +1556,15 @@ void PerformanceDataManager::processCalltreeView(const Collector& collector, con
     else if ( collectorId == "mpip" ) {
         ShowCalltreeDetail< Framework::MPIPDetail >( collector, threads, interval, functions, "inclusive_detail", metricDesc, clusteringCriteriaName );
     }
+    else if ( collectorId == "io" ) {
+        ShowCalltreeDetail< std::vector<Framework::IODetail> >( collector, threads, interval, functions, "inclusive_details", metricDesc, clusteringCriteriaName );
+    }
+    else if ( collectorId == "iot" ) {
+        ShowCalltreeDetail< std::vector<Framework::IOTDetail> >( collector, threads, interval, functions, "inclusive_details", metricDesc, clusteringCriteriaName );
+    }
+    else if ( collectorId == "iop" ) {
+        ShowCalltreeDetail< Framework::IOPDetail >( collector, threads, interval, functions, "inclusive_detail", metricDesc, clusteringCriteriaName );
+    }
 }
 
 /**
@@ -2781,6 +2793,48 @@ template <>
 std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::MPITDetail>& detail, const double factor)
 {
     double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::MPITDetail& d) {
+        return sum + d.dm_time;
+    } );
+
+    return std::make_pair( factor, sum / factor * 1000.0 );
+}
+
+/**
+ * @brief PerformanceDataManager::getDetailTotals
+ * @param detail - the OpenSpeedShop::Framework::IODetail instance
+ * @param factor - the time factor
+ * @return - a std::pair formed from the 'factor' parameter and the time from the 'detail' instance scaled by the 'factor'
+ *
+ * This is a template specialization for PerformanceDataManager::getDetailTotal which usually works on a type required to have the two public member variables 'dm_count'
+ * and 'dm_time'.  This template specialization works with the OpenSpeedShop::Framework::IODetail class which doesn't satisfy this requirement as it doesn't have the
+ * 'dm_count' member variable although it does has a pubic 'dm_time' member variable.  Thus, this template specialization works for the special case
+ * of the OpenSpeedShop::Framework::IODetail implementation.
+ */
+template <>
+std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::IODetail>& detail, const double factor)
+{
+    double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::IODetail& d) {
+        return sum + d.dm_time;
+    } );
+
+    return std::make_pair( factor, sum / factor * 1000.0 );
+}
+
+/**
+ * @brief PerformanceDataManager::getDetailTotals
+ * @param detail - the OpenSpeedShop::Framework::IOTDetail instance
+ * @param factor - the time factor
+ * @return - a std::pair formed from the 'factor' parameter and the time from the 'detail' instance scaled by the 'factor'
+ *
+ * This is a template specialization for PerformanceDataManager::getDetailTotal which usually works on a type required to have the two public member variables 'dm_count'
+ * and 'dm_time'.  This template specialization works with the OpenSpeedShop::Framework::IOTDetail class which doesn't satisfy this requirement as it doesn't have the
+ * 'dm_count' member variable although it does has a pubic 'dm_time' member variable.  Thus, this template specialization works for the special case
+ * of the OpenSpeedShop::Framework::IOTDetail implementation.
+ */
+template <>
+std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::IOTDetail>& detail, const double factor)
+{
+    double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::IOTDetail& d) {
         return sum + d.dm_time;
     } );
 
