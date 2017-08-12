@@ -547,6 +547,8 @@ QCPRange PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis
  */
 void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName, const QString clusterName, QCPAxisRect *axisRect, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
 {
+    Q_UNUSED( xAxisUpper )
+
     if ( ! axisRect )
         return;
 
