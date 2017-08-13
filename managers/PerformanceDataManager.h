@@ -123,10 +123,11 @@ public slots:
     void handleRequestCompareView(const QString& clusteringCriteriaName, const QString& compareMode, const QString& metricName, const QString& viewName);
     void handleProcessDetailViews(const QString& clusteringCriteriaName);
     void handleRequestTraceView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void handleRequestSampleCountersView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName);
 
 signals:
 
-    void signalSetDefaultMetricView(const MetricViewTypes viewType);
+    void signalSetDefaultMetricView(const MetricViewTypes viewType, bool hasCompareViews, bool hasTraceViews);
 
     void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper);
 
@@ -214,16 +215,16 @@ private:
 
     QString getColumnNameForCompareView(const QString &compareMode, const OpenSpeedShop::Framework::Thread &thread);
 
+    template<typename T>
+    QStringList getMetricNameList(const std::set<OpenSpeedShop::Framework::Metadata> &metrics, const QString &searchMetric);
+
     void loadCudaView(const QString& experimentName,
                       const QString& clusteringCriteriaName,
                       const OpenSpeedShop::Framework::Collector& collector,
                       const OpenSpeedShop::Framework::ThreadGroup& all_threads);
 
-    void loadCudaMetricViews(
-                             #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW)
-                             QFutureSynchronizer<void>& synchronizer,
+    void loadCudaMetricViews(QFutureSynchronizer<void>& synchronizer,
                              QMap< QString, QFuture<void> >& futures,
-                             #endif
                              const QString &clusteringCriteriaName,
                              const QStringList& metricList,
                              const QStringList& viewList,
@@ -329,6 +330,16 @@ private:
                          const std::set<OpenSpeedShop::Framework::Function> functions,
                          const QString metric);
 
+    template <typename TS, typename DETAIL_t>
+    void ShowSampleCountersDetail(const QString &clusteringCriteriaName,
+                                  const OpenSpeedShop::Framework::Collector &collector,
+                                  const OpenSpeedShop::Framework::ThreadGroup &threadGroup,
+                                  const double lower,
+                                  const double upper,
+                                  const OpenSpeedShop::Framework::TimeInterval &interval,
+                                  const QString metricName,
+                                  const QString viewName);
+
     void processCalltreeView(const OpenSpeedShop::Framework::Collector &collector,
                              const OpenSpeedShop::Framework::ThreadGroup& threads,
                              const OpenSpeedShop::Framework::TimeInterval& interval, const QString &clusteringCriteriaName);
@@ -393,6 +404,7 @@ private:
     static QString s_meanThreadTitle;
 
     static QStringList s_TRACING_EXPERIMENTS;
+    static QStringList s_SAMPLING_EXPERIMENTS;
 
     QVector<double> m_sampleKeys;
     QMap< int, QVector<double> > m_sampleValues;

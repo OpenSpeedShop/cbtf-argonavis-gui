@@ -76,8 +76,8 @@ void MetricViewDelegate::paint(QPainter* painter, const QStyleOptionViewItem& op
     // get a mutable copy of the style option
     QStyleOptionViewItem extended_option = option;
 
-    // if the value is of user-type 'double' then change the 'displayAlignment' attribute from left-alignment to right-alignment
-    if ( value.userType() == QVariant::Double ) {
+    // if the value is of user-type 'double' or 'unsigned long lomg' then change the 'displayAlignment' attribute from left-alignment to right-alignment
+    if ( value.userType() == QVariant::Double || value.userType() == QVariant::ULongLong ) {
         ( extended_option.displayAlignment ^= Qt::AlignLeft ) |= Qt::AlignRight;
     }
 
