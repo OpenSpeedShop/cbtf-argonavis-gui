@@ -622,6 +622,9 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
             const int factor = ( yAxisUpper > 8 ) ? 50 : 80;
             setFixedHeight( factor * yAxisUpper );
         }
+        else {
+            setFixedHeight( QWIDGETSIZE_MAX );
+        }
 
         yAxis->setLabel( clusterName );
 

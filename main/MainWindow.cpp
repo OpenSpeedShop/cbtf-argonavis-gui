@@ -301,6 +301,8 @@ void MainWindow::unloadOpenSsExperiment()
         ui->menuUnload_OSS_Experiment->setDisabled( true );
         ui->actionLoad_OSS_Experiment->setEnabled( true );
 
+        m_plotsMap.clear();
+
         if ( cursorManager ) {
             cursorManager->finishWaitingOperation( QStringLiteral("unload-experiment" ) );
         }
