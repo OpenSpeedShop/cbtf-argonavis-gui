@@ -442,7 +442,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
 
     QSortFilterProxyModel* proxyModel( Q_NULLPTR );
 
-    if ( s_compareModeName != metricName ) {
+    if ( ! metricName.contains( s_compareModeName ) ) {
         ViewSortFilterProxyModel* viewProxyModel = new ViewSortFilterProxyModel;
 
         if ( Q_NULLPTR == viewProxyModel )
