@@ -246,13 +246,14 @@ private:
                                 const QString &clusteringCriteriaName,
                                 QString metric);
 
-    template<typename TS>
+    template<typename TS, typename TM, typename DT>
     void processCompareThreadView(const OpenSpeedShop::Framework::CollectorGroup& collectors,
                                   const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                                   const OpenSpeedShop::Framework::TimeInterval &interval,
                                   const QString &clusteringCriteriaName,
-                                  QString metric,
-                                  QString compareMode);
+                                  const QString metric,
+                                  const QString compareMode,
+                                  const QString columnUnits);
 
     template <typename TS>
     std::set<TS> getThreadSet(const OpenSpeedShop::Framework::ThreadGroup& threads) { }
@@ -262,6 +263,9 @@ private:
 
     template <typename TS>
     QString getViewName() const { return QString("CallTree"); }
+
+    template <typename TM>
+    double getMetricValue(const TM& tm) { return tm; }
 
     typedef tuple< int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > > all_details_data_t;
     typedef std::vector< all_details_data_t > TALLDETAILS;
