@@ -126,8 +126,8 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestCompareView(QString,QString,QString,QString)), dataMgr, SLOT(handleRequestCompareView(QString,QString,QString,QString)) );
         connect( dataMgr, SIGNAL(addCluster(QString,QString,double,double,bool,double,double)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
-        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );
-        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes,bool,bool)) );
+        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );
+        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes,bool,bool,bool)) );
         connect( dataMgr, SIGNAL(addDevice(quint32,quint32,NameValueList,NameValueList)), ui->widget_MetricTableView, SIGNAL(signalAddDevice(quint32,quint32,NameValueList,NameValueList)) );
         connect( dataMgr, SIGNAL(signalRequestMetricTableViewUpdate(bool)), ui->widget_MetricTableView, SLOT(handleRequestViewUpdate(bool)) );
 #endif
@@ -366,22 +366,27 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
 /**
  * @brief MainWindow::handleSetDefaultMetricView
  * @param view - the default view
- * @param hasCompareViews - specifies whether to activate compare and load balance views
+ * @param hasCompareViews - specifies whether to activate compare views
+ * @param hasLoadBalanceViews - specifies whether to activate load balance views
  * @param hasTraceViews - specifies whether to activate trace views
  *
  * The choice of default view is used to determine which modes the user can choose from in the Metric Table View.
  */
-void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view, bool hasCompareViews, bool hasTraceViews)
+void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews)
 {
     // define views always present
     PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE );
 
     if ( hasCompareViews ) {
-        // activate compare and load balance views
+        // activate compare views
         modes |= PerformanceDataMetricView::COMPARE_MODE;
         modes |= PerformanceDataMetricView::COMPARE_BY_RANK_MODE;
         modes |= PerformanceDataMetricView::COMPARE_BY_HOST_MODE;
         modes |= PerformanceDataMetricView::COMPARE_BY_PROCESS_MODE;
+    }
+
+    if ( hasLoadBalanceViews ) {
+        // activate load balance views
         modes |= PerformanceDataMetricView::LOAD_BALANCE_MODE;
     }
 

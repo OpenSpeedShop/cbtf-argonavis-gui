@@ -127,7 +127,7 @@ public slots:
 
 signals:
 
-    void signalSetDefaultMetricView(const MetricViewTypes viewType, bool hasCompareViews, bool hasTraceViews);
+    void signalSetDefaultMetricView(const MetricViewTypes viewType, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews);
 
     void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper);
 

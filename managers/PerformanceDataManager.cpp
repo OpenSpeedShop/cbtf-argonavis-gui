@@ -1875,7 +1875,7 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         }
         else {
             // set default metric view
-            emit signalSetDefaultMetricView( hasTraceExperiment ? TIMELINE_VIEW : CALLTREE_VIEW, true, hasTraceExperiment );
+            emit signalSetDefaultMetricView( hasTraceExperiment ? TIMELINE_VIEW : CALLTREE_VIEW, true, !s_SAMPLING_EXPERIMENTS.contains(collectorId), hasTraceExperiment );
 
             QVector< bool > isGpuSampleCounters;
             QVector< QString > sampleCounterNames;
@@ -2382,7 +2382,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
     bool hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
 
     // set default metric view
-    emit signalSetDefaultMetricView( hasCudaCollector ? TIMELINE_VIEW : CALLTREE_VIEW, true, false );
+    emit signalSetDefaultMetricView( hasCudaCollector ? TIMELINE_VIEW : CALLTREE_VIEW, true, true, false );
 
     // reset all thread flags to false
     QMutableMapIterator< Base::ThreadName, bool > mapiter( flags );
