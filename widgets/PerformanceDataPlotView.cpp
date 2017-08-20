@@ -620,7 +620,7 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
             yAxis->setAutoTicks( true );
             yAxis->setAutoTickLabels( true );
             const int factor = ( yAxisUpper > 8 ) ? 50 : 80;
-            setFixedHeight( factor * yAxisUpper );
+            setFixedHeight( factor * qMax( 2.0, yAxisUpper ) );
         }
         else {
             setFixedHeight( QWIDGETSIZE_MAX );
