@@ -23,9 +23,21 @@
 
 #include "MetricTableViewInfo.h"
 
-
 namespace ArgoNavis { namespace GUI {
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+const QStringList TRACED_MEMORY_FUNCTIONS = {
+    QStringLiteral( "malloc" ),
+    QStringLiteral( "free" ),
+    QStringLiteral( "memalign" ),
+    QStringLiteral( "posix_memalign" ),
+    QStringLiteral( "calloc" ),
+    QStringLiteral( "realloc" )
+};
+#else
+const QStringList TRACED_MEMORY_FUNCTIONS = QStringList() << "malloc" << "free" << "memalign"
+                                                          << "posix_memalign" << "calloc" << "realloc";
+#endif
 
 /**
  * @brief MetricTableViewInfo::MetricTableViewInfo
@@ -133,6 +145,25 @@ OpenSpeedShop::Framework::ThreadGroup MetricTableViewInfo::getThreads()
 {
     QMutexLocker guard( &m_mutex );
     return m_experiment->getThreads();
+}
+
+/**
+ * @brief MetricTableViewInfo::searchForFunctions
+ * @param name -
+ * @return
+ */
+bool MetricTableViewInfo::isTracedMemoryFunction(const QString& name)
+{
+    bool result( false );
+
+    foreach( const QString& traceableFunction, TRACED_MEMORY_FUNCTIONS ) {
+        if ( name.contains( traceableFunction ) ) {
+            result = true;
+            break;
+        }
+    }
+
+    return result;
 }
 
 /**

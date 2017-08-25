@@ -58,6 +58,7 @@ public:
     OpenSpeedShop::Framework::TimeInterval getInterval();
     OpenSpeedShop::Framework::Extent getExtent();
     OpenSpeedShop::Framework::ThreadGroup getThreads();
+    bool isTracedMemoryFunction(const QString &name);
     void setInterval(const OpenSpeedShop::Framework::Time& lower, const OpenSpeedShop::Framework::Time& upper);
     QStringList getMetricViewList();
 
