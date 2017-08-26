@@ -681,7 +681,7 @@ void PerformanceDataMetricView::processTableViewItemClicked(QTreeView* view, con
             if ( s_functionTitle == title ) {
                 QString filename;
                 int lineNumber;
-                extractFilenameAndLine( text, filename, lineNumber );
+                ModifyPathSubstitutionsDialog::extractFilenameAndLine( text, filename, lineNumber );
                 if ( filename.isEmpty() || -1 == lineNumber ) {
                     emit signalClearSourceView();
                 }
@@ -731,37 +731,6 @@ void PerformanceDataMetricView::processCustomContextMenuRequested(QTreeView* vie
                 showContextMenu( menuType, model->data( index ), view->viewport()->mapToGlobal( pos ) );
             }
         }
-    }
-}
-
-/**
- * @brief PerformanceDataMetricView::extractFilenameAndLine
- * @param text - text containing defining location information
- * @param filename - the filename obtained from the defining location information
- * @param lineNumber - the line number obtained from the defining location information
- *
- * Extracts the filename and line number from the data in a particular cell of the metric table view.
- */
-void PerformanceDataMetricView::extractFilenameAndLine(const QString& text, QString& filename, int& lineNumber)
-{
-    QString definingLocation;
-    lineNumber = -1;
-    int startParenIdx = text.lastIndexOf( '(' );
-    if ( -1 != startParenIdx ) {
-        definingLocation = text.mid( startParenIdx + 1 );
-    }
-    else {
-        definingLocation = text;
-    }
-    int sepIdx = definingLocation.lastIndexOf( ',' );
-    if ( -1 != sepIdx ) {
-        filename = definingLocation.left( sepIdx );
-        QString lineNumberStr = definingLocation.mid( sepIdx + 1 );
-        int endParenIdx = lineNumberStr.lastIndexOf( ')' );
-        if ( -1 != endParenIdx ) {
-            lineNumberStr.chop( lineNumberStr.length() - endParenIdx );
-        }
-        lineNumber = lineNumberStr.toInt();
     }
 }
 
@@ -1124,7 +1093,7 @@ void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType,
         QString filename;
         int lineNumber;
 
-        extractFilenameAndLine( data.toString(), filename, lineNumber );
+        ModifyPathSubstitutionsDialog::extractFilenameAndLine( data.toString(), filename, lineNumber );
 
         QFileInfo fileInfo( filename );
 

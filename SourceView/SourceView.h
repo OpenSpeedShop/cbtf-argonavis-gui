@@ -29,6 +29,9 @@
 #include <QWidget>
 #include <QSize>
 #include <QColor>
+#include <QThread>
+
+#include "SourceViewMetricsCache.h"
 
 class QPaintEvent;
 class QResizeEvent;
@@ -52,13 +55,17 @@ public:
     void addAnnotation(int lineNumber, QString toolTip = QString(), QColor color = QColor("orange"));
     void removeAnnotation(int lineNumber);
 
+signals:
+
+    void addMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void addAssociatedMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
+    void addMetricViewData(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
+
 public slots:
 
     void handleClearSourceView();
     void handleDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
     void handleAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
-    void handleAddMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
-    void handleAddMetricViewData(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
     void handleMetricViewChanged(const QString& metricViewName);
 
 protected:
@@ -71,7 +78,6 @@ private:
     void sideBarAreaPaintEvent(QPaintEvent *event);
     int sideBarAreaWidth();
     void refreshStatements();
-    void extractFilenameAndLine(const QString &text, QString &filename, int &lineNumber);
 
 private slots:
 
@@ -87,8 +93,6 @@ private:
     struct Annotation { QColor color; QString toolTip; };
     QMap<int, Annotation> m_Annotations;
 
-    QMap< QString, QMap< QString, QVector<double> > > m_metrics;
-
     QString m_currentFilename;
     QString m_currentMetricView;
 
@@ -97,9 +101,10 @@ private:
     QFont m_font;
     QFont m_metricsFont;
 
-    QMap< QString, QPair<int, int> > m_watchedMetricViews;
-
     QMap<QString, QString> m_pathSubstitutions;
+
+    SourceViewMetricsCache m_metricsCache;
+    QThread m_thread;
 
     friend class SideBarArea;
 };

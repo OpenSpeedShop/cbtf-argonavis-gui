@@ -36,6 +36,7 @@
 #endif
 
 #include "SyntaxHighlighter.h"
+#include "SourceViewMetricsCache.h"
 
 #include "common/openss-gui-config.h"
 
@@ -43,14 +44,11 @@
 namespace ArgoNavis { namespace GUI {
 
 
-const QString s_timeTitle = QStringLiteral("Time (msec)");
-const QString s_functionTitle = QStringLiteral("Function (defining location)");
+SourceView::SourceView(QWidget *parent)
+    : QPlainTextEdit( parent )
+    , m_SideBarArea( new SideBarArea( this ) )
+    , m_SyntaxHighlighter( new SyntaxHighlighter( this->document() ) )
 
-
-SourceView::SourceView(QWidget *parent) :
-    QPlainTextEdit(parent),
-    m_SideBarArea(new SideBarArea(this)),
-    m_SyntaxHighlighter(new SyntaxHighlighter(this->document()))
 {
     connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateSideBarAreaWidth(int)));
     connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateSideBarArea(QRect,int)));
@@ -67,10 +65,26 @@ SourceView::SourceView(QWidget *parent) :
 
     updateSideBarAreaWidth(0);
     highlightCurrentLine();
+
+    // connect signals to the metric cache manager
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( this, &SourceView::addMetricView, &m_metricsCache, &SourceViewMetricsCache::handleAddMetricView );
+    connect( this, &SourceView::addMetricViewData, &m_metricsCache, &SourceViewMetricsCache::handleAddMetricViewData );
+#else
+    connect( this, SIGNAL(addMetricView(QString,QString,QString,QStringList)),
+             &m_metricsCache, SLOT(handleAddMetricView(QString,QString,QString,QStringList)) );
+    connect( this, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList,QStringList)),
+             &m_metricsCache, SLOT(handleAddMetricViewData(QString,QString,QString,QVariantList,QStringList)) );
+#endif
+
+    m_metricsCache.moveToThread( &m_thread );
+    m_thread.start();
 }
 
 SourceView::~SourceView()
 {
+    m_thread.quit();
+    m_thread.wait();
 }
 
 void SourceView::setCurrentLineNumber(const int &lineNumber)
@@ -97,53 +111,11 @@ void SourceView::removeAnnotation(int lineNumber)
     m_Annotations.remove(lineNumber);
 }
 
-void SourceView::handleAddMetricView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QStringList &metrics)
-{
-    Q_UNUSED( clusteringCriteriaName );
-
-    if ( metrics.contains( s_timeTitle ) && metrics.contains( s_functionTitle ) ) {
-        const QString metricViewname = metricName + "-" + viewName;
-        const int timeTitleIdx = metrics.indexOf( s_timeTitle );
-        const int functionTitleIdx = metrics.indexOf( s_functionTitle );
-        m_watchedMetricViews.insert( metricViewname, qMakePair( timeTitleIdx, functionTitleIdx ) );
-    }
-}
-
-void SourceView::handleAddMetricViewData(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QVariantList &data, const QStringList &columnHeaders)
-{
-    Q_UNUSED( clusteringCriteriaName );
-
-    const QString metricViewName = metricName + "-" + viewName;
-
-    if ( ! m_watchedMetricViews.contains( metricViewName ) )
-        return;
-
-    QPair<int, int> indexes = m_watchedMetricViews.value( metricViewName );
-
-    const double value = data.at( indexes.first ).toDouble();
-    const QString definingLocation = data.at( indexes.second ).toString();
-
-    int lineNumber;
-    QString filename;
-
-    extractFilenameAndLine( definingLocation, filename, lineNumber );
-
-    if ( filename.isEmpty() || lineNumber < 1 )
-        return;
-
-    QMap< QString, QVector< double > >& metricViewData = m_metrics[ metricViewName ];
-
-    QVector< double >& metrics = metricViewData[ filename ];
-
-    if ( metrics.size() < lineNumber+1 )
-        metrics.resize( lineNumber+1 );
-
-    metrics[ lineNumber ] = value;
-}
-
 void SourceView::handleClearSourceView()
 {
     clear();
+
+    m_Annotations.clear();
 }
 
 void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int lineNumber)
@@ -263,7 +235,7 @@ void SourceView::sideBarAreaPaintEvent(QPaintEvent *event)
     painter.setFont( m_font );
     const int height = fontMetrics().height();
 
-    QMap< QString, QVector< double > >& metricViewData = m_metrics[ m_currentMetricView ];
+    QMap< QString, QVector< double > > metricViewData = m_metricsCache.getMetricsCache( m_currentMetricView );
     QVector< double >& metrics = metricViewData[ m_currentFilename ];
 
     while (block.isValid() && top <= event->rect().bottom()) {
@@ -337,38 +309,6 @@ bool SourceView::event(QEvent *event)
     }
 
     return QPlainTextEdit::event(event);
-}
-
-/**
- * @brief SourceView::extractFilenameAndLine
- * @param text - text containing defining location information
- * @param filename - the filename obtained from the defining location information
- * @param lineNumber - the line number obtained from the defining location information
- *
- * Extracts the filename and line number from the string.  The string is in the format used on
- * the metric views.
- */
-void SourceView::extractFilenameAndLine(const QString& text, QString& filename, int& lineNumber)
-{
-    QString definingLocation;
-    lineNumber = -1;
-    int startParenIdx = text.lastIndexOf( '(' );
-    if ( -1 != startParenIdx ) {
-        definingLocation = text.mid( startParenIdx + 1 );
-    }
-    else {
-        definingLocation = text;
-    }
-    int sepIdx = definingLocation.lastIndexOf( ',' );
-    if ( -1 != sepIdx ) {
-        filename = definingLocation.left( sepIdx );
-        QString lineNumberStr = definingLocation.mid( sepIdx + 1 );
-        int endParenIdx = lineNumberStr.lastIndexOf( ')' );
-        if ( -1 != endParenIdx ) {
-            lineNumberStr.chop( lineNumberStr.length() - endParenIdx );
-        }
-        lineNumber = lineNumberStr.toInt();
-    }
 }
 
 /**
