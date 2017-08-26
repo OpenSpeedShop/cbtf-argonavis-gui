@@ -1034,6 +1034,8 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         // display existing metric view
         m_viewStack->setCurrentWidget( view );
     }
+
+    emit signalMetricViewChanged( metricViewName );
 }
 
 /**

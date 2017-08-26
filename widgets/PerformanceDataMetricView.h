@@ -99,6 +99,7 @@ signals:
     void signalClearSourceView();
     void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
     void signalAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
+    void signalMetricViewChanged(const QString& metricViewName);
 
 public slots:
 

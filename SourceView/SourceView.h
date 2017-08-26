@@ -57,15 +57,21 @@ public slots:
     void handleClearSourceView();
     void handleDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
     void handleAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
+    void handleAddMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void handleAddMetricViewData(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
+    void handleMetricViewChanged(const QString& metricViewName);
 
 protected:
 
     void resizeEvent(QResizeEvent *event);
+    bool event(QEvent *event);
+
+private:
+
     void sideBarAreaPaintEvent(QPaintEvent *event);
     int sideBarAreaWidth();
     void refreshStatements();
-
-    bool event(QEvent *event);
+    void extractFilenameAndLine(const QString &text, QString &filename, int &lineNumber);
 
 private slots:
 
@@ -80,6 +86,18 @@ private:
 
     struct Annotation { QColor color; QString toolTip; };
     QMap<int, Annotation> m_Annotations;
+
+    QMap< QString, QMap< QString, QVector<double> > > m_metrics;
+
+    QString m_currentFilename;
+    QString m_currentMetricView;
+
+    int m_metricValueWidth;
+
+    QFont m_font;
+    QFont m_metricsFont;
+
+    QMap< QString, QPair<int, int> > m_watchedMetricViews;
 
     QMap<QString, QString> m_pathSubstitutions;
 

@@ -37,8 +37,15 @@
 
 #include "SyntaxHighlighter.h"
 
+#include "common/openss-gui-config.h"
+
 
 namespace ArgoNavis { namespace GUI {
+
+
+const QString s_timeTitle = QStringLiteral("Time (msec)");
+const QString s_functionTitle = QStringLiteral("Function (defining location)");
+
 
 SourceView::SourceView(QWidget *parent) :
     QPlainTextEdit(parent),
@@ -49,9 +56,12 @@ SourceView::SourceView(QWidget *parent) :
     connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateSideBarArea(QRect,int)));
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
 
-    QFont font("Monospace");
-    font.setStyleHint(QFont::TypeWriter);
-    setFont(font);
+    m_font = QFont("Monospace");
+    m_font.setStyleHint(QFont::TypeWriter);
+    setFont(m_font);
+
+    m_metricsFont = m_font;
+    m_metricsFont.setPointSize( m_font.pointSize()-2 );
 
     setReadOnly( true );
 
@@ -87,6 +97,50 @@ void SourceView::removeAnnotation(int lineNumber)
     m_Annotations.remove(lineNumber);
 }
 
+void SourceView::handleAddMetricView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QStringList &metrics)
+{
+    Q_UNUSED( clusteringCriteriaName );
+
+    if ( metrics.contains( s_timeTitle ) && metrics.contains( s_functionTitle ) ) {
+        const QString metricViewname = metricName + "-" + viewName;
+        const int timeTitleIdx = metrics.indexOf( s_timeTitle );
+        const int functionTitleIdx = metrics.indexOf( s_functionTitle );
+        m_watchedMetricViews.insert( metricViewname, qMakePair( timeTitleIdx, functionTitleIdx ) );
+    }
+}
+
+void SourceView::handleAddMetricViewData(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QVariantList &data, const QStringList &columnHeaders)
+{
+    Q_UNUSED( clusteringCriteriaName );
+
+    const QString metricViewName = metricName + "-" + viewName;
+
+    if ( ! m_watchedMetricViews.contains( metricViewName ) )
+        return;
+
+    QPair<int, int> indexes = m_watchedMetricViews.value( metricViewName );
+
+    const double value = data.at( indexes.first ).toDouble();
+    const QString definingLocation = data.at( indexes.second ).toString();
+
+    int lineNumber;
+    QString filename;
+
+    extractFilenameAndLine( definingLocation, filename, lineNumber );
+
+    if ( filename.isEmpty() || lineNumber < 1 )
+        return;
+
+    QMap< QString, QVector< double > >& metricViewData = m_metrics[ metricViewName ];
+
+    QVector< double >& metrics = metricViewData[ filename ];
+
+    if ( metrics.size() < lineNumber+1 )
+        metrics.resize( lineNumber+1 );
+
+    metrics[ lineNumber ] = value;
+}
+
 void SourceView::handleClearSourceView()
 {
     clear();
@@ -115,6 +169,8 @@ void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int 
     else {
         handleClearSourceView();
     }
+
+    m_currentFilename = filename;
 }
 
 void SourceView::handleAddPathSubstitution(int index, const QString &oldPath, const QString &newPath)
@@ -141,9 +197,11 @@ int SourceView::sideBarAreaWidth()
     int digits = QString::number(qMax(1, blockCount())).length();
     int digitWidth = fontMetrics().width(QLatin1Char('9')) * digits;
 
-    int diameter = fontMetrics().height();
+    QFontMetrics fontMetrics( m_metricsFont );
 
-    return digitWidth + diameter + 3;
+    m_metricValueWidth = fontMetrics.width( QStringLiteral("9999999.9") );
+
+    return digitWidth + m_metricValueWidth + 10;
 }
 
 void SourceView::updateSideBarAreaWidth(int newBlockCount)
@@ -191,21 +249,49 @@ void SourceView::highlightCurrentLine()
 void SourceView::sideBarAreaPaintEvent(QPaintEvent *event)
 {
     QPainter painter(m_SideBarArea);
+
     painter.fillRect(event->rect(), Qt::lightGray);
+
+    if ( document()->isEmpty() )
+        return;
 
     QTextBlock block = firstVisibleBlock();
     int blockNumber = block.blockNumber();
     int top = (int) blockBoundingGeometry(block).translated(contentOffset()).top();
     int bottom = top + (int) blockBoundingRect(block).height();
 
+    painter.setFont( m_font );
+    const int height = fontMetrics().height();
+
+    QMap< QString, QVector< double > >& metricViewData = m_metrics[ m_currentMetricView ];
+    QVector< double >& metrics = metricViewData[ m_currentFilename ];
+
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
-            QString number = QString::number(blockNumber + 1);
-            painter.setPen(Qt::darkGray);
+            const int lineNumber = blockNumber + 1;
+            QString number = QString::number(lineNumber);
 
+            bool lineHasMetrics( metrics.size() > lineNumber && metrics[lineNumber] > 0.0 );
+
+            if ( lineHasMetrics ) {
+                QString value = QString::number( metrics[lineNumber], 'f', 1 );
+                painter.setPen( Qt::darkRed );
+                painter.setFont( m_metricsFont );
+                painter.drawText( 0, top, m_metricValueWidth, height, Qt::AlignRight|Qt::AlignVCenter, value );
+            }
+
+#ifdef HAS_SOURCE_CODE_LINE_HIGHLIGHTS
+            QTextBlockFormat format;
+            format.setBackground( lineHasMetrics ? QColor("#ff6961") : QColor("#ffffff") );
+            QTextCursor cursor( block );
+            cursor.mergeBlockFormat( format );
+#endif
+
+            painter.setPen( Qt::darkGray );
+            painter.setFont( m_font );
             painter.drawText(0, top, m_SideBarArea->width(), fontMetrics().height(), Qt::AlignRight, number);
 
-            if(m_Annotations.contains(blockNumber + 1)) {
+            if(m_Annotations.contains(lineNumber)) {
                 Annotation annotation = m_Annotations.value(blockNumber+1);
                 QBrush brush = painter.brush();
                 if(brush.color() != annotation.color) {
@@ -253,6 +339,50 @@ bool SourceView::event(QEvent *event)
     return QPlainTextEdit::event(event);
 }
 
+/**
+ * @brief SourceView::extractFilenameAndLine
+ * @param text - text containing defining location information
+ * @param filename - the filename obtained from the defining location information
+ * @param lineNumber - the line number obtained from the defining location information
+ *
+ * Extracts the filename and line number from the string.  The string is in the format used on
+ * the metric views.
+ */
+void SourceView::extractFilenameAndLine(const QString& text, QString& filename, int& lineNumber)
+{
+    QString definingLocation;
+    lineNumber = -1;
+    int startParenIdx = text.lastIndexOf( '(' );
+    if ( -1 != startParenIdx ) {
+        definingLocation = text.mid( startParenIdx + 1 );
+    }
+    else {
+        definingLocation = text;
+    }
+    int sepIdx = definingLocation.lastIndexOf( ',' );
+    if ( -1 != sepIdx ) {
+        filename = definingLocation.left( sepIdx );
+        QString lineNumberStr = definingLocation.mid( sepIdx + 1 );
+        int endParenIdx = lineNumberStr.lastIndexOf( ')' );
+        if ( -1 != endParenIdx ) {
+            lineNumberStr.chop( lineNumberStr.length() - endParenIdx );
+        }
+        lineNumber = lineNumberStr.toInt();
+    }
+}
+
+/**
+ * @brief SourceView::handleRequestMetricView
+ * @param metricViewName - the name of the current view active in the Metric Table View
+ *
+ * Handler to record the current view active in the Metric Table View.
+ */
+void SourceView::handleMetricViewChanged(const QString& metricViewName)
+{
+    m_currentMetricView = metricViewName;
+
+    update();
+}
 
 } // GUI
 } // ArgoNavis
