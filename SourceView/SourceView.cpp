@@ -36,31 +36,54 @@
 #endif
 
 #include "SyntaxHighlighter.h"
+#include "SourceViewMetricsCache.h"
+
+#include "common/openss-gui-config.h"
 
 
 namespace ArgoNavis { namespace GUI {
 
-SourceView::SourceView(QWidget *parent) :
-    QPlainTextEdit(parent),
-    m_SideBarArea(new SideBarArea(this)),
-    m_SyntaxHighlighter(new SyntaxHighlighter(this->document()))
+
+SourceView::SourceView(QWidget *parent)
+    : QPlainTextEdit( parent )
+    , m_SideBarArea( new SideBarArea( this ) )
+    , m_SyntaxHighlighter( new SyntaxHighlighter( this->document() ) )
+
 {
     connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateSideBarAreaWidth(int)));
     connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateSideBarArea(QRect,int)));
-    connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
 
-    QFont font("Monospace");
-    font.setStyleHint(QFont::TypeWriter);
-    setFont(font);
+    m_font = QFont("Monospace");
+    m_font.setStyleHint(QFont::TypeWriter);
+    setFont(m_font);
+
+    m_metricsFont = m_font;
+    m_metricsFont.setPointSize( m_font.pointSize()-2 );
 
     setReadOnly( true );
+    setTextInteractionFlags( Qt::NoTextInteraction );
 
     updateSideBarAreaWidth(0);
-    highlightCurrentLine();
+
+    // connect signals to the metric cache manager
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( this, &SourceView::addMetricView, &m_metricsCache, &SourceViewMetricsCache::handleAddMetricView );
+    connect( this, &SourceView::addMetricViewData, &m_metricsCache, &SourceViewMetricsCache::handleAddMetricViewData );
+#else
+    connect( this, SIGNAL(addMetricView(QString,QString,QString,QStringList)),
+             &m_metricsCache, SLOT(handleAddMetricView(QString,QString,QString,QStringList)) );
+    connect( this, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList,QStringList)),
+             &m_metricsCache, SLOT(handleAddMetricViewData(QString,QString,QString,QVariantList,QStringList)) );
+#endif
+
+    m_metricsCache.moveToThread( &m_thread );
+    m_thread.start();
 }
 
 SourceView::~SourceView()
 {
+    m_thread.quit();
+    m_thread.wait();
 }
 
 void SourceView::setCurrentLineNumber(const int &lineNumber)
@@ -90,6 +113,8 @@ void SourceView::removeAnnotation(int lineNumber)
 void SourceView::handleClearSourceView()
 {
     clear();
+
+    m_Annotations.clear();
 }
 
 void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int lineNumber)
@@ -115,6 +140,8 @@ void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int 
     else {
         handleClearSourceView();
     }
+
+    m_currentFilename = filename;
 }
 
 void SourceView::handleAddPathSubstitution(int index, const QString &oldPath, const QString &newPath)
@@ -141,9 +168,11 @@ int SourceView::sideBarAreaWidth()
     int digits = QString::number(qMax(1, blockCount())).length();
     int digitWidth = fontMetrics().width(QLatin1Char('9')) * digits;
 
-    int diameter = fontMetrics().height();
+    QFontMetrics fontMetrics( m_metricsFont );
 
-    return digitWidth + diameter + 3;
+    m_metricValueWidth = fontMetrics.width( QStringLiteral("9999999.9") );
+
+    return digitWidth + m_metricValueWidth + 10;
 }
 
 void SourceView::updateSideBarAreaWidth(int newBlockCount)
@@ -173,39 +202,70 @@ void SourceView::resizeEvent(QResizeEvent *e)
     m_SideBarArea->setGeometry(QRect(cr.left(), cr.top(), sideBarAreaWidth(), cr.height()));
 }
 
-void SourceView::highlightCurrentLine()
-{
-    QList<QTextEdit::ExtraSelection> extraSelections;
-    QTextEdit::ExtraSelection selection;
-
-    QColor lineColor = QColor(Qt::yellow).lighter(160);
-    selection.format.setBackground(lineColor);
-    selection.format.setProperty(QTextFormat::FullWidthSelection, true);
-    selection.cursor = textCursor();
-    selection.cursor.clearSelection();
-    extraSelections.append(selection);
-
-    setExtraSelections(extraSelections);
-}
-
 void SourceView::sideBarAreaPaintEvent(QPaintEvent *event)
 {
     QPainter painter(m_SideBarArea);
+
     painter.fillRect(event->rect(), Qt::lightGray);
+
+    if ( document()->isEmpty() )
+        return;
+
+    const int currentLineNumber = textCursor().block().blockNumber() + 1;
 
     QTextBlock block = firstVisibleBlock();
     int blockNumber = block.blockNumber();
     int top = (int) blockBoundingGeometry(block).translated(contentOffset()).top();
     int bottom = top + (int) blockBoundingRect(block).height();
 
+    painter.setFont( m_font );
+    const int height = fontMetrics().height();
+
+    QMap< QString, QVector< double > > metricViewData = m_metricsCache.getMetricsCache( m_currentMetricView );
+    QVector< double >& metrics = metricViewData[ m_currentFilename ];
+
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
-            QString number = QString::number(blockNumber + 1);
-            painter.setPen(Qt::darkGray);
+            const int lineNumber = blockNumber + 1;
+            QString number = QString::number(lineNumber);
 
+            bool lineHasMetrics( metrics.size() > lineNumber && metrics[lineNumber] > 0.0 );
+
+            if ( lineHasMetrics ) {
+                QString value = QString::number( metrics[lineNumber], 'f', 1 );
+                painter.setPen( Qt::darkRed );
+                painter.setFont( m_metricsFont );
+                painter.drawText( 0, top, m_metricValueWidth, height, Qt::AlignRight|Qt::AlignVCenter, value );
+            }
+
+#ifdef HAS_SOURCE_CODE_LINE_HIGHLIGHTS
+            QTextBlockFormat format;
+            QColor backgroundColor = QColor("#ffffff");
+            if ( lineHasMetrics ) {
+                double percentage = metrics[lineNumber] / metrics[0];
+                if ( percentage > 0.9 )
+                    backgroundColor = QColor("#ff3c33");
+                else if ( percentage > 0.75 )
+                    backgroundColor = QColor("#ff6969");
+                else if ( percentage > 0.5 )
+                    backgroundColor = QColor("#ffb347");
+                else if ( percentage > 0.25 )
+                    backgroundColor = QColor("#fee270");
+                else if ( percentage > 0.1 )
+                    backgroundColor = QColor("#faffcd");
+                else if ( percentage > 0.0 )
+                    backgroundColor = QColor("#afdbaf");
+            }
+            format.setBackground( backgroundColor);
+            QTextCursor cursor( block );
+            cursor.mergeBlockFormat( format );
+#endif
+
+            painter.setPen( lineNumber == currentLineNumber ? Qt::white : Qt::darkGray );
+            painter.setFont( m_font );
             painter.drawText(0, top, m_SideBarArea->width(), fontMetrics().height(), Qt::AlignRight, number);
 
-            if(m_Annotations.contains(blockNumber + 1)) {
+            if(m_Annotations.contains(lineNumber)) {
                 Annotation annotation = m_Annotations.value(blockNumber+1);
                 QBrush brush = painter.brush();
                 if(brush.color() != annotation.color) {
@@ -253,6 +313,18 @@ bool SourceView::event(QEvent *event)
     return QPlainTextEdit::event(event);
 }
 
+/**
+ * @brief SourceView::handleRequestMetricView
+ * @param metricViewName - the name of the current view active in the Metric Table View
+ *
+ * Handler to record the current view active in the Metric Table View.
+ */
+void SourceView::handleMetricViewChanged(const QString& metricViewName)
+{
+    m_currentMetricView = metricViewName;
+
+    update();
+}
 
 } // GUI
 } // ArgoNavis

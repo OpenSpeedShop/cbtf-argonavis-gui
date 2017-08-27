@@ -29,6 +29,9 @@
 #include <QWidget>
 #include <QSize>
 #include <QColor>
+#include <QThread>
+
+#include "SourceViewMetricsCache.h"
 
 class QPaintEvent;
 class QResizeEvent;
@@ -52,25 +55,33 @@ public:
     void addAnnotation(int lineNumber, QString toolTip = QString(), QColor color = QColor("orange"));
     void removeAnnotation(int lineNumber);
 
+signals:
+
+    void addMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void addAssociatedMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
+    void addMetricViewData(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
+
 public slots:
 
     void handleClearSourceView();
     void handleDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
     void handleAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
+    void handleMetricViewChanged(const QString& metricViewName);
 
 protected:
 
     void resizeEvent(QResizeEvent *event);
+    bool event(QEvent *event);
+
+private:
+
     void sideBarAreaPaintEvent(QPaintEvent *event);
     int sideBarAreaWidth();
     void refreshStatements();
 
-    bool event(QEvent *event);
-
 private slots:
 
     void updateSideBarAreaWidth(int newBlockCount);
-    void highlightCurrentLine();
     void updateSideBarArea(const QRect &, int);
 
 private:
@@ -81,7 +92,18 @@ private:
     struct Annotation { QColor color; QString toolTip; };
     QMap<int, Annotation> m_Annotations;
 
+    QString m_currentFilename;
+    QString m_currentMetricView;
+
+    int m_metricValueWidth;
+
+    QFont m_font;
+    QFont m_metricsFont;
+
     QMap<QString, QString> m_pathSubstitutions;
+
+    SourceViewMetricsCache m_metricsCache;
+    QThread m_thread;
 
     friend class SideBarArea;
 };

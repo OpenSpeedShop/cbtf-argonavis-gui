@@ -99,6 +99,7 @@ signals:
     void signalClearSourceView();
     void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
     void signalAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
+    void signalMetricViewChanged(const QString& metricViewName);
 
 public slots:
 
@@ -119,7 +120,6 @@ private slots:
 
 private:
 
-    void extractFilenameAndLine(const QString& text, QString& filename, int& lineNumber);
     void processTableViewItemClicked(QTreeView* view, const QModelIndex& index);
     void processCustomContextMenuRequested(QTreeView* view, const QPoint &pos);
     void clearExistingModelsAndViews(const QString &metricViewName, bool deleteModel = true, bool deleteView = false);

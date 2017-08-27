@@ -126,6 +126,7 @@ greaterThan(QT_MAJOR_VERSION, 4) {
 #DEFINES += HAS_TIMER_THREAD_DESTROYED_CHECKING
 #DEFINES += HAS_PROCESS_EVENT_DEBUG
 #DEFINES += HAS_TEST_DATA_RANGE_CONSTRAINT
+DEFINES += HAS_SOURCE_CODE_LINE_HIGHLIGHTS
 
 message("BOOST_ROOT="$$BOOST_ROOT)
 INCLUDEPATH += $$BOOST_ROOT/include
@@ -193,7 +194,8 @@ SOURCES += \
     widgets/ShowDeviceDetailsDialog.cpp \
     CBTF-ArgoNavis-Ext/CudaDeviceHelper.cpp \
     widgets/ThreadSelectionCommand.cpp \
-    managers/MetricTableViewInfo.cpp
+    managers/MetricTableViewInfo.cpp \
+    SourceView/SourceViewMetricsCache.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -240,7 +242,8 @@ HEADERS += \
     CBTF-ArgoNavis-Ext/NameValueDefines.h \
     CBTF-ArgoNavis-Ext/CudaDeviceHelper.h \
     widgets/ThreadSelectionCommand.h \
-    managers/MetricTableViewInfo.h
+    managers/MetricTableViewInfo.h \
+    SourceView/SourceViewMetricsCache.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

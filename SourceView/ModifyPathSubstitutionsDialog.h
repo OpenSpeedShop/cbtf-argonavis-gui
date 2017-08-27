@@ -48,6 +48,8 @@ public:
     explicit ModifyPathSubstitutionsDialog(QWidget *parent = 0);
     virtual ~ModifyPathSubstitutionsDialog();
 
+    static void extractFilenameAndLine(const QString &text, QString &filename, int &lineNumber);
+
 signals:
 
     void signalAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
