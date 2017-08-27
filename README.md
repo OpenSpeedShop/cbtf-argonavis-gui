@@ -86,8 +86,9 @@ Screenshots
 
 3. **Metric Views Cross-Referenced To Source-Code**
 
-![Alt text](/../screenshots/images/Screenshot8.png?raw=true "Metrics w/Source-Code View")
+![Alt text](/../screenshots/images/Screenshot24.png?raw=true "switch statement execution per normal (Gaussian) distribution")
 
+![Alt text](/../screenshots/images/Screenshot25.png?raw=true "switch statement execution per uniform distribution")
 
 4. **Calltree View**
 
