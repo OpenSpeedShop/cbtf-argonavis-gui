@@ -30,6 +30,7 @@
 #include <QPair>
 #include <QVector>
 #include <QVariantList>
+#include <QMutex>
 
 namespace ArgoNavis { namespace GUI {
 
@@ -63,6 +64,8 @@ private:
     // maps the metric view name to another map of filename to the metric value
     QMap< QString, QMap< QString, QVector<double> > > m_metrics;
 
+    // mutex for cache
+    QMutex m_mutex;
 };
 
 

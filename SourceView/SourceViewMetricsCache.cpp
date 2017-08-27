@@ -66,6 +66,8 @@ SourceViewMetricsCache::~SourceViewMetricsCache()
  */
 QMap<QString, QVector<double> > SourceViewMetricsCache::getMetricsCache(const QString &metricViewName)
 {
+    QMutexLocker guard( &m_mutex );
+
     return m_metrics[ metricViewName ];
 }
 
@@ -89,6 +91,8 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
         const int timeTitleIdx = metrics.indexOf( s_timeTitle );
         const int functionTitleIdx = metrics.indexOf( s_functionTitle );
 
+        QMutexLocker guard( &m_mutex );
+
         m_watchedMetricViews.insert( metricViewname, qMakePair( timeTitleIdx, functionTitleIdx ) );
     }
 }
@@ -108,6 +112,8 @@ void SourceViewMetricsCache::handleAddMetricViewData(const QString &clusteringCr
     Q_UNUSED( clusteringCriteriaName );
 
     const QString metricViewName = metricName + "-" + viewName;
+
+    QMutexLocker guard( &m_mutex );
 
     if ( ! m_watchedMetricViews.contains( metricViewName ) )
         return;
@@ -154,6 +160,8 @@ void SourceViewMetricsCache::handleAddMetricViewData(const QString &clusteringCr
  */
 void SourceViewMetricsCache::clear()
 {
+    QMutexLocker guard( &m_mutex );
+
     m_watchedMetricViews.clear();
     m_metrics.clear();
 }
