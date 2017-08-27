@@ -129,6 +129,17 @@ void SourceViewMetricsCache::handleAddMetricViewData(const QString &clusteringCr
 
     QVector< double >& metrics = metricViewData[ filename ];
 
+    if ( metrics.size() == 0 ) {
+        // initialize max value to first value
+        metrics.push_back( value );
+    }
+    else {
+        // update max value as appropriate
+        if ( value > metrics[0] ) {
+            metrics[0] = value;
+        }
+    }
+
     if ( metrics.size() < lineNumber+1 )
         metrics.resize( lineNumber+1 );
 

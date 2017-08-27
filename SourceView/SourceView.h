@@ -82,7 +82,6 @@ private:
 private slots:
 
     void updateSideBarAreaWidth(int newBlockCount);
-    void highlightCurrentLine();
     void updateSideBarArea(const QRect &, int);
 
 private:

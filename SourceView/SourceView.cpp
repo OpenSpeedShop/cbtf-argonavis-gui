@@ -52,7 +52,6 @@ SourceView::SourceView(QWidget *parent)
 {
     connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateSideBarAreaWidth(int)));
     connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateSideBarArea(QRect,int)));
-    connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
 
     m_font = QFont("Monospace");
     m_font.setStyleHint(QFont::TypeWriter);
@@ -64,7 +63,6 @@ SourceView::SourceView(QWidget *parent)
     setReadOnly( true );
 
     updateSideBarAreaWidth(0);
-    highlightCurrentLine();
 
     // connect signals to the metric cache manager
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -203,21 +201,6 @@ void SourceView::resizeEvent(QResizeEvent *e)
     m_SideBarArea->setGeometry(QRect(cr.left(), cr.top(), sideBarAreaWidth(), cr.height()));
 }
 
-void SourceView::highlightCurrentLine()
-{
-    QList<QTextEdit::ExtraSelection> extraSelections;
-    QTextEdit::ExtraSelection selection;
-
-    QColor lineColor = QColor(Qt::yellow).lighter(160);
-    selection.format.setBackground(lineColor);
-    selection.format.setProperty(QTextFormat::FullWidthSelection, true);
-    selection.cursor = textCursor();
-    selection.cursor.clearSelection();
-    extraSelections.append(selection);
-
-    setExtraSelections(extraSelections);
-}
-
 void SourceView::sideBarAreaPaintEvent(QPaintEvent *event)
 {
     QPainter painter(m_SideBarArea);
@@ -226,6 +209,8 @@ void SourceView::sideBarAreaPaintEvent(QPaintEvent *event)
 
     if ( document()->isEmpty() )
         return;
+
+    const int currentLineNumber = textCursor().block().blockNumber() + 1;
 
     QTextBlock block = firstVisibleBlock();
     int blockNumber = block.blockNumber();
@@ -254,12 +239,28 @@ void SourceView::sideBarAreaPaintEvent(QPaintEvent *event)
 
 #ifdef HAS_SOURCE_CODE_LINE_HIGHLIGHTS
             QTextBlockFormat format;
-            format.setBackground( lineHasMetrics ? QColor("#ff6961") : QColor("#ffffff") );
+            QColor backgroundColor = QColor("#ffffff");
+            if ( lineHasMetrics ) {
+                double percentage = metrics[lineNumber] / metrics[0];
+                if ( percentage > 0.9 )
+                    backgroundColor = QColor("#ff3c33");
+                else if ( percentage > 0.75 )
+                    backgroundColor = QColor("#ff6969");
+                else if ( percentage > 0.5 )
+                    backgroundColor = QColor("#ffb347");
+                else if ( percentage > 0.25 )
+                    backgroundColor = QColor("#fee270");
+                else if ( percentage > 0.1 )
+                    backgroundColor = QColor("#faffcd");
+                else if ( percentage > 0.0 )
+                    backgroundColor = QColor("#afdbaf");
+            }
+            format.setBackground( backgroundColor);
             QTextCursor cursor( block );
             cursor.mergeBlockFormat( format );
 #endif
 
-            painter.setPen( Qt::darkGray );
+            painter.setPen( lineNumber == currentLineNumber ? Qt::white : Qt::darkGray );
             painter.setFont( m_font );
             painter.drawText(0, top, m_SideBarArea->width(), fontMetrics().height(), Qt::AlignRight, number);
 
