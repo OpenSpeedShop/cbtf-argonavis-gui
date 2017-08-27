@@ -61,6 +61,7 @@ SourceView::SourceView(QWidget *parent)
     m_metricsFont.setPointSize( m_font.pointSize()-2 );
 
     setReadOnly( true );
+    setTextInteractionFlags( Qt::NoTextInteraction );
 
     updateSideBarAreaWidth(0);
 
