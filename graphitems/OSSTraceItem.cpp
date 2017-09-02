@@ -112,8 +112,13 @@ void OSSTraceItem::setBrush(const QString &functionName)
  */
 void OSSTraceItem::draw(QCPPainter *painter)
 {
-    const QPointF p1 = topLeft->pixelPoint();
-    const QPointF p2 = bottomRight->pixelPoint();
+#if defined(HAS_QCUSTOMPLOT_V2)
+    QPointF p1 = topLeft->pixelPosition();
+    QPointF p2 = bottomRight->pixelPosition();
+#else
+    QPointF p1 = topLeft->pixelPoint();
+    QPointF p2 = bottomRight->pixelPoint();
+#endif
 
     const QRectF boundingRect = QRectF( p1, p2 ).normalized();
 
