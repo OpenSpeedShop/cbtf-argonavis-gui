@@ -689,6 +689,38 @@ void PerformanceDataMetricView::processTableViewItemClicked(QTreeView* view, con
                     emit signalDisplaySourceFileLineNumber( filename, lineNumber );
                 }
             }
+            else if ( title.startsWith("Time ") ) {
+                QString definingLocation;
+                int rank = -1;
+                double timeBegin;
+                double timeEnd;
+
+                for ( int i=0; i<model->columnCount(); ++i ) {
+                    QModelIndex colIndex = model->index( index.row(), i );
+                    QVariant columnTitle( model->headerData( i, Qt::Horizontal ) );
+                    if ( columnTitle == s_functionTitle ) {
+                        definingLocation = model->data( colIndex ).toString();
+                    }
+                    else if ( columnTitle == QStringLiteral("Rank") ) {
+                        rank = model->data( colIndex ).toInt();
+                    }
+                }
+
+                if ( QStringLiteral("Time Begin (ms)") == title ) {
+                    timeBegin = model->data( index ).toDouble();
+                    QModelIndex colIndex = model->index( index.row(), index.column()+1 );
+                    timeEnd = model->data( colIndex ).toDouble();
+
+                    emit signalTraceItemSelected( definingLocation, timeBegin, timeEnd, rank );
+                }
+                else if ( QStringLiteral("Time End (ms)") == title ) {
+                    QModelIndex colIndex = model->index( index.row(), index.column()-1 );
+                    timeBegin = model->data( colIndex ).toDouble();
+                    timeEnd = model->data( index ).toDouble();
+
+                    emit signalTraceItemSelected( definingLocation, timeBegin, timeEnd, rank );
+                }
+            }
         }
     }
 }

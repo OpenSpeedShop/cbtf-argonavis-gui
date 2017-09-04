@@ -50,6 +50,7 @@ class KernelExecution;
 namespace GUI {
 
 class OSSEventsSummaryItem;
+class OSSHighlightItem;
 
 class PerformanceDataPlotView : public QWidget
 {
@@ -67,6 +68,8 @@ public:
 signals:
 
     void graphRangeChanged(const QString& clusteringCriteriaName,const QString& clusterName, double lower, double upper, const QSize& size);
+
+    void signalTraceItemSelected(const QString& definingLocation, double timeBegin, double timeEnd, int rank);
 
 protected:
 
@@ -148,6 +151,8 @@ private:
     QMutex m_mutex;
 
     int m_metricCount;
+
+    OSSHighlightItem* m_highlightItem;
 
 };
 

@@ -107,6 +107,8 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::signalSetDefaultMetricView, this, &MainWindow::handleSetDefaultMetricView );
         connect( dataMgr, &PerformanceDataManager::addDevice, ui->widget_MetricTableView, &PerformanceDataMetricView::signalAddDevice );
         connect( dataMgr, &PerformanceDataManager::signalRequestMetricTableViewUpdate, ui->widget_MetricTableView, &PerformanceDataMetricView::handleRequestViewUpdate );
+        connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalTraceItemSelected,
+                 ui->widget_MetricViewManager, &MetricViewManager::signalTraceItemSelected );
 #else
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)),
@@ -139,6 +141,8 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes,bool,bool,bool)) );
         connect( dataMgr, SIGNAL(addDevice(quint32,quint32,NameValueList,NameValueList)), ui->widget_MetricTableView, SIGNAL(signalAddDevice(quint32,quint32,NameValueList,NameValueList)) );
         connect( dataMgr, SIGNAL(signalRequestMetricTableViewUpdate(bool)), ui->widget_MetricTableView, SLOT(handleRequestViewUpdate(bool)) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
+                 ui->widget_MetricViewManager, SIGNAL(signalTraceItemSelected(QString,double,double,int)) );
 #endif
     }
 

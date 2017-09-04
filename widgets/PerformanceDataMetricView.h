@@ -98,6 +98,7 @@ signals:
     void signalRequestDetailView(const QString& clusteringCriteriaName, const QString& detailName);
     void signalClearSourceView();
     void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
+    void signalTraceItemSelected(const QString& definingLocation, double timeBegin, double timeEnd, int rank);
     void signalAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
     void signalMetricViewChanged(const QString& metricViewName);
 

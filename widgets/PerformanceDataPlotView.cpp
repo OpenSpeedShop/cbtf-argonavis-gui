@@ -32,6 +32,7 @@
 #include "graphitems/OSSPeriodicSampleItem.h"
 #include "graphitems/OSSEventsSummaryItem.h"
 #include "graphitems/OSSTraceItem.h"
+#include "graphitems/OSSHighlightItem.h"
 
 #include <QtGlobal>
 #include <qmath.h>
@@ -53,12 +54,13 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
     : QWidget( parent )
     , ui( new Ui::PerformanceDataPlotView )
     , m_metricCount( 0 )
+    , m_highlightItem( Q_NULLPTR )
 {
     qsrand( QDateTime::currentDateTime().toTime_t() );
 
     ui->setupUi( this );
 
-#ifdef HAS_QCUSTOMPLOT_V2
+#ifdef QCUSTOMPLOT_USE_OPENGL
     ui->graphView->setOpenGl( true );
     qDebug() << Q_FUNC_INFO << "openGl()=" << ui->graphView->openGl();
 #endif
@@ -565,6 +567,12 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
 
     if ( ! axisRect )
         return;
+
+    if ( clusteringCriteriaName == clusterName ) {
+        m_highlightItem = new OSSHighlightItem( axisRect, ui->graphView );
+        connect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
+                 m_highlightItem, SLOT(setData(QString,double,double,int)) );
+    }
 
     // get x and y axes
     QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
