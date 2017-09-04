@@ -41,8 +41,13 @@ OSSHighlightItem::~OSSHighlightItem()
  */
 void OSSHighlightItem::draw(QCPPainter *painter)
 {
+#if defined(HAS_QCUSTOMPLOT_V2)
+    QPointF p1 = topLeft->pixelPosition();
+    QPointF p2 = bottomRight->pixelPosition();
+#else
     QPointF p1 = topLeft->pixelPoint();
     QPointF p2 = bottomRight->pixelPoint();
+#endif
 
     if ( p1.toPoint() == p2.toPoint() )
         return;
