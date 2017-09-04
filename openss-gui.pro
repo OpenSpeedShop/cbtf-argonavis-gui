@@ -137,7 +137,16 @@ message("LIBS="$$LIBS)
 LIBS += -lboost_date_time -lboost_filesystem -lboost_unit_test_framework
 LIBS += -lgomp
 
-QCUSTOMPLOTDIR = $$PWD/QCustomPlot
+# select QCustomPlot version
+#QCUSTOMPLOTVER = 1.3.2
+QCUSTOMPLOTVER = 2.0.0-beta
+
+equals(QCUSTOMPLOTVER, 2.0.0-beta) {
+DEFINES += HAS_QCUSTOMPLOT_V2
+greaterThan(QT_MAJOR_VERSION, 4): DEFINES += QCUSTOMPLOT_USE_OPENGL
+}
+
+QCUSTOMPLOTDIR = $$PWD/QCustomPlot/$$QCUSTOMPLOTVER
 INCLUDEPATH += $$QCUSTOMPLOTDIR
 
 INCLUDEPATH += $$GRAPHVIZ_ROOT/include/graphviz
@@ -160,7 +169,7 @@ exists($$QTGRAPHLIB_ROOT/$$BUILDLIB/$$QT_VERSION): LIBS += -L$$QTGRAPHLIB_ROOT/$
 message("LD_LIBRARY_PATH="$$LD_LIBRARY_PATH)
 
 SOURCES += \
-    QCustomPlot/qcustomplot.cpp \
+    QCustomPlot/$$QCUSTOMPLOTVER/qcustomplot.cpp \
     QCustomPlot/CustomPlot.cpp \
     main/main.cpp \
     main/MainWindow.cpp \
@@ -209,7 +218,7 @@ contains(DEFINES, HAS_OSSCUDA2XML): {
 
 HEADERS += \
     common/openss-gui-config.h \
-    QCustomPlot/qcustomplot.h \
+    QCustomPlot/$$QCUSTOMPLOTVER/qcustomplot.h \
     QCustomPlot/CustomPlot.h \
     main/MainWindow.h \
     graphitems/OSSDataTransferItem.h \

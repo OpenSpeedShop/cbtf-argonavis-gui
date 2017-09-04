@@ -78,7 +78,6 @@ private slots:
     void handleAxisRangeChangeForMetricGroup(QCPAxis *senderAxis, const QCPRange &requestedRange);
     void handleAxisLabelDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part);
     void handleSelectionChanged();
-    void handleGraphClicked(QCPAbstractPlottable *plottable);
     void handleItemClick(QCPAbstractItem *item, QMouseEvent *event);
 
     void handleAddCluster(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);

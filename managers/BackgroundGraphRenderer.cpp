@@ -245,7 +245,9 @@ void BackgroundGraphRenderer::processDataTransferEvent(const QString& clustering
 
     dataXferItem->setData( time_origin, details );
 
+#if !defined(HAS_QCUSTOMPLOT_V2)
     plot->addItem( dataXferItem );
+#endif
 
 #ifdef HAS_PROCESS_EVENT_DEBUG
     QString line;
@@ -283,7 +285,9 @@ void BackgroundGraphRenderer::processKernelExecutionEvent(const QString& cluster
 
     kernelExecItem->setData( time_origin, details );
 
+#if !defined(HAS_QCUSTOMPLOT_V2)
     plot->addItem( kernelExecItem );
+#endif
 
 #ifdef HAS_PROCESS_EVENT_DEBUG
     QString line;
