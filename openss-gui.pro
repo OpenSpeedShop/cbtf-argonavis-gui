@@ -138,8 +138,8 @@ LIBS += -lboost_date_time -lboost_filesystem -lboost_unit_test_framework
 LIBS += -lgomp
 
 # select QCustomPlot version
-#QCUSTOMPLOTVER = 1.3.2
-QCUSTOMPLOTVER = 2.0.0-beta
+QCUSTOMPLOTVER = 1.3.2
+#QCUSTOMPLOTVER = 2.0.0-beta
 
 equals(QCUSTOMPLOTVER, 2.0.0-beta) {
 DEFINES += HAS_QCUSTOMPLOT_V2
