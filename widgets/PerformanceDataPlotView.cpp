@@ -569,6 +569,11 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
         return;
 
     if ( clusteringCriteriaName == clusterName ) {
+        if ( m_highlightItem != Q_NULLPTR ) {
+            disconnect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
+                        m_highlightItem, SLOT(setData(QString,double,double,int)) );
+            delete m_highlightItem;
+        }
         m_highlightItem = new OSSHighlightItem( axisRect, ui->graphView );
         connect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
                  m_highlightItem, SLOT(setData(QString,double,double,int)) );
