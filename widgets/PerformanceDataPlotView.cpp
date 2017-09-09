@@ -137,6 +137,13 @@ void PerformanceDataPlotView::unloadExperimentDataFromView(const QString &experi
 {
     Q_UNUSED( experimentName )  // for now until view supports more than one experiment
 
+    if ( m_highlightItem != Q_NULLPTR ) {
+        disconnect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
+                    m_highlightItem, SLOT(setData(QString,double,double,int)) );
+        delete m_highlightItem;
+        m_highlightItem = Q_NULLPTR;
+    }
+
     ui->graphView->clearGraphs();
     ui->graphView->clearItems();
     ui->graphView->clearPlottables();
@@ -569,11 +576,6 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
         return;
 
     if ( clusteringCriteriaName == clusterName ) {
-        if ( m_highlightItem != Q_NULLPTR ) {
-            disconnect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
-                        m_highlightItem, SLOT(setData(QString,double,double,int)) );
-            delete m_highlightItem;
-        }
         m_highlightItem = new OSSHighlightItem( axisRect, ui->graphView );
         connect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
                  m_highlightItem, SLOT(setData(QString,double,double,int)) );
