@@ -46,6 +46,9 @@ MetricViewManager::MetricViewManager(QWidget *parent)
     ui->setupUi( this );
 
     qRegisterMetaType<MetricViewTypes>("MetricViewTypes");
+
+    connect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
+             ui->widget_MetricPlotView, SIGNAL(signalTraceItemSelected(QString,double,double,int)) );
 }
 
 /**

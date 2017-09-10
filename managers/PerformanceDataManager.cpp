@@ -3142,7 +3142,7 @@ QStringList PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>() c
 {
     QStringList metrics;
 
-    metrics << s_functionTitle << tr("Start Time") << tr("End Time") << tr("Duration (ms)") << tr("Rank")
+    metrics << s_functionTitle << tr("Time Begin (ms)") << tr("Time End (ms)") << tr("Duration (ms)") << tr("Rank")
             << tr("From Rank") << tr("To Rank") << tr("Message Size") << tr("Return Value");
 
     return metrics;
@@ -3194,7 +3194,7 @@ QStringList PerformanceDataManager::getTraceMetrics<std::vector<Framework::MemDe
 {
     QStringList metrics;
 
-    metrics << s_functionTitle << tr("Start Time") << tr("End Time") << tr("Duration (ms)") << tr("Rank")
+    metrics << s_functionTitle << tr("Time Begin (ms)") << tr("Time End (ms)") << tr("Duration (ms)") << tr("Rank")
             << tr("Count") << tr("Size 1 Arg") << tr("Size 2 Arg") << tr("Return Value")
             << tr("Max Allocation Seen") << tr("Min Allocation Seen") << tr("Total Allocation");
 

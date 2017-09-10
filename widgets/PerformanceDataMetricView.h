@@ -98,6 +98,7 @@ signals:
     void signalRequestDetailView(const QString& clusteringCriteriaName, const QString& detailName);
     void signalClearSourceView();
     void signalDisplaySourceFileLineNumber(const QString& filename, int lineNumber);
+    void signalTraceItemSelected(const QString& definingLocation, double timeBegin, double timeEnd, int rank);
     void signalAddPathSubstitution(int index, const QString& oldPath, const QString& newPath);
     void signalMetricViewChanged(const QString& metricViewName);
 
@@ -120,6 +121,7 @@ private slots:
 
 private:
 
+    void processTableViewItemClicked(const QAbstractItemModel *model, const QModelIndex &index);
     void processTableViewItemClicked(QTreeView* view, const QModelIndex& index);
     void processCustomContextMenuRequested(QTreeView* view, const QPoint &pos);
     void clearExistingModelsAndViews(const QString &metricViewName, bool deleteModel = true, bool deleteView = false);

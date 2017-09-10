@@ -50,6 +50,7 @@ class KernelExecution;
 namespace GUI {
 
 class OSSEventsSummaryItem;
+class OSSHighlightItem;
 
 class PerformanceDataPlotView : public QWidget
 {
@@ -68,6 +69,8 @@ signals:
 
     void graphRangeChanged(const QString& clusteringCriteriaName,const QString& clusterName, double lower, double upper, const QSize& size);
 
+    void signalTraceItemSelected(const QString& definingLocation, double timeBegin, double timeEnd, int rank);
+
 protected:
 
     QSize sizeHint() const Q_DECL_OVERRIDE;
@@ -78,7 +81,6 @@ private slots:
     void handleAxisRangeChangeForMetricGroup(QCPAxis *senderAxis, const QCPRange &requestedRange);
     void handleAxisLabelDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part);
     void handleSelectionChanged();
-    void handleGraphClicked(QCPAbstractPlottable *plottable);
     void handleItemClick(QCPAbstractItem *item, QMouseEvent *event);
 
     void handleAddCluster(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
@@ -149,6 +151,8 @@ private:
     QMutex m_mutex;
 
     int m_metricCount;
+
+    OSSHighlightItem* m_highlightItem;
 
 };
 

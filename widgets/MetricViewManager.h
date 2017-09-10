@@ -54,6 +54,10 @@ public slots:
 
     void handleSwitchView(const MetricViewTypes viewType);
 
+signals:
+
+    void signalTraceItemSelected(const QString& definingLocation, double timeBegin, double timeEnd, int rank);
+
 private:
 
     Ui::MetricViewManager *ui;

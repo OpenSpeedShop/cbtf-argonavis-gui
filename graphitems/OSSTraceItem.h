@@ -41,13 +41,13 @@ public:
     void setData(const QString& functionName, double timeBegin, double timeEnd, int rank);
     void setBrush(const QString& functionName);
 
+    static double s_halfHeight;
+
 protected:
 
     virtual void draw(QCPPainter *painter) Q_DECL_OVERRIDE;
 
 private:
-
-    static double s_halfHeight;
 
     QString m_functionName;
 

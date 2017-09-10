@@ -32,6 +32,7 @@
 #include "graphitems/OSSPeriodicSampleItem.h"
 #include "graphitems/OSSEventsSummaryItem.h"
 #include "graphitems/OSSTraceItem.h"
+#include "graphitems/OSSHighlightItem.h"
 
 #include <QtGlobal>
 #include <qmath.h>
@@ -53,10 +54,16 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
     : QWidget( parent )
     , ui( new Ui::PerformanceDataPlotView )
     , m_metricCount( 0 )
+    , m_highlightItem( Q_NULLPTR )
 {
     qsrand( QDateTime::currentDateTime().toTime_t() );
 
     ui->setupUi( this );
+
+#ifdef QCUSTOMPLOT_USE_OPENGL
+    ui->graphView->setOpenGl( true );
+    qDebug() << Q_FUNC_INFO << "openGl()=" << ui->graphView->openGl();
+#endif
 
     ui->graphView->plotLayout()->clear(); // remove the default axis rect
 
@@ -70,9 +77,6 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
 
     // connect some interaction slots:
     connect( ui->graphView, SIGNAL(axisDoubleClick(QCPAxis*,QCPAxis::SelectablePart,QMouseEvent*)), this, SLOT(handleAxisLabelDoubleClick(QCPAxis*,QCPAxis::SelectablePart)) );
-
-    // connect slot when a graph is clicked:
-    connect( ui->graphView, SIGNAL(plottableClick(QCPAbstractPlottable*,QMouseEvent*)), this, SLOT(handleGraphClicked(QCPAbstractPlottable*)) );
 
     // connect slot when an item is clicked
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -132,6 +136,13 @@ PerformanceDataPlotView::~PerformanceDataPlotView()
 void PerformanceDataPlotView::unloadExperimentDataFromView(const QString &experimentName)
 {
     Q_UNUSED( experimentName )  // for now until view supports more than one experiment
+
+    if ( m_highlightItem != Q_NULLPTR ) {
+        disconnect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
+                    m_highlightItem, SLOT(setData(QString,double,double,int)) );
+        delete m_highlightItem;
+        m_highlightItem = Q_NULLPTR;
+    }
 
     ui->graphView->clearGraphs();
     ui->graphView->clearItems();
@@ -215,14 +226,24 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
     mTickStep = qCeil( tickStepMantissa ) * magnitudeFactor;
     mTickStep = qMax( 1.0, mTickStep );
 
-    //qDebug() << "using tick step: " << mTickStep << "magnitude factor: " << magnitudeFactor << "tickStepMantissa: " << tickStepMantissa;
-    xAxis->setSubTickCount( qMax( 1.0, (qreal) qCeil( tickStepMantissa ) ) - 1 );
-
     // Generate tick positions according to mTickStep:
     qint64 firstStep = floor( newRange.lower / mTickStep ); // do not use qFloor here, or we'll lose 64 bit precision
     qint64 lastStep = qMin( dataRange.upper, ceil( newRange.upper / mTickStep ) ); // do not use qCeil here, or we'll lose 64 bit precision
 
     int tickcount = qMax( 0LL, lastStep - firstStep + 1 );
+
+#ifdef HAS_QCUSTOMPLOT_V2
+    // get the ticker shared pointer
+    QSharedPointer< QCPAxisTicker > axisTicker = xAxis->ticker();
+
+    // cast to QCPAxisTickerFixed instance
+    QCPAxisTickerFixed* ticker = dynamic_cast< QCPAxisTickerFixed* >( axisTicker.data() );
+
+    ticker->setTickCount( tickcount );
+    ticker->setTickStep( mTickStep );
+#else
+    //qDebug() << "using tick step: " << mTickStep << "magnitude factor: " << magnitudeFactor << "tickStepMantissa: " << tickStepMantissa;
+    xAxis->setSubTickCount( qMax( 1.0, (qreal) qCeil( tickStepMantissa ) ) - 1 );
 
     QVector< double > mTickVector;
     QVector< QString > mTickLabelVector;
@@ -242,6 +263,7 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
 
     xAxis->setTickVector( mTickVector );
     xAxis->setTickVectorLabels( mTickLabelVector );
+#endif
 
     handleAxisRangeChangeForMetricGroup( xAxis, newRange );
 
@@ -310,19 +332,10 @@ void PerformanceDataPlotView::handleSelectionChanged()
         QCPAbstractPlottable* graph =  ui->graphView->plottable(i);
         QCPPlottableLegendItem *item =  ui->graphView->legend->itemWithPlottable( graph );
         item->setSelected( item->selected() );
+#if !defined(HAS_QCUSTOMPLOT_V2)
         graph->setSelected( graph->selected() );
+#endif
     }
-}
-
-/**
- * @brief PerformanceDataPlotView::handleGraphClicked
- * @param plottable - the plottable that was clicked
- *
- * Handle specific logic when graph clicked.
- */
-void PerformanceDataPlotView::handleGraphClicked(QCPAbstractPlottable *plottable)
-{
-    Q_UNUSED( plottable )
 }
 
 /**
@@ -414,7 +427,9 @@ void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringC
     eventSummaryItem->setData( lower, upper, image );
 
     if ( newItem ) {
+#if !defined(HAS_QCUSTOMPLOT_V2)
         ui->graphView->addItem( eventSummaryItem );
+#endif
 
         {
             QMutexLocker guard( &m_mutex );
@@ -425,7 +440,11 @@ void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringC
         }
     }
 
+#if defined(HAS_QCUSTOMPLOT_V2)
+    ui->graphView->replot( QCustomPlot::rpQueuedReplot );
+#else
     ui->graphView->replot( QCustomPlot::rpQueued );
+#endif
 }
 
 /**
@@ -449,7 +468,11 @@ void PerformanceDataPlotView::handleRequestMetricViewComplete(const QString &clu
         return;
 
     if ( ( QStringLiteral("Trace") == metricName || QStringLiteral("Details") == metricName ) && QStringLiteral("All Events") == viewName ) {
-        ui->graphView->replot( QCustomPlot::rpQueued );
+#if defined(HAS_QCUSTOMPLOT_V2)
+    ui->graphView->replot( QCustomPlot::rpQueuedReplot );
+#else
+    ui->graphView->replot( QCustomPlot::rpQueued );
+#endif
     }
 }
 
@@ -552,15 +575,29 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
     if ( ! axisRect )
         return;
 
+    if ( clusteringCriteriaName == clusterName ) {
+        m_highlightItem = new OSSHighlightItem( axisRect, ui->graphView );
+        connect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
+                 m_highlightItem, SLOT(setData(QString,double,double,int)) );
+    }
+
     // get x and y axes
     QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
     QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
 
     // prepare x axis
     if ( xAxis ) {
+#if defined(HAS_QCUSTOMPLOT_V2)
+        // create ticker
+        QSharedPointer< QCPAxisTickerFixed > fixedTicker( new QCPAxisTickerFixed );
+        fixedTicker->setScaleStrategy( QCPAxisTickerFixed::ssMultiples );
+        xAxis->setTicker( fixedTicker );
+#else
         xAxis->setAutoTicks( false );
         xAxis->setAutoTickLabels( false );
         xAxis->setAutoTickStep( false );
+        xAxis->setAutoSubTicks( false );
+#endif
         QFont font;
         font.setFamily( "arial" );
         font.setBold( true );
@@ -575,7 +612,6 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
         xAxis->grid()->setPen( QPen(QColor(140, 140, 140), 1, Qt::DotLine) );
         xAxis->grid()->setSubGridPen( QPen(QColor(80, 80, 80), 1, Qt::DotLine) );
         xAxis->grid()->setSubGridVisible( false );
-        xAxis->setAutoSubTicks( false );
 
         // set associated metric group property
         xAxis->setProperty( "associatedMetricGroup", clusteringCriteriaName );
@@ -604,9 +640,11 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
         font.setBold( true );
         font.setPixelSize( 10 );
         yAxis->setLabelFont( font );
+#if !defined(HAS_QCUSTOMPLOT_V2)
         yAxis->setAutoTicks( false );
         yAxis->setAutoTickLabels( false );
         yAxis->setAutoTickStep( false );
+#endif
         yAxis->setPadding( 5 ); // a bit more space to the left border
         QPen gridPen;
         gridPen.setStyle( Qt::SolidLine );
@@ -617,13 +655,28 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
         yAxis->setVisible( true );
         if ( yAxisVisible ) {
             // display no tick marks and labels unless specified
+#if !defined(HAS_QCUSTOMPLOT_V2)
             yAxis->setAutoTicks( true );
             yAxis->setAutoTickLabels( true );
+#else
+            // create ticker
+            QSharedPointer< QCPAxisTickerFixed > ticker( new QCPAxisTickerFixed );
+            ticker->setTickCount( yAxisUpper );
+            yAxis->setTicker( ticker );
+#endif
             const int factor = ( yAxisUpper > 8 ) ? 50 : 80;
             setFixedHeight( factor * qMax( 2.0, yAxisUpper ) );
         }
         else {
             setFixedHeight( QWIDGETSIZE_MAX );
+#if defined(HAS_QCUSTOMPLOT_V2)
+            yAxis->setTickLabels( false );
+            yAxis->setTicks( false );
+            // create ticker
+            QSharedPointer< QCPAxisTickerText > ticker( new QCPAxisTickerText );
+            ticker->setTickCount( 1 );
+            yAxis->setTicker( ticker );
+#endif
         }
 
         yAxis->setLabel( clusterName );
@@ -659,7 +712,9 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
     kernelExecutionLegendItem->bottomRight->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
     kernelExecutionLegendItem->setBrush( QColor( 0xaf, 0xdb, 0xaf ) );
     kernelExecutionLegendItem->setPen( QColor( 0xaf, 0xdb, 0xaf ) );
+#if !defined(HAS_QCUSTOMPLOT_V2)
     ui->graphView->addItem( kernelExecutionLegendItem );
+#endif
 
     QCPItemText *textLabel = new QCPItemText( ui->graphView );;
     textLabel->setClipAxisRect( axisRect );
@@ -672,7 +727,9 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
     textLabel->position->setAxisRect( axisRect );
     textLabel->setText( tr("Kernel Execution") );
     textLabel->setFont( QFont(font().family(), 8) );
+#if !defined(HAS_QCUSTOMPLOT_V2)
     ui->graphView->addItem( textLabel );
+#endif
 
     QCPItemRect* dataTransferLegendItem = new QCPItemRect( ui->graphView );;
     dataTransferLegendItem->setClipAxisRect( axisRect );
@@ -688,7 +745,9 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
     dataTransferLegendItem->bottomRight->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
     dataTransferLegendItem->setBrush( QColor( 0xff, 0xbf, 0xbf ) );
     dataTransferLegendItem->setPen( QColor( 0xff, 0xbf, 0xbf ) );
+#if !defined(HAS_QCUSTOMPLOT_V2)
     ui->graphView->addItem( dataTransferLegendItem );
+#endif
 
     textLabel = new QCPItemText( ui->graphView );;
     textLabel->setClipAxisRect( axisRect );
@@ -701,7 +760,9 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
     textLabel->position->setAxisRect( axisRect );
     textLabel->setText( tr("Data Transfer") );
     textLabel->setFont( QFont(font().family(), 8) );
+#if !defined(HAS_QCUSTOMPLOT_V2)
     ui->graphView->addItem( textLabel );
+#endif
 
     QCPItemRect* periodicSampleLegendItem = new QCPItemRect( ui->graphView );;
     periodicSampleLegendItem->setClipAxisRect( axisRect );
@@ -717,7 +778,9 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
     periodicSampleLegendItem->bottomRight->setAxes( axisRect->axis( QCPAxis::atBottom ), axisRect->axis( QCPAxis::atLeft ) );
     periodicSampleLegendItem->setBrush( QColor( 140, 140, 140, 80 ) );
     periodicSampleLegendItem->setPen( QColor( 140, 140, 140, 80 ) );
+#if !defined(HAS_QCUSTOMPLOT_V2)
     ui->graphView->addItem( periodicSampleLegendItem );
+#endif
 
     textLabel = new QCPItemText( ui->graphView );;
     textLabel->setClipAxisRect( axisRect );
@@ -730,7 +793,9 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
     textLabel->position->setAxisRect( axisRect );
     textLabel->setText( tr("Sample Counts") );
     textLabel->setFont( QFont(font().family(), 8) );
+#if !defined(HAS_QCUSTOMPLOT_V2)
     ui->graphView->addItem( textLabel );
+#endif
 }
 
 /**
@@ -840,7 +905,9 @@ void PerformanceDataPlotView::handleAddDataTransfer(const QString &clusteringCri
 
     dataXferItem->setData( time_origin, details );
 
+#if !defined(HAS_QCUSTOMPLOT_V2)
     ui->graphView->addItem( dataXferItem );
+#endif
 }
 
 /**
@@ -875,7 +942,9 @@ void PerformanceDataPlotView::handleAddTraceItem(const QString &clusteringCriter
 
     traceItem->setData( functionName, startTime, endTime, rankOrThread );
 
+#if !defined(HAS_QCUSTOMPLOT_V2)
     ui->graphView->addItem( traceItem );
+#endif
 }
 
 /**
@@ -909,7 +978,9 @@ void PerformanceDataPlotView::handleAddKernelExecution(const QString &clustering
 
     kernelExecItem->setData( time_origin, details );
 
+#if !defined(HAS_QCUSTOMPLOT_V2)
     ui->graphView->addItem( kernelExecItem );
+#endif
 }
 
 /**
@@ -944,7 +1015,9 @@ void PerformanceDataPlotView::handleAddPeriodicSample(const QString &clusteringC
 
     periodicSampleItem->setData( time_begin, time_end, count );
 
-    ui->graphView->addItem( periodicSampleItem );
+#if !defined(HAS_QCUSTOMPLOT_V2)
+   ui->graphView->addItem( periodicSampleItem );
+#endif
 
     QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
 
@@ -1050,7 +1123,11 @@ void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringC
             xAxis->setRange( QCPRange( xAxisLower, xAxisUpper ) );
         }
         // force graph replot
+#if defined(HAS_QCUSTOMPLOT_V2)
+        ui->graphView->replot( QCustomPlot::rpQueuedReplot );
+#else
         ui->graphView->replot();
+#endif
     }
 }
 

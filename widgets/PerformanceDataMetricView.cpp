@@ -607,6 +607,18 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
         // initially sorting is disabled and enabled once all data has been added to the metric/detail model
         view->setSortingEnabled( false );
 
+        view->setSelectionMode( QAbstractItemView::SingleSelection );
+        QItemSelectionModel* selectionModel = view->selectionModel();
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        connect( selectionModel, &QItemSelectionModel::currentChanged, [=](const QModelIndex &current, const QModelIndex &previous) {
+            Q_UNUSED( previous );
+            processTableViewItemClicked( view, current );
+        } );
+#else
+        connect( selectionModel, SIGNAL(currentChanged(QModelIndex,QModelIndex)),
+                 this, SLOT(handleTableViewItemClicked(QModelIndex)) );
+#endif
+
         // resize header view columns to maximum size required to fit all column contents
         QHeaderView* headerView = view->header();
         if ( headerView ) {
@@ -651,13 +663,88 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
  * @brief PerformanceDataMetricView::processTableViewItemClicked
  * @param index - model index of item clicked
  *
- * Handler invoked when item on Metric Table View clicked.
+ * Handler invoked when item on Metric Table View clicked or selected.
  */
 void PerformanceDataMetricView::handleTableViewItemClicked(const QModelIndex& index)
 {
+    // was this a QAbstractItemView::clicked signal?
     QTreeView* view = qobject_cast< QTreeView* >( sender() );
 
-    processTableViewItemClicked( view, index );
+    if ( view ) {
+        // yes this was handled from a QAbstractItemView::clicked signal
+        processTableViewItemClicked( view, index );
+    }
+    else {
+        // or was this a QItemSelectedModel::currentChanged signal?
+        QItemSelectionModel* selectionModel = qobject_cast< QItemSelectionModel* >( sender() );
+
+        if ( selectionModel ) {
+            // yes this was handled from a QItemSelectedModel::currentChanged signal
+            processTableViewItemClicked( selectionModel->model(), index );
+        }
+    }
+}
+
+/**
+ * @brief PerformanceDataMetricView::processTableViewItemClicked
+ * @param model - pointer to model instance
+ * @param index - model index of item clicked
+ *
+ * This method is called from signal handler when item on Metric Table View clicked.
+ */
+void PerformanceDataMetricView::processTableViewItemClicked(const QAbstractItemModel* model, const QModelIndex& index)
+{
+    if ( model ) {
+        QString text( model->data( index ).toString() );
+        QVariant titleVar( model->headerData( index.column(), Qt::Horizontal ) );
+        QString title;
+        if ( titleVar.isValid() ) {
+            title = titleVar.toString();
+        }
+        if ( s_functionTitle == title ) {
+            QString filename;
+            int lineNumber;
+            ModifyPathSubstitutionsDialog::extractFilenameAndLine( text, filename, lineNumber );
+            if ( filename.isEmpty() || -1 == lineNumber ) {
+                emit signalClearSourceView();
+            }
+            else {
+                emit signalDisplaySourceFileLineNumber( filename, lineNumber );
+            }
+        }
+        else if ( title.startsWith("Time ") ) {
+            QString definingLocation;
+            int rank = -1;
+            double timeBegin;
+            double timeEnd;
+
+            for ( int i=0; i<model->columnCount(); ++i ) {
+                QModelIndex colIndex = model->index( index.row(), i );
+                QVariant columnTitle( model->headerData( i, Qt::Horizontal ) );
+                if ( columnTitle == s_functionTitle ) {
+                    definingLocation = model->data( colIndex ).toString();
+                }
+                else if ( columnTitle == QStringLiteral("Rank") ) {
+                    rank = model->data( colIndex ).toInt();
+                }
+            }
+
+            if ( QStringLiteral("Time Begin (ms)") == title ) {
+                timeBegin = model->data( index ).toDouble();
+                QModelIndex colIndex = model->index( index.row(), index.column()+1 );
+                timeEnd = model->data( colIndex ).toDouble();
+
+                emit signalTraceItemSelected( definingLocation, timeBegin, timeEnd, rank );
+            }
+            else if ( QStringLiteral("Time End (ms)") == title ) {
+                QModelIndex colIndex = model->index( index.row(), index.column()-1 );
+                timeBegin = model->data( colIndex ).toDouble();
+                timeEnd = model->data( index ).toDouble();
+
+                emit signalTraceItemSelected( definingLocation, timeBegin, timeEnd, rank );
+            }
+        }
+    }
 }
 
 /**
@@ -671,25 +758,8 @@ void PerformanceDataMetricView::processTableViewItemClicked(QTreeView* view, con
 {
     if ( view ) {
         QAbstractItemModel* model = view->model();
-        if ( model ) {
-            QString text( model->data( index ).toString() );
-            QVariant titleVar( model->headerData( index.column(), Qt::Horizontal ) );
-            QString title;
-            if ( titleVar.isValid() ) {
-                title = titleVar.toString();
-            }
-            if ( s_functionTitle == title ) {
-                QString filename;
-                int lineNumber;
-                ModifyPathSubstitutionsDialog::extractFilenameAndLine( text, filename, lineNumber );
-                if ( filename.isEmpty() || -1 == lineNumber ) {
-                    emit signalClearSourceView();
-                }
-                else {
-                    emit signalDisplaySourceFileLineNumber( filename, lineNumber );
-                }
-            }
-        }
+
+        processTableViewItemClicked( model, index );
     }
 }
 
