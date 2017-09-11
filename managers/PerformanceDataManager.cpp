@@ -101,9 +101,9 @@ QString PerformanceDataManager::s_meanThreadTitle( tr("Thread Nearest Avg (name)
 
 // define list of supported trace experiment types
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = { "mpit" };
+QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = { "mpit", "iot" };
 #else
-QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = QStringList() << "mpit";
+QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = QStringList() << "mpit" << "iot";
 #endif
 
 // define list of supported sampling experiment types
@@ -731,6 +731,9 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
 
     if ( collectorId == "mpit" ) {
         ShowTraceDetail< std::vector<Framework::MPITDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
+    }
+    else if ( collectorId == "iot" ) {
+        ShowTraceDetail< std::vector<Framework::IOTDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
     }
 
     if ( cursorManager ) {
@@ -3116,7 +3119,34 @@ void PerformanceDataManager::getTraceMetricValues(const QString& functionName, c
         const double upper = ( detail.dm_interval.getEnd().getValue() / 1000000.0 ) - time_origin;
         const double time_in_call = detail.dm_time * 1000.0;
 
-        metricData.push_back( QVariantList() << functionName << lower << upper << time_in_call << detail.dm_source << detail.dm_destination << QVariant::fromValue<long>(detail.dm_size) << detail.dm_retval << detail.dm_id.first );
+        metricData.push_back( QVariantList() << functionName << lower << upper << time_in_call << detail.dm_id.first
+                                             << detail.dm_source << detail.dm_destination
+                                             << QVariant::fromValue<long>(detail.dm_size) << detail.dm_retval );
+    }
+}
+
+/**
+ * @brief PerformanceDataManager::getTraceMetricValues
+ * @param functionName - the function name
+ * @param time_origin - the experiment start time
+ * @param details - the vector of metric details
+ * @param metricData - a vector of trace metrics generated from the metric details
+ *
+ * This is a template specialization of the getTraceMetricValues template for the OpenSpeedShop::Framework::IOTDetail typename.
+ * This method generates a vector of trace metrics from the metric details.
+ */
+template <>
+void PerformanceDataManager::getTraceMetricValues(const QString& functionName, const double time_origin, const std::vector<IOTDetail>& details, QVector< QVariantList >& metricData)
+{
+    for ( std::vector<IOTDetail>::const_iterator iter = details.begin(); iter != details.end(); iter++ ) {
+        const IOTDetail& detail( *iter );
+
+        const double lower = ( detail.dm_interval.getBegin().getValue() / 1000000.0 ) - time_origin;
+        const double upper = ( detail.dm_interval.getEnd().getValue() / 1000000.0 ) - time_origin;
+        const double time_in_call = detail.dm_time * 1000.0;
+
+        metricData.push_back( QVariantList() << functionName << lower << upper << time_in_call << detail.dm_id.first
+                                             << detail.dm_syscallno << detail.dm_retval );
     }
 }
 
@@ -3132,9 +3162,26 @@ QStringList PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>() c
 {
     QStringList metrics;
 
-    metrics << s_functionTitle << tr("Time Begin (ms)") << tr("Time End (ms)") << tr("Duration (ms)")
-            << tr("From Rank") << tr("To Rank")
-            << tr("Message Size") << tr("Return Value") << tr("Rank");
+    metrics << s_functionTitle << tr("Time Begin (ms)") << tr("Time End (ms)") << tr("Duration (ms)") << tr("Rank")
+            << tr("From Rank") << tr("To Rank") << tr("Message Size") << tr("Return Value");
+
+    return metrics;
+}
+
+/**
+ * @brief PerformanceDataManager::getTraceMetrics<std::vector<IOTDetail>>
+ * @return - the trace metrics (names of columns for the MPI trace view).
+ *
+ * This is a template specialization of the getTraceMetrics template for the OpenSpeedShop::Framework::IOTDetail typename.
+ * The function returns the names of columns for the IO trace view.
+ */
+template <>
+QStringList PerformanceDataManager::getTraceMetrics<std::vector<IOTDetail>>() const
+{
+    QStringList metrics;
+
+    metrics << s_functionTitle << tr("Time Begin (ms)") << tr("Time End (ms)") << tr("Duration (ms)") << tr("Rank")
+            << tr("System Call Id") << tr("Return Value");
 
     return metrics;
 }
@@ -3227,7 +3274,7 @@ void PerformanceDataManager::ShowTraceDetail(
 
                 foreach( const QVariantList& list, traceList ) {
                     if ( list.size() == metricDesc.size() ) {
-                        emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, list[0].toString(), list[1].toDouble(), list[2].toDouble(), list[8].toInt() );
+                        emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, list[0].toString(), list[1].toDouble(), list[2].toDouble(), list[4].toInt() );
                     }
                 }
 
