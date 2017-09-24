@@ -13,104 +13,128 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QDialogButtonBox" name="buttonBox_MetricViewFilterDialog">
-   <property name="geometry">
-    <rect>
-     <x>610</x>
-     <y>10</y>
-     <width>81</width>
-     <height>621</height>
-    </rect>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Vertical</enum>
-   </property>
-   <property name="standardButtons">
-    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-   </property>
-  </widget>
-  <widget class="QWidget" name="verticalLayoutWidget">
-   <property name="geometry">
-    <rect>
-     <x>39</x>
-     <y>10</y>
-     <width>551</width>
-     <height>611</height>
-    </rect>
-   </property>
-   <layout class="QVBoxLayout" name="verticalLayout_DefineFilterCriteria" stretch="0,1">
-    <item>
-     <widget class="QGroupBox" name="groupBox_DefineFilterCriteria">
-      <property name="title">
-       <string>Define Filter Criteria</string>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_SelectColumn" stretch="1,3,1">
-         <item>
-          <widget class="QLabel" name="label_Column">
-           <property name="text">
-            <string>Column:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="comboBox_SelectColumn"/>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_Clear">
-           <property name="text">
-            <string>Clear</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_FilterText" stretch="1,3,1">
-         <item>
-          <widget class="QLabel" name="label_FilterText">
-           <property name="text">
-            <string>Filter Text: </string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLineEdit" name="lineEdit_FilterText"/>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_Accept">
-           <property name="text">
-            <string>Accept</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QGroupBox" name="groupBox_DefinedFilters">
-      <property name="title">
-       <string>Defined Filters</string>
-      </property>
-      <widget class="QTableView" name="tableView_DefinedFilters">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>20</y>
-         <width>551</width>
-         <height>481</height>
-        </rect>
+  <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,0">
+   <item>
+    <layout class="QVBoxLayout" name="verticalLayout_DefineFilterCriteria" stretch="0,1">
+     <property name="sizeConstraint">
+      <enum>QLayout::SetDefaultConstraint</enum>
+     </property>
+     <item>
+      <widget class="QGroupBox" name="groupBox_DefineFilterCriteria">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
+       <property name="minimumSize">
+        <size>
+         <width>555</width>
+         <height>104</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Define Filter Criteria</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_SelectColumn" stretch="1,3,1">
+          <item>
+           <widget class="QLabel" name="label_Column">
+            <property name="text">
+             <string>Column:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBox_SelectColumn"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_Clear">
+            <property name="text">
+             <string>Clear</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_FilterText" stretch="1,3,1">
+          <item>
+           <widget class="QLabel" name="label_FilterText">
+            <property name="text">
+             <string>Filter Text: </string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_FilterText"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_Accept">
+            <property name="text">
+             <string>Accept</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </widget>
-      <zorder>groupBox_DefineFilterCriteria</zorder>
-      <zorder>tableView_DefinedFilters</zorder>
-     </widget>
-    </item>
-   </layout>
-  </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="groupBox_DefinedFilters">
+       <property name="title">
+        <string>Defined Filters</string>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QTableView" name="tableView_DefinedFilters">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="sizeAdjustPolicy">
+           <enum>QAbstractScrollArea::AdjustToContents</enum>
+          </property>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
+         </widget>
+        </item>
+       </layout>
+       <zorder>groupBox_DefineFilterCriteria</zorder>
+       <zorder>tableView_DefinedFilters</zorder>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox_MetricViewFilterDialog">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections>
