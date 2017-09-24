@@ -32,6 +32,7 @@
 #include "managers/ApplicationOverrideCursorManager.h"
 #include "SourceView/ModifyPathSubstitutionsDialog.h"
 #include "widgets/ShowDeviceDetailsDialog.h"
+#include "widgets/MetricViewFilterDialog.h"
 
 #include <QStackedLayout>
 #include <QHeaderView>
@@ -169,6 +170,9 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
 
     // create show device details dialog
     m_deviceDetailsDialog = new ShowDeviceDetailsDialog( this );
+
+    // create metric view filters dialog
+    m_metricViewFilterDialog = new MetricViewFilterDialog( this );
 
     // connect signal/slot for handling adding device information to show device details dialog
     connect( this, SIGNAL(signalAddDevice(quint32,quint32,NameValueList,NameValueList)), m_deviceDetailsDialog, SLOT(handleAddDevice(quint32,quint32,NameValueList,NameValueList)) );
@@ -797,6 +801,9 @@ void PerformanceDataMetricView::processCustomContextMenuRequested(QTreeView* vie
             else if ( columnHeader.toString() == s_deviceTitle ) {
                 menuType = SHOW_DEVICE_DETAILS;
             }
+            else {
+                menuType = DEFAULT_CONTEXT_MENU;
+            }
             if ( menuType != MENU_TYPE_UNDEFINED ) {
                 showContextMenu( menuType, model->data( index ), view->viewport()->mapToGlobal( pos ) );
             }
@@ -1131,6 +1138,17 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
             }
         }
 
+        QStandardItemModel* model = m_models.value( metricViewName, Q_NULLPTR );
+        if ( model ) {
+            QStringList columnList;
+
+            for ( int i=0; i<model->columnCount(); ++i ) {
+                columnList << model->headerData( i, Qt::Horizontal ).toString();
+            }
+
+            m_metricViewFilterDialog->setColumns( columnList );
+        }
+
         if ( Q_NULLPTR != view ) {
             handleRangeChanged( clusteringCriteriaName, metricName, viewName, lower, upper );
 
@@ -1152,6 +1170,9 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
  */
 void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType, const QVariant& data, const QPoint &globalPos)
 {
+    if ( MENU_TYPE_UNDEFINED == menuType )
+        return;
+
     QMenu menu;
 
     // setup action for modifying path substitutions
@@ -1174,9 +1195,12 @@ void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType,
 
         action->setData( data );
     }
-    else {
+    else if ( DEFAULT_CONTEXT_MENU != menuType ) {
         return;
     }
+
+    // add menu items for default context menu (menu items common to all menu types)
+    action = menu.addAction( tr("&Define View Filters"), m_metricViewFilterDialog, SLOT(exec()) );
 
     menu.exec( globalPos );
 }

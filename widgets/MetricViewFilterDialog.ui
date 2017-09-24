@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MetricViewFilterDialog</class>
+ <widget class="QDialog" name="MetricViewFilterDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>707</width>
+    <height>640</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QDialogButtonBox" name="buttonBox_MetricViewFilterDialog">
+   <property name="geometry">
+    <rect>
+     <x>610</x>
+     <y>10</y>
+     <width>81</width>
+     <height>621</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Vertical</enum>
+   </property>
+   <property name="standardButtons">
+    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+   </property>
+  </widget>
+  <widget class="QWidget" name="verticalLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>39</x>
+     <y>10</y>
+     <width>551</width>
+     <height>611</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout_DefineFilterCriteria" stretch="0,1">
+    <item>
+     <widget class="QGroupBox" name="groupBox_DefineFilterCriteria">
+      <property name="title">
+       <string>Define Filter Criteria</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_SelectColumn" stretch="1,3,1">
+         <item>
+          <widget class="QLabel" name="label_Column">
+           <property name="text">
+            <string>Column:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBox_SelectColumn"/>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_Clear">
+           <property name="text">
+            <string>Clear</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_FilterText" stretch="1,3,1">
+         <item>
+          <widget class="QLabel" name="label_FilterText">
+           <property name="text">
+            <string>Filter Text: </string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_FilterText"/>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_Accept">
+           <property name="text">
+            <string>Accept</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="groupBox_DefinedFilters">
+      <property name="title">
+       <string>Defined Filters</string>
+      </property>
+      <widget class="QTableView" name="tableView_DefinedFilters">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>20</y>
+         <width>551</width>
+         <height>481</height>
+        </rect>
+       </property>
+      </widget>
+      <zorder>groupBox_DefineFilterCriteria</zorder>
+      <zorder>tableView_DefinedFilters</zorder>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox_MetricViewFilterDialog</sender>
+   <signal>accepted()</signal>
+   <receiver>MetricViewFilterDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox_MetricViewFilterDialog</sender>
+   <signal>rejected()</signal>
+   <receiver>MetricViewFilterDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

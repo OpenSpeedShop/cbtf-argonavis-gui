@@ -49,6 +49,7 @@ namespace ArgoNavis { namespace GUI {
 
 class ModifyPathSubstitutionsDialog;
 class ShowDeviceDetailsDialog;
+class MetricViewFilterDialog;
 
 
 /*!
@@ -59,7 +60,7 @@ class PerformanceDataMetricView : public QWidget
 {
     Q_OBJECT
 
-    typedef enum { MENU_TYPE_UNDEFINED, DEFINE_PATH_MAPPINGS, SHOW_DEVICE_DETAILS } DetailsMenuTypes;
+    typedef enum { MENU_TYPE_UNDEFINED, DEFAULT_CONTEXT_MENU, DEFINE_PATH_MAPPINGS, SHOW_DEVICE_DETAILS } DetailsMenuTypes;
 
 public:
 
@@ -178,6 +179,7 @@ private:
 
     ModifyPathSubstitutionsDialog* m_modifyPathsDialog;
     ShowDeviceDetailsDialog* m_deviceDetailsDialog;
+    MetricViewFilterDialog* m_metricViewFilterDialog;
 
 };
 
