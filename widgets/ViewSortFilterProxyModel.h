@@ -24,18 +24,18 @@
 #ifndef VIEWSORTFILTERPROXYMODEL_H
 #define VIEWSORTFILTERPROXYMODEL_H
 
-#include <QSortFilterProxyModel>
+#include "DefaultSortFilterProxyModel.h"
 
 #include "common/openss-gui-config.h"
 
-#include <QString>
 #include <QSet>
+#include <QString>
 
 
 namespace ArgoNavis { namespace GUI {
 
 
-class ViewSortFilterProxyModel : public QSortFilterProxyModel
+class ViewSortFilterProxyModel : public DefaultSortFilterProxyModel
 {
     Q_OBJECT
 
@@ -44,8 +44,9 @@ public:
     explicit ViewSortFilterProxyModel(const QString& type = "*", QObject* parent = Q_NULLPTR);
     virtual ~ViewSortFilterProxyModel();
 
+    void setColumnHeaders(const QStringList &columnHeaders);
+
     void setFilterRange(double lower, double upper);
-    void setColumnHeaders(const QStringList& columnHeaders);
 
 protected:
 
@@ -54,7 +55,6 @@ protected:
 
 private:
 
-    QString m_type;
     double m_lower;
     double m_upper;
 

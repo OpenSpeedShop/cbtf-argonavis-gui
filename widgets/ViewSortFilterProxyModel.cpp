@@ -40,8 +40,7 @@ namespace ArgoNavis { namespace GUI {
  * providing a specialized sorting filter model for the details model/view implementation.
  */
 ViewSortFilterProxyModel::ViewSortFilterProxyModel(const QString &type, QObject *parent)
-    : QSortFilterProxyModel( parent )
-    , m_type( type )
+    : DefaultSortFilterProxyModel( type, parent )
     , m_lower( std::numeric_limits<double>::min() )
     , m_upper( std::numeric_limits<double>::max() )
 {
@@ -59,23 +58,10 @@ ViewSortFilterProxyModel::~ViewSortFilterProxyModel()
 }
 
 /**
- * @brief ViewSortFilterProxyModel::setFilterRange
- * @param lower - the lower value of the filter range
- * @param upper - the upper value of the filter range
- *
- * This method updates the filter range and updates the proxy model by invalidating the filter.
- */
-void ViewSortFilterProxyModel::setFilterRange(double lower, double upper)
-{
-    m_lower = lower;
-    m_upper = upper;
-
-    invalidateFilter();
-}
-
-/**
  * @brief ViewSortFilterProxyModel::setColumnHeaders
- * @param columnHeaders
+ * @param columnHeaders - the subset of columns to be included in the proxy model
+ *
+ * This method defines a subset of columns from the source model to use in the proxy model.
  */
 void ViewSortFilterProxyModel::setColumnHeaders(const QStringList &columnHeaders)
 {
@@ -96,12 +82,29 @@ void ViewSortFilterProxyModel::setColumnHeaders(const QStringList &columnHeaders
 }
 
 /**
+ * @brief ViewSortFilterProxyModel::setFilterRange
+ * @param lower - the lower value of the filter range
+ * @param upper - the upper value of the filter range
+ *
+ * This method updates the filter range and updates the proxy model by invalidating the filter.
+ */
+void ViewSortFilterProxyModel::setFilterRange(double lower, double upper)
+{
+    m_lower = lower;
+    m_upper = upper;
+
+    invalidateFilter();
+}
+
+/**
  * @brief ViewSortFilterProxyModel::filterAcceptsRow
  * @param source_row - the row of the item in the model
  * @param source_parent - the model index of the parent of the item in the model
  * @return - the filter value indicating whether the item is to be accepted (true) or not (false)
  *
- * This method implements a filter to keep the specified row if either "Time Begin" value within range defined by ['m_lower' .. 'm_upper'] OR
+ * The method reimplements QSortFilterProxyModel::filterAcceptsRow.
+ *
+ * The method implements a filter to keep the specified row if either "Time Begin" value within range defined by ['m_lower' .. 'm_upper'] OR
  * "Time Begin" is before 'm_lower' but "Time End" is equal to or greater than 'm_lower'.
  */
 bool ViewSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
@@ -130,15 +133,17 @@ bool ViewSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInde
 
 /**
  * @brief ViewSortFilterProxyModel::filterAcceptsColumn
- * @param source_column
- * @param source_parent
- * @return
+ * @param source_column - column number of source column
+ * @param source_parent - parent of source column
+ * @return - return whether the specified column should be included in the proxy model
+ *
+ * The method reimplements QSortFilterProxyModel::filterAcceptsColumn.
  */
 bool ViewSortFilterProxyModel::filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const
 {
     Q_UNUSED( source_parent )
 
-    return ( ( m_type == "*" || source_column != 0  ) &&  m_columns.contains( source_column ) );
+    return ( ( m_type == "*" || source_column != 0  ) && m_columns.contains( source_column ) );
 }
 
 

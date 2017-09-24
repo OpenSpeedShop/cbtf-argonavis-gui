@@ -458,7 +458,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
         proxyModel = viewProxyModel;
     }
     else {
-        proxyModel = new QSortFilterProxyModel;
+        proxyModel = new DefaultSortFilterProxyModel;
 
         if ( Q_NULLPTR == proxyModel )
             return;

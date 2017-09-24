@@ -26,6 +26,11 @@
 
 
 #include <QSortFilterProxyModel>
+#include <QList>
+#include <QPair>
+#include <QString>
+#include <QStringList>
+#include <QRegExp>
 
 #include "common/openss-gui-config.h"
 
@@ -37,13 +42,20 @@ class DefaultSortFilterProxyModel : public QSortFilterProxyModel
 {
 public:
 
-    explicit DefaultSortFilterProxyModel(QObject *parent = Q_NULLPTR);
+    explicit DefaultSortFilterProxyModel(const QString& type = QString(), QObject *parent = Q_NULLPTR);
 
     void setFilterCriteria(const QList<QPair<QString,QString>>& criteria);
 
 protected:
 
     bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
+
+protected:
+
+    QString m_type;
+
+    // list of criteria - each individual criteria item consists of a column index and filter regular expression
+    QList< QPair<int, QRegExp> > m_filterCriteria;
 
 };
 
