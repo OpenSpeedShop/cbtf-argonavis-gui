@@ -51,7 +51,7 @@ public:
 
 signals:
 
-    void applyFilters(const QList<QPair<QString, QString>>& filters);
+    void applyFilters(const QList<QPair<QString, QString>>& filters, bool applyNow);
 
 #ifndef QT_NO_CONTEXTMENU
 protected slots:
@@ -66,6 +66,11 @@ private slots:
     void handleDeleteFilterItem();
     void handleDeleteAllFilterItems();
     void handleApplyPressed();
+    void handleOkPressed();
+
+private:
+
+    void processDefinedFilters(bool applyNow);
 
 private:
 

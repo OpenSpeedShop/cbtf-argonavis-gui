@@ -183,6 +183,10 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
 #else
     connect( m_modifyPathsDialog, SIGNAL(signalAddPathSubstitution(int,QString,QString)), this, SIGNAL(signalAddPathSubstitution(int,QString,QString)) );
 #endif
+
+    // connect metric view filter dialog;s applyFilter signal to the handler in this class
+    connect( m_metricViewFilterDialog, SIGNAL(applyFilters(QList<QPair<QString,QString> >,bool)),
+             this, SLOT(handleApplyFilter(QList<QPair<QString,QString> >,bool)) );
 }
 
 /**
@@ -469,9 +473,6 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
             proxyModel->setHeaderData( i, Qt::Horizontal, metrics.at(i) );
         }
     }
-
-    connect( m_metricViewFilterDialog, SIGNAL(applyFilters(QList<QPair<QString,QString> >)),
-             proxyModel, SLOT(setFilterCriteria(QList<QPair<QString,QString> >)) );
 
     QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
     bool newViewCreated( false );
@@ -784,6 +785,36 @@ void PerformanceDataMetricView::handleCustomContextMenuRequested(const QPoint &p
 }
 
 /**
+ * @brief PerformanceDataMetricView::handleApplyFilter
+ * @param filters - the current user-defined filter that can be applied to any active metric view
+ * @param applyNow - apply the filter to the active metric view immediately
+ *
+ * Handler invoked when the MetricViewFilterDialog::applyFilter signal is emitted.  The handler stores
+ * the filter criteria when the user wishes to apply the filter or the filter can be immediately applied
+ * to the current metric view if the 'applyNow' flag is set.
+ */
+void PerformanceDataMetricView::handleApplyFilter(const QList<QPair<QString, QString> > &filters, bool applyNow)
+{
+    if ( applyNow ) {
+
+        const QString metricViewName = getMetricViewName();
+
+        QMutexLocker guard( &m_mutex );
+
+        // apply this new filter immediately to the current proxy model
+        DefaultSortFilterProxyModel* proxyModel =
+                qobject_cast< DefaultSortFilterProxyModel* >( m_proxyModels.value( metricViewName, Q_NULLPTR ) );
+
+        if ( proxyModel ) {
+            proxyModel->setFilterCriteria( filters );
+        }
+    }
+
+    // save filters
+    m_currentFilter = filters;
+}
+
+/**
  * @brief PerformanceDataMetricView::processCustomContextMenuRequested
  * @param view - pointer to QTreeView instance
  * @param pos - point on widget were custom context menu was request
@@ -1070,6 +1101,14 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         QMutexLocker guard( &m_mutex );
 
         view = m_views.value( metricViewName, Q_NULLPTR );
+    }
+
+    // clear any filters that had been applied
+    DefaultSortFilterProxyModel* proxyModel =
+            qobject_cast< DefaultSortFilterProxyModel* >( m_proxyModels.value( metricViewName, Q_NULLPTR ) );
+
+    if ( proxyModel ) {
+        proxyModel->setFilterCriteria( QList< QPair<QString, QString> >() );
     }
 
     // if the request view has not been generated yet, then show blank view and request view update

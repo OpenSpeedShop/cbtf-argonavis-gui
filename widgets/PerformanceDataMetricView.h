@@ -119,6 +119,7 @@ private slots:
     void showContextMenu(const DetailsMenuTypes menuType, const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);
+    void handleApplyFilter(const QList<QPair<QString,QString> >& filters, bool applyNow);
 
 private:
 
@@ -164,6 +165,8 @@ private:
     QMap< QString, QStandardItemModel* > m_models;          // map metric to model
     QMap< QString, QSortFilterProxyModel* > m_proxyModels;  // map metric to model
     QMap< QString, QTreeView* > m_views;                    // map metric to view
+
+    QList< QPair< QString, QString > > m_currentFilter;     // currently available user-defined metric view filters
 
     QStackedLayout* m_viewStack;                            // vertical layout holding current view
 

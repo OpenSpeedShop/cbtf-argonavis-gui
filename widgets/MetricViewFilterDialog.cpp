@@ -68,6 +68,10 @@ MetricViewFilterDialog::MetricViewFilterDialog(QWidget *parent)
         connect( applyButton, SIGNAL(pressed()), this, SLOT(handleApplyPressed()) );
     }
 
+    QPushButton* okButton = ui->buttonBox_MetricViewFilterDialog->button( QDialogButtonBox::Ok );
+    if ( okButton ) {
+        connect( okButton, SIGNAL(pressed()), this, SLOT(handleOkPressed()) );
+    }
 }
 
 /**
@@ -174,12 +178,12 @@ void MetricViewFilterDialog::handleDeleteAllFilterItems()
 }
 
 /**
- * @brief MetricViewFilterDialog::handleApplyPressed
+ * @brief MetricViewFilterDialog::processDefinedFilters
+ * @param applyNow -
  *
- * This is the handler when the user presses the "Apply" button to apply
- * the defined filters to any proxy models.
+ * This method processes the table of defined filters and emits the applyFilters signal.
  */
-void MetricViewFilterDialog::handleApplyPressed()
+void MetricViewFilterDialog::processDefinedFilters(bool applyNow)
 {
     QList< QPair<QString, QString> > filterList;
 
@@ -191,7 +195,32 @@ void MetricViewFilterDialog::handleApplyPressed()
         filterList << qMakePair( columnItem->text(), filterItem->text() );
     }
 
-    emit applyFilters( filterList );
+    emit applyFilters( filterList, applyNow );
+}
+
+/**
+ * @brief MetricViewFilterDialog::handleApplyPressed
+ *
+ * This is the handler when the user presses the "Apply" button to emit
+ * the applyFilter() signal with applyNow flag set to true.
+ *
+ */
+void MetricViewFilterDialog::handleApplyPressed()
+{
+    processDefinedFilters( true );
+
+    QDialog::accept();
+}
+
+/**
+ * @brief MetricViewFilterDialog::handleOkPressed
+ *
+ * This is the handler when the user presses the "Ok" button to emit
+ * the applyFilter() signal with applyNow flag set to false.
+ */
+void MetricViewFilterDialog::handleOkPressed()
+{
+    processDefinedFilters( false );
 
     QDialog::accept();
 }
