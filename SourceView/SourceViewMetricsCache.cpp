@@ -110,6 +110,7 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
 void SourceViewMetricsCache::handleAddMetricViewData(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QVariantList &data, const QStringList &columnHeaders)
 {
     Q_UNUSED( clusteringCriteriaName );
+    Q_UNUSED( columnHeaders );
 
     const QString metricViewName = metricName + "-" + viewName;
 

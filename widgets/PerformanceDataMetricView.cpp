@@ -187,6 +187,11 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     // connect metric view filter dialog;s applyFilter signal to the handler in this class
     connect( m_metricViewFilterDialog, SIGNAL(applyFilters(QList<QPair<QString,QString> >,bool)),
              this, SLOT(handleApplyFilter(QList<QPair<QString,QString> >,bool)) );
+
+    // connect 'Apply Filters' button to handler
+    connect( ui->pushButton_ApplyFilters, SIGNAL(pressed()), this, SLOT(handleApplyFilters()) );
+    // connect 'Clear Filters' button to handler
+    connect( ui->pushButton_ClearFilters, SIGNAL(pressed()), this, SLOT(handleClearFilters()) );
 }
 
 /**
@@ -785,6 +790,52 @@ void PerformanceDataMetricView::handleCustomContextMenuRequested(const QPoint &p
 }
 
 /**
+ * @brief PerformanceDataMetricView::handleApplyFilters
+ *
+ * Handler invoked when the 'Apply Filters' button pressed.  This method invokes the helper method
+ * PerformanceDataMetricView::applyFilterToCurrentView passing in the new filter and sets
+ * the 'saveFilter' flag to true to save the user-defined filter.
+ */
+void PerformanceDataMetricView::handleApplyFilters()
+{
+    applyFilterToCurrentView( m_currentFilter );
+}
+
+/**
+ * @brief PerformanceDataMetricView::handleClearFilters
+ *
+ * Handler invoked when the 'Clear Filters' button pressed.  This method invokes the helper method
+ * PerformanceDataMetricView::applyFilterToCurrentView passing in an empty filter and sets
+ * the 'saveFilter' flag to false to not overwrite the current user-defined filter.
+ */
+void PerformanceDataMetricView::handleClearFilters()
+{
+    applyFilterToCurrentView( QList< QPair< QString, QString > >() );
+}
+
+/**
+ * @brief PerformanceDataMetricView::applyFilterToCurrentView
+ * @param filters - the current user-defined filter that can be applied to any active metric view
+ *
+ * This method is called to determine the current metric view's proxy model and call the setFilterCriteria method of
+ * the proxy model instance to apply the new user-defined filter.
+ */
+void PerformanceDataMetricView::applyFilterToCurrentView(const QList<QPair<QString, QString> > &filters)
+{
+    const QString metricViewName = getMetricViewName();
+
+    QMutexLocker guard( &m_mutex );
+
+    // apply this new filter immediately to the current proxy model
+    DefaultSortFilterProxyModel* proxyModel =
+            qobject_cast< DefaultSortFilterProxyModel* >( m_proxyModels.value( metricViewName, Q_NULLPTR ) );
+
+    if ( proxyModel ) {
+        proxyModel->setFilterCriteria( filters );
+    }
+}
+
+/**
  * @brief PerformanceDataMetricView::handleApplyFilter
  * @param filters - the current user-defined filter that can be applied to any active metric view
  * @param applyNow - apply the filter to the active metric view immediately
@@ -796,18 +847,7 @@ void PerformanceDataMetricView::handleCustomContextMenuRequested(const QPoint &p
 void PerformanceDataMetricView::handleApplyFilter(const QList<QPair<QString, QString> > &filters, bool applyNow)
 {
     if ( applyNow ) {
-
-        const QString metricViewName = getMetricViewName();
-
-        QMutexLocker guard( &m_mutex );
-
-        // apply this new filter immediately to the current proxy model
-        DefaultSortFilterProxyModel* proxyModel =
-                qobject_cast< DefaultSortFilterProxyModel* >( m_proxyModels.value( metricViewName, Q_NULLPTR ) );
-
-        if ( proxyModel ) {
-            proxyModel->setFilterCriteria( filters );
-        }
+        applyFilterToCurrentView( filters );
     }
 
     // save filters

@@ -182,28 +182,30 @@ QGroupBox::title {
          <number>0</number>
         </property>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_3">
-          <item>
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Defined Filters:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
+         <widget class="QFrame" name="frame_DefinedFilters_2">
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Defined Filters:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
         </item>
         <item>
          <widget class="QTableWidget" name="tableWidget_DefinedFilters">
@@ -241,9 +243,6 @@ QGroupBox::title {
          </widget>
         </item>
        </layout>
-       <zorder>groupBox_DefineFilterCriteria</zorder>
-       <zorder>tableWidget_DefinedFilters</zorder>
-       <zorder>horizontalLayoutWidget_3</zorder>
       </widget>
      </item>
     </layout>

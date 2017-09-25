@@ -40,7 +40,7 @@
      <property name="frameShadow">
       <enum>QFrame::Plain</enum>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0,0,1,0,0">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0,0,1,0,0,1,0,0">
       <item>
        <widget class="QLabel" name="label_SelectMode">
         <property name="text">
@@ -112,6 +112,33 @@
         </property>
         <property name="sizeAdjustPolicy">
          <enum>QComboBox::AdjustToContents</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_ApplyFilters">
+        <property name="text">
+         <string>Apply Filters</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_ClearFilters">
+        <property name="text">
+         <string>Clear Filters</string>
         </property>
        </widget>
       </item>

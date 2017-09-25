@@ -119,10 +119,13 @@ private slots:
     void showContextMenu(const DetailsMenuTypes menuType, const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);
+    void handleApplyFilters();
+    void handleClearFilters();
     void handleApplyFilter(const QList<QPair<QString,QString> >& filters, bool applyNow);
 
 private:
 
+    void applyFilterToCurrentView(const QList<QPair<QString, QString> > &filters);
     void processTableViewItemClicked(const QAbstractItemModel *model, const QModelIndex &index);
     void processTableViewItemClicked(QTreeView* view, const QModelIndex& index);
     void processCustomContextMenuRequested(QTreeView* view, const QPoint &pos);
