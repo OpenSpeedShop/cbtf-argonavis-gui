@@ -30,6 +30,10 @@ namespace Ui {
 class MetricViewFilterDialog;
 }
 
+#ifndef QT_NO_CONTEXTMENU
+class QContextMenuEvent;
+#endif
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -45,9 +49,30 @@ public:
 
     void setColumns(const QStringList &columnList);
 
+signals:
+
+    void applyFilters(const QList<QPair<QString, QString>>& filters);
+
+#ifndef QT_NO_CONTEXTMENU
+protected slots:
+
+    void contextMenuEvent(QContextMenuEvent *event) Q_DECL_OVERRIDE;
+#endif // QT_NO_CONTEXTMENU
+
+private slots:
+
+    void handleClearPressed();
+    void handleAcceptPressed();
+    void handleDeleteFilterItem();
+    void handleDeleteAllFilterItems();
+    void handleApplyPressed();
+
 private:
 
     Ui::MetricViewFilterDialog *ui;
+
+    QAction* m_deleteFilterItem;
+    QAction* m_deleteAllFilterItems;
 
 };
 

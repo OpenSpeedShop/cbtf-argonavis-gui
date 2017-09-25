@@ -215,6 +215,12 @@ void ExperimentPanel::handleRemoveExperiment(const QString &name)
 }
 
 #ifndef QT_NO_CONTEXTMENU
+/**
+ * @brief ExperimentPanel::contextMenuEvent
+ * @param event - the context-menu event details
+ *
+ * This is the handler to receive context-menu events for the widget.
+ */
 void ExperimentPanel::contextMenuEvent(QContextMenuEvent *event)
 {
     QMenu menu( this );

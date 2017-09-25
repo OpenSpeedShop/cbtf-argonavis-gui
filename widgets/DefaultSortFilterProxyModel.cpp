@@ -56,6 +56,8 @@ void DefaultSortFilterProxyModel::setFilterCriteria(const QList<QPair<QString, Q
         modelColumnHeaders << sourceModel()->headerData( i, Qt::Horizontal ).toString();
     }
 
+    m_filterCriteria.clear();
+
     for ( QList< QPair<QString, QString> >::const_iterator iter = criteria.begin(); iter != criteria.end(); iter++ ) {
         const QPair<QString, QString>& item( *iter );
         const QString filterColumnName = item.first;
@@ -66,6 +68,8 @@ void DefaultSortFilterProxyModel::setFilterCriteria(const QList<QPair<QString, Q
             }
         }
     }
+
+    invalidateFilter();
 }
 
 /**
@@ -90,7 +94,7 @@ bool DefaultSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelI
         const QString sourceColumnContents = sourceModel()->data( sourceModelIndex ).toString();
 
         const QRegExp filterRegExp = item.second;
-        keepRow &= filterRegExp.exactMatch( sourceColumnContents );
+        keepRow &= ( filterRegExp.indexIn( sourceColumnContents ) != -1 );
     }
 
     return keepRow;

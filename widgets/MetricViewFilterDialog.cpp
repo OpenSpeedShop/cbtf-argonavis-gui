@@ -25,6 +25,10 @@
 
 #include "ui_MetricViewFilterDialog.h"
 
+#include <QMenu>
+#include <QContextMenuEvent>
+#include <QDebug>
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -40,6 +44,30 @@ MetricViewFilterDialog::MetricViewFilterDialog(QWidget *parent)
     , ui( new Ui::MetricViewFilterDialog )
 {
     ui->setupUi( this );
+
+    // create context-menu actions
+    m_deleteFilterItem = new QAction( tr("&Delete Selected Filter(s)"), this );
+    m_deleteFilterItem->setStatusTip( tr("Deletes any selected rows in the table") );
+
+    m_deleteAllFilterItems = new QAction( tr("&Clear All Filters"), this );
+    m_deleteAllFilterItems->setStatusTip( tr("Clears all filters current defined and shown in the table") );
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( m_deleteFilterItem, &QAction::triggered, this, &MetricViewFilterDialog::handleDeleteFilterItem );
+    connect( m_deleteAllFilterItems, &QAction::triggered, this, &MetricViewFilterDialog::handleDeleteAllFilterItems );
+#else
+    connect( m_deleteFilterItem, SIGNAL(triggered(bool)), this, SLOT(handleDeleteFilterItem()) );
+    connect( m_deleteAllFilterItems, SIGNAL(triggered(bool)), this, SLOT(handleDeleteAllFilterItems()) );
+#endif
+
+    connect( ui->pushButton_Clear, SIGNAL(pressed()), this, SLOT(handleClearPressed()) );
+    connect( ui->pushButton_Accept, SIGNAL(pressed()), this, SLOT(handleAcceptPressed()) );
+
+    QPushButton* applyButton = ui->buttonBox_MetricViewFilterDialog->button( QDialogButtonBox::Apply );
+    if ( applyButton ) {
+        connect( applyButton, SIGNAL(pressed()), this, SLOT(handleApplyPressed()) );
+    }
+
 }
 
 /**
@@ -65,6 +93,107 @@ void MetricViewFilterDialog::setColumns(const QStringList &columnList)
 
     // set the new list of combo-box items
     ui->comboBox_SelectColumn->addItems( columnList );
+}
+
+#ifndef QT_NO_CONTEXTMENU
+/**
+ * @brief MetricViewFilterDialog::contextMenuEvent
+ * @param event - the context-menu event details
+ *
+ * This is the handler to receive context-menu events for the dialog.
+ */
+void MetricViewFilterDialog::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu menu( this );
+
+    menu.addAction( m_deleteFilterItem );
+    menu.addAction( m_deleteAllFilterItems );
+
+    menu.exec( event->globalPos() );
+}
+#endif // QT_NO_CONTEXTMENU
+
+/**
+ * @brief MetricViewFilterDialog::handleClearPressed
+ *
+ * This is the handler for the QPushButton::clicked() signal for the "Clear" button.
+ */
+void MetricViewFilterDialog::handleClearPressed()
+{
+    ui->lineEdit_FilterText->clear();
+    ui->comboBox_SelectColumn->setCurrentIndex( 0 );
+}
+
+/**
+ * @brief MetricViewFilterDialog::handleAcceptPressed
+ *
+ * This is the handler for the QPushButton::clicked() signal for the "Accept" button.
+ */
+void MetricViewFilterDialog::handleAcceptPressed()
+{
+    // get row index for new entry
+    const int rowIndex = ui->tableWidget_DefinedFilters->rowCount();
+
+    // create empty row at bottom of table
+    ui->tableWidget_DefinedFilters->insertRow( rowIndex );
+
+    QTableWidgetItem* columnItem = new QTableWidgetItem( ui->comboBox_SelectColumn->currentText() );
+    ui->tableWidget_DefinedFilters->setItem( rowIndex, 0, columnItem );
+
+    QTableWidgetItem* filterExpressionItem = new QTableWidgetItem( ui->lineEdit_FilterText->text() );
+    ui->tableWidget_DefinedFilters->setItem( rowIndex, 1, filterExpressionItem );
+
+    handleClearPressed();
+}
+
+/**
+ * @brief MetricViewFilterDialog::handleDeleteFilterItem
+ *
+ * This handles the context-menu item to delete the user selected rows from the table.
+ */
+void MetricViewFilterDialog::handleDeleteFilterItem()
+{
+    const QList<QTableWidgetItem*> selectedItems = ui->tableWidget_DefinedFilters->selectedItems();
+
+    for ( int i = selectedItems.size()-1; i>=0; --i ) {
+        const QTableWidgetItem* item( selectedItems.at(i) );
+        ui->tableWidget_DefinedFilters->removeRow( item->row() );
+    }
+}
+
+/**
+ * @brief MetricViewFilterDialog::handleDeleteAllFilterItems
+ *
+ * This handles the context-menu item to clear all rows from the table.
+ */
+void MetricViewFilterDialog::handleDeleteAllFilterItems()
+{
+    for( int row = ui->tableWidget_DefinedFilters->rowCount()-1; row >= 0; --row ) {
+        ui->tableWidget_DefinedFilters->removeRow( row );
+    }
+}
+
+/**
+ * @brief MetricViewFilterDialog::handleApplyPressed
+ *
+ * This is the handler when the user presses the "Apply" button to apply
+ * the defined filters to any proxy models.
+ */
+void MetricViewFilterDialog::handleApplyPressed()
+{
+    QList< QPair<QString, QString> > filterList;
+
+    for( int row = 0; row < ui->tableWidget_DefinedFilters->rowCount(); ++row ) {
+
+        const QTableWidgetItem* columnItem( ui->tableWidget_DefinedFilters->item( row, 0 ) );
+        const QTableWidgetItem* filterItem( ui->tableWidget_DefinedFilters->item( row, 1 ) );
+
+        filterList << qMakePair( columnItem->text(), filterItem->text() );
+    }
+
+    emit applyFilters( filterList );
+
+    QDialog::accept();
 }
 
 

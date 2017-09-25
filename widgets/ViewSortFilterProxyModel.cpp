@@ -111,6 +111,8 @@ bool ViewSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInde
 {
     bool result( true );
 
+    result = DefaultSortFilterProxyModel::filterAcceptsRow( source_row, source_parent );
+
     QModelIndex indexType = sourceModel()->index( source_row, 0, source_parent );       // "Type" index
     QVariant typeVar = sourceModel()->data( indexType );
     QModelIndex indexTimeBegin = sourceModel()->index( source_row, 2, source_parent );  // "Time Begin" index

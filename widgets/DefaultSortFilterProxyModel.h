@@ -40,9 +40,13 @@ namespace ArgoNavis { namespace GUI {
 
 class DefaultSortFilterProxyModel : public QSortFilterProxyModel
 {
+    Q_OBJECT
+
 public:
 
     explicit DefaultSortFilterProxyModel(const QString& type = QString(), QObject *parent = Q_NULLPTR);
+
+public slots:
 
     void setFilterCriteria(const QList<QPair<QString,QString>>& criteria);
 

@@ -444,7 +444,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     if ( s_detailsModeName == metricName  )
         return;
 
-    QSortFilterProxyModel* proxyModel( Q_NULLPTR );
+    DefaultSortFilterProxyModel* proxyModel( Q_NULLPTR );
 
     if ( ! metricName.contains( s_compareModeName ) ) {
         ViewSortFilterProxyModel* viewProxyModel = new ViewSortFilterProxyModel;
@@ -469,6 +469,9 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
             proxyModel->setHeaderData( i, Qt::Horizontal, metrics.at(i) );
         }
     }
+
+    connect( m_metricViewFilterDialog, SIGNAL(applyFilters(QList<QPair<QString,QString> >)),
+             proxyModel, SLOT(setFilterCriteria(QList<QPair<QString,QString> >)) );
 
     QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
     bool newViewCreated( false );
