@@ -182,17 +182,17 @@ QGroupBox::title {
          <number>0</number>
         </property>
         <item>
-         <widget class="QFrame" name="frame_DefinedFilters_2">
+         <widget class="QFrame" name="frame_DefinedFilters_Header">
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
-            <widget class="QLabel" name="label">
+            <widget class="QLabel" name="label_DefinedFilters">
              <property name="text">
               <string>Defined Filters:</string>
              </property>
             </widget>
            </item>
            <item>
-            <spacer name="horizontalSpacer_2">
+            <spacer name="horizontalSpacer_DefinedFilters">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
@@ -214,9 +214,6 @@ QGroupBox::title {
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
-          </property>
-          <property name="sizeAdjustPolicy">
-           <enum>QAbstractScrollArea::AdjustToContents</enum>
           </property>
           <property name="selectionMode">
            <enum>QAbstractItemView::MultiSelection</enum>
