@@ -119,8 +119,7 @@ private slots:
     void showContextMenu(const DetailsMenuTypes menuType, const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);
-    void handleApplyFilters();
-    void handleClearFilters();
+    void handleApplyClearFilters();
     void handleApplyFilter(const QList<QPair<QString,QString> >& filters, bool applyNow);
 
 private:
@@ -162,6 +161,9 @@ private:
     static QString s_kernelExecutionsDetailsName;
 
     static QString s_noneName;
+
+    static QString s_APPLY_FILTERS_STR;
+    static QString s_CLEAR_FILTERS_STR;
 
     QString m_clusteringCritieriaName;                      // clustering criteria name associated to metric views
     QMutex m_mutex;                                         // mutex for the following QMap objects

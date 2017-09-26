@@ -40,7 +40,7 @@
      <property name="frameShadow">
       <enum>QFrame::Plain</enum>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0,0,1,0,0,1,0,0">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0,0,1,0,0,1,0">
       <item>
        <widget class="QLabel" name="label_SelectMode">
         <property name="text">
@@ -129,16 +129,9 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_ApplyFilters">
+       <widget class="QPushButton" name="pushButton_ApplyClearFilters">
         <property name="text">
          <string>Apply Filters</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_ClearFilters">
-        <property name="text">
-         <string>Clear Filters</string>
         </property>
        </widget>
       </item>

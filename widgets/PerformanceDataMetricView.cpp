@@ -68,6 +68,9 @@ QString PerformanceDataMetricView::s_noneName( QStringLiteral("none") );
 
 QString PerformanceDataMetricView::s_allEventsDetailsName( tr("All Events") );
 
+QString PerformanceDataMetricView::s_APPLY_FILTERS_STR = tr("Apply Filters");
+QString PerformanceDataMetricView::s_CLEAR_FILTERS_STR = tr("Clear Filters");
+
 
 /**
  * @brief PerformanceDataTableView::PerformanceDataTableView
@@ -189,9 +192,7 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
              this, SLOT(handleApplyFilter(QList<QPair<QString,QString> >,bool)) );
 
     // connect 'Apply Filters' button to handler
-    connect( ui->pushButton_ApplyFilters, SIGNAL(pressed()), this, SLOT(handleApplyFilters()) );
-    // connect 'Clear Filters' button to handler
-    connect( ui->pushButton_ClearFilters, SIGNAL(pressed()), this, SLOT(handleClearFilters()) );
+    connect( ui->pushButton_ApplyClearFilters, SIGNAL(pressed()), this, SLOT(handleApplyClearFilters()) );
 }
 
 /**
@@ -790,27 +791,27 @@ void PerformanceDataMetricView::handleCustomContextMenuRequested(const QPoint &p
 }
 
 /**
- * @brief PerformanceDataMetricView::handleApplyFilters
+ * @brief PerformanceDataMetricView::handleApplyClearFilters
  *
- * Handler invoked when the 'Apply Filters' button pressed.  This method invokes the helper method
- * PerformanceDataMetricView::applyFilterToCurrentView passing in the new filter and sets
- * the 'saveFilter' flag to true to save the user-defined filter.
- */
-void PerformanceDataMetricView::handleApplyFilters()
-{
-    applyFilterToCurrentView( m_currentFilter );
-}
-
-/**
- * @brief PerformanceDataMetricView::handleClearFilters
+ * Handler invoked when the 'Apply Filters' or 'Clear Filters' button pressed.
  *
- * Handler invoked when the 'Clear Filters' button pressed.  This method invokes the helper method
- * PerformanceDataMetricView::applyFilterToCurrentView passing in an empty filter and sets
- * the 'saveFilter' flag to false to not overwrite the current user-defined filter.
+ * When the button label is 'Apply Filters', this method invokes the helper method
+ * PerformanceDataMetricView::applyFilterToCurrentView passing in the new filter.
+ * When the button label is 'Clear Filters', this method invokes the helper method
+ * PerformanceDataMetricView::applyFilterToCurrentView passing in an empty list.
+ * Finally the method swaps the label of the button: 'Apply Filters' to 'Clear Filters'
+ * or 'Clear Filters' to 'Apply Filters'.
  */
-void PerformanceDataMetricView::handleClearFilters()
+void PerformanceDataMetricView::handleApplyClearFilters()
 {
-    applyFilterToCurrentView( QList< QPair< QString, QString > >() );
+    if ( ui->pushButton_ApplyClearFilters->text() == s_APPLY_FILTERS_STR ) {
+        applyFilterToCurrentView( m_currentFilter );
+        ui->pushButton_ApplyClearFilters->setText( s_CLEAR_FILTERS_STR );
+    }
+    else {
+        applyFilterToCurrentView( QList< QPair< QString, QString > >() );
+        ui->pushButton_ApplyClearFilters->setText( s_APPLY_FILTERS_STR );
+    }
 }
 
 /**
@@ -846,9 +847,19 @@ void PerformanceDataMetricView::applyFilterToCurrentView(const QList<QPair<QStri
  */
 void PerformanceDataMetricView::handleApplyFilter(const QList<QPair<QString, QString> > &filters, bool applyNow)
 {
-    if ( applyNow ) {
+    if ( applyNow || filters.isEmpty() ) {
         applyFilterToCurrentView( filters );
+        // set the button label as appropriate
+        if ( filters.isEmpty() )
+            ui->pushButton_ApplyClearFilters->setText( s_APPLY_FILTERS_STR );
+        else
+            ui->pushButton_ApplyClearFilters->setText( s_CLEAR_FILTERS_STR );
     }
+    else
+        ui->pushButton_ApplyClearFilters->setText( s_APPLY_FILTERS_STR );
+
+    // button is enabled when the filter list is not empty; otherwise it is disabled
+    ui->pushButton_ApplyClearFilters->setDisabled( filters.isEmpty() );
 
     // save filters
     m_currentFilter = filters;
