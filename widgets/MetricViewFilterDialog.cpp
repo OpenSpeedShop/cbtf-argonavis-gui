@@ -27,6 +27,7 @@
 
 #include <QMenu>
 #include <QContextMenuEvent>
+#include <QTableWidgetItem>
 #include <QDebug>
 
 
@@ -72,6 +73,11 @@ MetricViewFilterDialog::MetricViewFilterDialog(QWidget *parent)
     if ( okButton ) {
         connect( okButton, SIGNAL(pressed()), this, SLOT(handleOkPressed()) );
     }
+
+    QPushButton* cancelButton = ui->buttonBox_MetricViewFilterDialog->button( QDialogButtonBox::Cancel );
+    if ( cancelButton ) {
+        connect( cancelButton, SIGNAL(pressed()), this, SLOT(handleCancelPressed()) );
+    }
 }
 
 /**
@@ -97,6 +103,31 @@ void MetricViewFilterDialog::setColumns(const QStringList &columnList)
 
     // set the new list of combo-box items
     ui->comboBox_SelectColumn->addItems( columnList );
+}
+
+/**
+ * @brief MetricViewFilterDialog::showEvent
+ * @param event - the show event instance
+ *
+ * This reimplements QWidget::showEvent to provide specific handling of the QShowEvent in
+ * the Metric View Filter dialog.
+ */
+void MetricViewFilterDialog::showEvent(QShowEvent *event)
+{
+    Q_UNUSED( event );
+
+    // clear snapshot
+    m_snapshot.reset();
+
+    // set snapshot to current state of filter table
+    m_snapshot.numRows = ui->tableWidget_DefinedFilters->rowCount();
+    m_snapshot.numColumns = ui->tableWidget_DefinedFilters->columnCount();
+
+    for ( int row=0; row<ui->tableWidget_DefinedFilters->rowCount(); ++row ) {
+        for ( int col=0; col<ui->tableWidget_DefinedFilters->columnCount(); ++col ) {
+            m_snapshot.items << new QTableWidgetItem( *ui->tableWidget_DefinedFilters->item( row, col ) );
+        }
+    }
 }
 
 #ifndef QT_NO_CONTEXTMENU
@@ -223,6 +254,29 @@ void MetricViewFilterDialog::handleOkPressed()
     processDefinedFilters( false );
 
     QDialog::accept();
+}
+
+/**
+ * @brief MetricViewFilterDialog::handleCancelPressed
+ *
+ * This is the handler when the user presses the "Cancel" button to cancel
+ * all edits to the filters and reset to the state at the beginning of the session.
+ */
+void MetricViewFilterDialog::handleCancelPressed()
+{
+    // clear the current table
+    handleDeleteAllFilterItems();
+
+    // restore filters to the state before any editing
+    ui->tableWidget_DefinedFilters->setRowCount( m_snapshot.numRows );
+    ui->tableWidget_DefinedFilters->setColumnCount( m_snapshot.numColumns );
+    for ( int row=0; row<m_snapshot.numRows; ++row ) {
+        for ( int col=0; col<m_snapshot.numColumns; ++col ) {
+            ui->tableWidget_DefinedFilters->setItem( row, col, m_snapshot.items.takeFirst() );
+        }
+    }
+
+    QDialog::reject();
 }
 
 

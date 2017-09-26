@@ -26,6 +26,8 @@
 
 #include <QDialog>
 
+#include <QList>
+
 #include "common/openss-gui-config.h"
 
 namespace Ui {
@@ -35,6 +37,7 @@ class MetricViewFilterDialog;
 #ifndef QT_NO_CONTEXTMENU
 class QContextMenuEvent;
 #endif
+class QTableWidgetItem;
 
 
 namespace ArgoNavis { namespace GUI {
@@ -55,6 +58,10 @@ signals:
 
     void applyFilters(const QList<QPair<QString, QString>>& filters, bool applyNow);
 
+protected:
+
+    void showEvent(QShowEvent *event) Q_DECL_OVERRIDE;
+
 #ifndef QT_NO_CONTEXTMENU
 protected slots:
 
@@ -69,6 +76,7 @@ private slots:
     void handleDeleteAllFilterItems();
     void handleApplyPressed();
     void handleOkPressed();
+    void handleCancelPressed();
 
 private:
 
@@ -80,6 +88,18 @@ private:
 
     QAction* m_deleteFilterItem;
     QAction* m_deleteAllFilterItems;
+
+    typedef struct {
+        int numRows;
+        int numColumns;
+        QList< QTableWidgetItem* > items;
+        void reset() {
+            numRows = numColumns = 0;
+            items.clear();
+        }
+    } FilterSnapshotInfo;
+
+    FilterSnapshotInfo m_snapshot;
 
 };
 
