@@ -26,6 +26,7 @@
 
 #include <QDialog>
 
+#include <QSet>
 #include <QList>
 
 #include "common/openss-gui-config.h"
@@ -105,6 +106,8 @@ private:
     FilterSnapshotInfo m_snapshot;
 
     FilterExpressionValidator* m_validator;
+
+    QSet< QString > m_columns;
 
 };
 

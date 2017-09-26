@@ -127,11 +127,16 @@ void MetricViewFilterDialog::handleValidateFilterExpression(const QString& text)
  */
 void MetricViewFilterDialog::setColumns(const QStringList &columnList)
 {
+    // need to add unique columns to the internal structure
+    foreach ( const QString& columnName, columnList ) {
+        m_columns.insert( columnName );
+    }
+
     // clear the current items from the combo-box
     ui->comboBox_SelectColumn->clear();
 
     // set the new list of combo-box items
-    ui->comboBox_SelectColumn->addItems( columnList );
+    ui->comboBox_SelectColumn->addItems( m_columns.toList() );
 }
 
 /**

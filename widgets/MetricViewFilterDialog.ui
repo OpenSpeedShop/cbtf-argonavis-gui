@@ -69,8 +69,11 @@ QGroupBox::title {
          <layout class="QHBoxLayout" name="horizontalLayout_SelectColumn" stretch="1,5,1">
           <item>
            <widget class="QLabel" name="label_Column">
+            <property name="toolTip">
+             <string>This corresponds to a metric applicable to a particular experiment type and appears as a column name in one or more metric table views.</string>
+            </property>
             <property name="text">
-             <string>Column:</string>
+             <string>Column Name:</string>
             </property>
            </widget>
           </item>
@@ -90,6 +93,9 @@ QGroupBox::title {
          <layout class="QHBoxLayout" name="horizontalLayout_FilterText" stretch="1,5,1">
           <item>
            <widget class="QLabel" name="label_FilterText">
+            <property name="toolTip">
+             <string>This is a valid regular expression used to filter metric data in the selected column.  When a valid regular expression has been entered the Accept button is enabled.</string>
+            </property>
             <property name="text">
              <string>Filter Expression: </string>
             </property>
@@ -224,15 +230,15 @@ QGroupBox::title {
           <property name="selectionBehavior">
            <enum>QAbstractItemView::SelectRows</enum>
           </property>
-          <attribute name="horizontalHeaderMinimumSectionSize">
-           <number>1</number>
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>200</number>
           </attribute>
           <attribute name="horizontalHeaderStretchLastSection">
            <bool>true</bool>
           </attribute>
           <column>
            <property name="text">
-            <string>Column</string>
+            <string>Column Name</string>
            </property>
           </column>
           <column>
