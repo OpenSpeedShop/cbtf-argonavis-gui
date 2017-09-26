@@ -210,7 +210,7 @@ void MetricViewFilterDialog::handleDeleteAllFilterItems()
 
 /**
  * @brief MetricViewFilterDialog::processDefinedFilters
- * @param applyNow -
+ * @param applyNow - flag indicating whether the filters should be applied immediately
  *
  * This method processes the table of defined filters and emits the applyFilters signal.
  */
