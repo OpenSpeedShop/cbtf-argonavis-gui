@@ -24,6 +24,7 @@
 #include "FilterExpressionValidator.h"
 
 #include <QRegExp>
+#include <QStringList>
 
 
 namespace ArgoNavis { namespace GUI {
