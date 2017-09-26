@@ -207,7 +207,8 @@ SOURCES += \
     SourceView/SourceViewMetricsCache.cpp \
     graphitems/OSSHighlightItem.cpp \
     widgets/MetricViewFilterDialog.cpp \
-    widgets/DefaultSortFilterProxyModel.cpp
+    widgets/DefaultSortFilterProxyModel.cpp \
+    widgets/FilterExpressionValidator.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -258,7 +259,8 @@ HEADERS += \
     SourceView/SourceViewMetricsCache.h \
     graphitems/OSSHighlightItem.h \
     widgets/MetricViewFilterDialog.h \
-    widgets/DefaultSortFilterProxyModel.h
+    widgets/DefaultSortFilterProxyModel.h \
+    widgets/FilterExpressionValidator.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \

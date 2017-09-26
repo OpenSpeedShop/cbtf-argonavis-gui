@@ -25,6 +25,8 @@
 
 #include "ui_MetricViewFilterDialog.h"
 
+#include "FilterExpressionValidator.h"
+
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QTableWidgetItem>
@@ -45,6 +47,15 @@ MetricViewFilterDialog::MetricViewFilterDialog(QWidget *parent)
     , ui( new Ui::MetricViewFilterDialog )
 {
     ui->setupUi( this );
+
+    // create validator for filter expression entry to accept only valid regular expressions
+    m_validator = new FilterExpressionValidator( this );
+
+    // connect to a signal emitted by the filter expression entry area when the user changes the text
+    // so that if can be verified to be a valid regular expression.  The validity flag is used to set the
+    // Accept button enabled state.  Because the validator state affects another widget then the line edit,
+    // the validator is not set on the QLineEdit instance but used in the handler instead.
+    connect( ui->lineEdit_FilterText, SIGNAL(textEdited(QString)), this, SLOT(handleValidateFilterExpression(QString)) );
 
     // create context-menu actions
     m_deleteFilterItem = new QAction( tr("&Delete Selected Filter(s)"), this );
@@ -88,6 +99,24 @@ MetricViewFilterDialog::MetricViewFilterDialog(QWidget *parent)
 MetricViewFilterDialog::~MetricViewFilterDialog()
 {
     delete ui;
+}
+
+/**
+ * @brief MetricViewFilterDialog::handleValidateFilterExpression
+ * @param text - current entered filter expression to be validated
+ *
+ * This function validates the input 'text' to make sure it is a
+ * valid regular expression.  If it is a valid regular expression,
+ * then enable the 'Accept' button; otherwise disable the button.
+ */
+void MetricViewFilterDialog::handleValidateFilterExpression(const QString& text)
+{
+    QString validatorText = text;
+    int pos = 0;
+
+    QValidator::State state = m_validator->validate( validatorText, pos );
+
+    ui->pushButton_Accept->setEnabled( QValidator::Acceptable == state );
 }
 
 /**

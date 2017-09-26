@@ -39,8 +39,10 @@ class QContextMenuEvent;
 #endif
 class QTableWidgetItem;
 
-
 namespace ArgoNavis { namespace GUI {
+
+
+class FilterExpressionValidator;
 
 
 class MetricViewFilterDialog : public QDialog
@@ -77,6 +79,7 @@ private slots:
     void handleApplyPressed();
     void handleOkPressed();
     void handleCancelPressed();
+    void handleValidateFilterExpression(const QString &text);
 
 private:
 
@@ -100,6 +103,8 @@ private:
     } FilterSnapshotInfo;
 
     FilterSnapshotInfo m_snapshot;
+
+    FilterExpressionValidator* m_validator;
 
 };
 
