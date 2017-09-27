@@ -1174,6 +1174,11 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         m_viewStack->setCurrentWidget( view );
     }
 
+    ui->pushButton_ApplyClearFilters->setText( s_APPLY_FILTERS_STR );
+
+    // button is enabled when the filter list is not empty; otherwise it is disabled
+    ui->pushButton_ApplyClearFilters->setDisabled( m_currentFilter.isEmpty() );
+
     emit signalMetricViewChanged( metricViewName );
 }
 

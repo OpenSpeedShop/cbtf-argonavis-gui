@@ -130,6 +130,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="pushButton_ApplyClearFilters">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="text">
          <string>Apply Filters</string>
         </property>
