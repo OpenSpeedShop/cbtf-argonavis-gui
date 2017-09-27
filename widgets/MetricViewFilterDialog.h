@@ -57,6 +57,8 @@ public:
 
     void setColumns(const QStringList &columnList);
 
+    void resetUI();
+
 signals:
 
     void applyFilters(const QList<QPair<QString, QString>>& filters, bool applyNow);

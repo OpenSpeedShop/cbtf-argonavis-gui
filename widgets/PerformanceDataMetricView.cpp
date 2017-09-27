@@ -247,7 +247,11 @@ void PerformanceDataMetricView::deleteAllModelsViews()
         m_proxyModels.clear();
     }
 
+    // reset the Metric Table View widget
     resetUI();
+
+    // reset the Metric View Filter dialog
+    m_metricViewFilterDialog->resetUI();
 }
 
 /**
@@ -303,6 +307,11 @@ void PerformanceDataMetricView::resetUI()
     ui->comboBox_ViewSelection->blockSignals( true );
     ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
     ui->comboBox_ViewSelection->blockSignals( false );
+
+    ui->pushButton_ApplyClearFilters->setText ( s_APPLY_FILTERS_STR );
+    ui->pushButton_ApplyClearFilters->setEnabled( false );
+
+    m_currentFilter.clear();
 
     m_detailsViewModel.clear();
     m_traceViewModel.clear();

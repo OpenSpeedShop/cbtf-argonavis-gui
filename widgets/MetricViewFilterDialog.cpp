@@ -140,6 +140,26 @@ void MetricViewFilterDialog::setColumns(const QStringList &columnList)
 }
 
 /**
+ * @brief MetricViewFilterDialog::resetUI
+ *
+ * This method resets the dialog to the initial state.
+ */
+void MetricViewFilterDialog::resetUI()
+{
+    // clear the defined filter table
+    handleDeleteAllFilterItems();
+
+    // clear the set of known metrics/column names
+    m_columns.clear();
+
+    // clear the combo-box as well
+    ui->comboBox_SelectColumn->clear();
+
+    // clear the filter expression entry area
+    ui->lineEdit_FilterText->clear();
+}
+
+/**
  * @brief MetricViewFilterDialog::showEvent
  * @param event - the show event instance
  *
