@@ -107,7 +107,7 @@ public:
 
     static void destroy();
 
-    void loadCudaViews(const QString& filePath);
+    void loadDefaultViews(const QString& filePath);
     void unloadCudaViews(const QString& clusteringCriteriaName, const QStringList& clusterNames);
 
 #if defined(HAS_OSSCUDA2XML)
@@ -265,7 +265,13 @@ private:
     QString getViewName() const { return QString("CallTree"); }
 
     template <typename TM>
-    double getMetricValue(const TM& tm) { return tm; }
+    double getMetricValue(const TM& tm, int index = 0) { return tm; }
+
+    template <typename TM>
+    double getSampleCounterValue(const TM& tm, int index = 0) { Q_UNUSED(index); return tm; }
+
+    template <typename TM>
+    double getSampleCounterTimeValue(const TM& tm) { Q_UNUSED(tm); return 0.0; }
 
     typedef tuple< int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > > all_details_data_t;
     typedef std::vector< all_details_data_t > TALLDETAILS;
@@ -309,7 +315,10 @@ private:
     std::pair< uint64_t, double > getDetailTotals(const DETAIL_t& detail, const double factor) { return std::make_pair( detail.dm_count, detail.dm_time / factor ); }
 
     template <typename TS>
-    QStringList getTraceMetrics() const { return QStringList(); }
+    QStringList getMetricsDesc() const { return QStringList(); }
+
+    template <typename TS>
+    QStringList getMetricsDesc(const QStringList& eventNames) const { QStringList list( eventNames ); list.prepend( s_timeTitle ); list << s_functionTitle; return list; }
 
     template <typename DETAIL_t>
     void getTraceMetricValues(const QString& functionName, const double time_origin, const DETAIL_t& details, QVector<QVariantList>& metricData);

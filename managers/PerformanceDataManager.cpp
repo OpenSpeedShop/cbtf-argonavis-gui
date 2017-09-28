@@ -68,6 +68,7 @@
 #include "collectors/iop/IOPDetail.hxx"
 #include "collectors/iot/IOTDetail.hxx"
 #include "collectors/hwctime/HWTimeDetail.hxx"
+#include "collectors/hwcsamp/HWCSampDetail.hxx"
 
 #include "ToolAPI.hxx"
 #include "Queries.hxx"
@@ -108,9 +109,9 @@ QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = QStringList() << "mp
 
 // define list of supported sampling experiment types
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-QStringList PerformanceDataManager::s_SAMPLING_EXPERIMENTS = { "hwctime" };
+QStringList PerformanceDataManager::s_SAMPLING_EXPERIMENTS = { "hwctime", "hwcsamp" };
 #else
-QStringList PerformanceDataManager::s_SAMPLING_EXPERIMENTS = QStringList() << "hwctime";
+QStringList PerformanceDataManager::s_SAMPLING_EXPERIMENTS = QStringList() << "hwctime" << "hwcsamp";
 #endif
 
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral( "Details" );
@@ -525,6 +526,23 @@ void PerformanceDataManager::handleRequestCompareView(const QString &clusteringC
             processCompareThreadView<Loop, std::map<OpenSpeedShop::Framework::StackTrace, OpenSpeedShop::Framework::HWTimeDetail>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
     }
+    else if ( collectorId == "hwcsamp" ) {
+        if ( viewName == QStringLiteral("Functions") ) {
+            processCompareThreadView<Function, std::map<OpenSpeedShop::Framework::StackTrace, std::vector<OpenSpeedShop::Framework::HWCSampDetail>>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
+        }
+
+        else if ( viewName == QStringLiteral("Statements") ) {
+            processCompareThreadView<Statement, std::map<OpenSpeedShop::Framework::StackTrace, std::vector<OpenSpeedShop::Framework::HWCSampDetail>>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
+        }
+
+        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+            processCompareThreadView<LinkedObject, std::map<OpenSpeedShop::Framework::StackTrace, std::vector<OpenSpeedShop::Framework::HWCSampDetail>>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
+        }
+
+        else if ( viewName == QStringLiteral("Loops") ) {
+            processCompareThreadView<Loop, std::map<OpenSpeedShop::Framework::StackTrace, std::vector<OpenSpeedShop::Framework::HWCSampDetail>>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
+        }
+    }
     else {
         if ( viewName == QStringLiteral("Functions") ) {
             processCompareThreadView<Function, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
@@ -794,6 +812,16 @@ void PerformanceDataManager::handleRequestSampleCountersView(const QString &clus
             ShowSampleCountersDetail< Framework::LinkedObject, Framework::HWTimeDetail >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
         else if ( viewName == QStringLiteral("Loops") )
             ShowSampleCountersDetail< Framework::Loop, Framework::HWTimeDetail >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
+    }
+    else if ( collectorId == "hwcsamp" ) {
+        if ( viewName == QStringLiteral("Functions") )
+            ShowSampleCountersDetail< Framework::Function, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
+        else if ( viewName == QStringLiteral("Statements") )
+            ShowSampleCountersDetail< Framework::Statement, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
+        else if ( viewName == QStringLiteral("LinkedObjects") )
+            ShowSampleCountersDetail< Framework::LinkedObject, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
+        else if ( viewName == QStringLiteral("Loops") )
+            ShowSampleCountersDetail< Framework::Loop, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
     }
 
     if ( cursorManager ) {
@@ -1288,10 +1316,85 @@ QString PerformanceDataManager::getViewName<Loop>() const
  * The function extracts the sample counter value from the struct.
  */
 template <>
-double PerformanceDataManager::getMetricValue(const std::map<Framework::StackTrace, Framework::HWTimeDetail>& tm)
+double PerformanceDataManager::getMetricValue(const std::map<Framework::StackTrace, Framework::HWTimeDetail>& tm, int index)
 {
+    Q_UNUSED( index );
+
     double result = std::accumulate( tm.begin(), tm.end(), 0.0, [](double sum, const std::pair<Framework::StackTrace, Framework::HWTimeDetail>& d) {
         return sum + d.second.dm_events;
+    } );
+
+    return result;
+}
+
+/**
+ * @brief PerformanceDataManager::getMetricValue
+ * @param tm - the metric value
+ * @return - the double value from the metric value
+ *
+ * This is a template specialization of the getMetricValue template for the OpenSpeedShop::Framework::HWCSampDetail typename.
+ * The function extracts the sample counter value from the struct.
+ */
+template <>
+double PerformanceDataManager::getMetricValue(const std::map<Framework::StackTrace, std::vector<Framework::HWCSampDetail>>& tm, int index)
+{
+    double result = std::accumulate( tm.begin(), tm.end(), 0.0, [index](double sum, const std::pair<Framework::StackTrace, std::vector<Framework::HWCSampDetail>>& d) {
+        return sum +
+            std::accumulate( d.second.begin(), d.second.end(), 0.0, [index](double sum, const Framework::HWCSampDetail& d) {
+                return sum + d.dm_event_values[ index ];
+            } );
+    } );
+
+    return result;
+}
+
+/**
+ * @brief PerformanceDataManager::getSampleCounterValue
+ * @param tm - the metric value
+ * @return - the double value from the metric value
+ *
+ * This is a template specialization of the getSampleCounterValue template for the OpenSpeedShop::Framework::HWTimeDetail typename.
+ * The function extracts the sample counter value from the struct.
+ */
+template <>
+double PerformanceDataManager::getSampleCounterValue(const Framework::HWTimeDetail& tm, int index)
+{
+    Q_UNUSED( index );
+
+    return tm.dm_events;
+}
+
+/**
+ * @brief PerformanceDataManager::getSampleCounterValue
+ * @param tm - the metric value
+ * @return - the double value from the metric value
+ *
+ * This is a template specialization of the getSampleCounterValue template for the OpenSpeedShop::Framework::HWCSampDetail typename.
+ * The function extracts the sample counter value from the struct.
+ */
+template <>
+double PerformanceDataManager::getSampleCounterValue(const std::vector<Framework::HWCSampDetail>& tm, int index)
+{
+    double result = std::accumulate( tm.begin(), tm.end(), 0.0, [index](double sum, const Framework::HWCSampDetail& d) {
+        return sum + d.dm_event_values[ index ];
+    } );
+
+    return result;
+}
+
+/**
+ * @brief PerformanceDataManager::getSampleCounterTimeValue
+ * @param tm - the metric value
+ * @return - the double value from the metric value
+ *
+ * This is a template specialization of the getSampleCounterTimeValue template for the OpenSpeedShop::Framework::HWCSampDetail typename.
+ * The function extracts the sample counter value from the struct.
+ */
+template <>
+double PerformanceDataManager::getSampleCounterTimeValue(const std::vector<Framework::HWCSampDetail>& tm)
+{
+    double result = std::accumulate( tm.begin(), tm.end(), 0.0, [](double sum, const Framework::HWCSampDetail& d) {
+        return sum + d.dm_time;
     } );
 
     return result;
@@ -1737,24 +1840,24 @@ QStringList PerformanceDataManager::getMetricNameList(const std::set<Metadata>& 
  * @brief PerformanceDataManager::asyncLoadCudaViews
  * @param filePath - filename of the experiment database to be opened and processed into the performance data manager and view for display
  *
- * Executes PerformanceDataManager::loadCudaViews asynchronously.
+ * Executes PerformanceDataManager::loadDefaultViews asynchronously.
  */
 void PerformanceDataManager::asyncLoadCudaViews(const QString& filePath)
 {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::asyncLoadCudaViews: filePath=" << filePath;
 #endif
-    QtConcurrent::run( this, &PerformanceDataManager::loadCudaViews, filePath );
+    QtConcurrent::run( this, &PerformanceDataManager::loadDefaultViews, filePath );
 }
 
 /**
- * @brief PerformanceDataManager::loadCudaViews
+ * @brief PerformanceDataManager::loadDefaultViews
  * @param filePath - filename of the experiment database to be opened and processed into the performance data manager and view for display
  *
  * The method invokes various thread using the QtConcurrent::run method to process plot and metric view data.  Each thread is synchronized
  * and loadComplete() signal emitted upon completion of all threads.
  */
-void PerformanceDataManager::loadCudaViews(const QString &filePath)
+void PerformanceDataManager::loadDefaultViews(const QString &filePath)
 {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::loadCudaViews: STARTED";
@@ -1801,6 +1904,8 @@ void PerformanceDataManager::loadCudaViews(const QString &filePath)
         const QString collectorId( i->getMetadata().getUniqueId().c_str() );
         if ( collectorId == "hwctime" )
             metricList = getMetricNameList< std::map<Framework::StackTrace, Framework::HWTimeDetail> >( i->getMetrics(), DETAIL_METRIC );
+        else if ( collectorId == "hwcsamp" )
+            metricList = getMetricNameList< std::map<Framework::StackTrace, std::vector<Framework::HWCSampDetail>> >( i->getMetrics(), DETAIL_METRIC );
         else
             metricList = getMetricNameList< double >( i->getMetrics(), TIME_METRIC );
         foundOne = ( metricList.size() > 0 );
@@ -3158,7 +3263,7 @@ void PerformanceDataManager::getTraceMetricValues(const QString& functionName, c
  * The function returns the names of columns for the MPI trace view.
  */
 template <>
-QStringList PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>() const
+QStringList PerformanceDataManager::getMetricsDesc<std::vector<MPITDetail>>() const
 {
     QStringList metrics;
 
@@ -3176,7 +3281,7 @@ QStringList PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>() c
  * The function returns the names of columns for the IO trace view.
  */
 template <>
-QStringList PerformanceDataManager::getTraceMetrics<std::vector<IOTDetail>>() const
+QStringList PerformanceDataManager::getMetricsDesc<std::vector<IOTDetail>>() const
 {
     QStringList metrics;
 
@@ -3184,6 +3289,23 @@ QStringList PerformanceDataManager::getTraceMetrics<std::vector<IOTDetail>>() co
             << tr("System Call Id") << tr("Return Value");
 
     return metrics;
+}
+
+/**
+ * @brief PerformanceDataManager::getTraceMetrics<Framework::HWTimeDetail>
+ * @return - the metrics descriptions (names of columns for the hwctime metric view).
+ *
+ * This is a template specialization of the getTraceMetrics template for the OpenSpeedShop::Framework::HWTimeDetail typename.
+ * The function returns the names of columns for the hwctime metric view.
+ */
+template <>
+QStringList PerformanceDataManager::getMetricsDesc<Framework::HWTimeDetail>(const QStringList& eventNames) const
+{
+    QStringList desc( eventNames );
+
+    desc << s_functionTitle;
+
+    return desc;
 }
 
 /*
@@ -3216,7 +3338,7 @@ void PerformanceDataManager::ShowTraceDetail(
     // get view name
     const QString traceViewName = TRACE_EVENT_DETAILS_METRIC;
 
-    const QStringList metricDesc = getTraceMetrics<DETAIL_t>();
+    const QStringList metricDesc = getMetricsDesc<DETAIL_t>();
 
     // for details view emit signal to create just the model
     emit addMetricView( clusteringCriteriaName, traceViewName, ALL_EVENTS_DETAILS_VIEW, metricDesc );
@@ -3315,18 +3437,18 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
         const QString viewName)
 {
     // get name of sample counter
-    std::string name;
-    collector.getParameterValue( "event", name );
+    std::string nameListStr;
+    collector.getParameterValue( "event", nameListStr );
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    const QString sampleCounterName = QString::fromStdString( name );
+    const QString nameList = QString::fromStdString( nameListStr );
 #else
-    const QString sampleCounterName = QString( name.c_str() );
+    const QString nameList = QString( nameListStr.c_str() );
 #endif
 
-    // define metric view column headers
-    QStringList metricDesc;
-    metricDesc << sampleCounterName << s_functionTitle;
+    QStringList sampleCounterNames = nameList.split( ',' );
+
+    const QStringList metricDesc = getMetricsDesc<DETAIL_t>( sampleCounterNames );
 
     // for details view emit signal to create just the model
     emit addMetricView( clusteringCriteriaName, metricName, viewName, metricDesc );
@@ -3336,7 +3458,7 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
                     std::map< Framework::StackTrace, DETAIL_t > > > > raw_items;
 
     Queries::GetMetricValues( collector, metricName.toStdString(), interval, threadGroup, getThreadSet<TS>( threadGroup ),  // input - metric search criteria
-                              raw_items );                                                                                  // output - raw metric values
+                              raw_items );
 
     for ( typename std::map< TS, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
 
@@ -3347,26 +3469,37 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
         std::map< Framework::Thread, Framework::ExtentGroup > subextents_map;
         Get_Subextents_To_Object_Map( threadGroup, iter->first, subextents_map );
 
-        std::set< Framework::StackTrace, ltST > StackTraces_Processed;
-
-        qulonglong totalSampleCount = 0;
+        QVector< qulonglong > totalSampleCount( sampleCounterNames.size(), 0 );
+        double totalTime( 0.0 );
 
         for ( typename std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > >::iterator titer = thread.begin(); titer != thread.end(); titer++ ) {
             const typename std::map< Framework::StackTrace, DETAIL_t >& tracemap( titer->second );
 
             for ( typename std::map< Framework::StackTrace, DETAIL_t >::const_iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
-                const Framework::StackTrace& stacktrace( siter->first );
                 const DETAIL_t& details( siter->second );
 
-                std::pair< std::set< Framework::StackTrace >::iterator, bool > ret = StackTraces_Processed.insert( stacktrace );
-                if ( ! ret.second )
-                    continue;
+                for ( int index=0; index<sampleCounterNames.size(); index++ ) {
+                    totalSampleCount[index] += getSampleCounterValue( details, index );
+                }
 
-                totalSampleCount += details.dm_events;
+                totalTime += getSampleCounterTimeValue( details );
             }
         }
 
-        emit addMetricViewData( clusteringCriteriaName, metricName, viewName, QVariantList() << totalSampleCount << locationName );
+        // generate each column of metric values
+        QVariantList metricValues;
+
+        if ( metricDesc.contains( s_timeTitle ) ) {
+            metricValues << totalTime;
+        }
+
+        for ( int index=0; index<sampleCounterNames.size(); index++ ) {
+            metricValues << totalSampleCount[index];
+        }
+
+        metricValues << locationName;
+
+        emit addMetricViewData( clusteringCriteriaName, metricName, viewName, metricValues );
     }
 
     emit requestMetricViewComplete( clusteringCriteriaName, metricName, viewName, lower, upper );
