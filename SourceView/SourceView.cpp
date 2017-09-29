@@ -115,6 +115,8 @@ void SourceView::handleClearSourceView()
     clear();
 
     m_Annotations.clear();
+
+    m_metricsCache.clear();
 }
 
 void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int lineNumber)

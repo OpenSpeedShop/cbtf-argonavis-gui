@@ -46,14 +46,12 @@ public:
 
     QMap< QString, QVector< double > > getMetricsCache(const QString& metricViewName);
 
+    void clear();
+
 public slots:
 
     void handleAddMetricView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QStringList &metrics);
     void handleAddMetricViewData(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QVariantList &data, const QStringList &columnHeaders);
-
-protected:
-
-    void clear();
 
 private:
 
