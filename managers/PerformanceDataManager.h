@@ -265,7 +265,7 @@ private:
     QString getViewName() const { return QString("CallTree"); }
 
     template <typename TM>
-    double getMetricValue(const TM& tm, int index = 0) { return tm; }
+    double getMetricValue(const TM& tm, int index = 0) { Q_UNUSED(index); return tm; }
 
     template <typename TM>
     double getSampleCounterValue(const TM& tm, int index = 0) { Q_UNUSED(index); return tm; }
