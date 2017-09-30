@@ -38,6 +38,7 @@ class QPaintEvent;
 class QResizeEvent;
 class QEvent;
 class QAction;
+class QActionGroup;
 
 #ifndef QT_NO_CONTEXTMENU
 class QContextMenuEvent;
@@ -109,6 +110,7 @@ private:
     QString m_currentMetricView;
 
     QMap< QString, QAction* > m_actions;
+    QActionGroup* m_actionGroup;
 
     int m_metricValueWidth;
 

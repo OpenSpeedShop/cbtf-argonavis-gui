@@ -31,6 +31,7 @@
 #include <QToolTip>
 #include <QFile>
 #include <QAction>
+#include <QActionGroup>
 #include <QMenu>
 
 #ifdef QT_DEBUG
@@ -50,7 +51,7 @@ SourceView::SourceView(QWidget *parent)
     : QPlainTextEdit( parent )
     , m_SideBarArea( new SideBarArea( this ) )
     , m_SyntaxHighlighter( new SyntaxHighlighter( this->document() ) )
-
+    , m_actionGroup( new QActionGroup( this ) )
 {
     connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateSideBarAreaWidth(int)));
     connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateSideBarArea(QRect,int)));
@@ -125,7 +126,11 @@ void SourceView::handleClearSourceView()
 
     m_metricsCache.clear();
 
-    qDeleteAll( m_actions );
+    foreach ( QAction* action, m_actions ) {
+        m_actionGroup->removeAction( action );
+        delete action;
+    }
+
     m_actions.clear();
 }
 
@@ -349,10 +354,6 @@ void SourceView::contextMenuEvent(QContextMenuEvent *event)
 
     const QStringList metricNameChoices = m_metricsCache.getMetricChoices( m_currentMetricView );
 
-    // user has only one or no metric choices so don't create context-menu
-    //if ( metricNameChoices.size() < 2 )
-    //    return;
-
     // get details regarding the currently selected metric - name and value type
 
     QString selectedMetricName;
@@ -364,18 +365,16 @@ void SourceView::contextMenuEvent(QContextMenuEvent *event)
     foreach ( const QString& choice, metricNameChoices ) {
         QAction* action;
         if ( ! m_actions.contains( choice ) ) {
-            action = new QAction( choice, this );
+            action = new QAction( choice, m_actionGroup );
             action->setCheckable( true );
+            action->setChecked( choice == selectedMetricName );
             action->setProperty( "metricViewName", m_currentMetricView );
             m_actions[ choice ] = action;
+            connect( action, SIGNAL(changed()), &m_metricsCache, SLOT(handleSelectedMetricChanged()) );
         }
         else {
             action = m_actions[ choice ];
-            disconnect( action, SIGNAL(changed()), &m_metricsCache, SLOT(handleSelectedMetricChanged()) );
         }
-
-        action->setChecked( choice == selectedMetricName );
-        connect( action, SIGNAL(changed()), &m_metricsCache, SLOT(handleSelectedMetricChanged()) );
 
         menu.addAction( action );
     }
