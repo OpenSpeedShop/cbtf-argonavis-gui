@@ -44,12 +44,21 @@ public:
     explicit SourceViewMetricsCache(QObject *parent = 0);
     virtual ~SourceViewMetricsCache();
 
-    QMap< QString, QVector< double > > getMetricsCache(const QString& metricViewName);
+    QVector< double > getMetricsCache(const QString& metricViewName, const QString& currentFileName);
+
+    QStringList getMetricChoices(const QString &metricViewName) const;
+
+    void getSelectedMetricDetails(const QString& metricViewName, QString& name, QVariant::Type& type) const;
 
     void clear();
 
+signals:
+
+    void signalSelectedMetricChanged(const QString& metricViewName, const QString& selectedMetricName);
+
 public slots:
 
+    void handleSelectedMetricChanged();
     void handleAddMetricView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QStringList &metrics);
     void handleAddMetricViewData(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QVariantList &data, const QStringList &columnHeaders);
 
@@ -57,13 +66,19 @@ private:
 
     // maps metric view name to pair of integers representing the indexes of
     // the columns containing the defining location and the metric value.
-    QMap< QString, QPair<int, int> > m_watchedMetricViews;
+    QMap< QString, QMap< QString, int > > m_watchedMetricViews;
 
-    // maps the metric view name to another map of filename to the metric value
-    QMap< QString, QMap< QString, QVector<double> > > m_metrics;
+    // maps the metric view name to another map of filename to another map of the metric name to the metric value
+    QMap< QString, QMap< QString, QMap< QString, QVector<double> > > > m_metrics;
+
+    // maps the metric view name to the name of the metric in the 'm_watchedMetricViews' that is selected
+    QMap< QString, QString > m_watchedMetricNames;
+
+    // maps the metric view name to the set of metrics that can be selected for the metric view
+    QMap< QString, QStringList > m_watchableMetricNames;
 
     // mutex for cache
-    QMutex m_mutex;
+    mutable QMutex m_mutex;
 };
 
 

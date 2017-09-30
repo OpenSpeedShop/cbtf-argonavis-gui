@@ -30,6 +30,8 @@
 #include <QPainter>
 #include <QToolTip>
 #include <QFile>
+#include <QAction>
+#include <QMenu>
 
 #ifdef QT_DEBUG
 #include <QDebug>
@@ -76,6 +78,8 @@ SourceView::SourceView(QWidget *parent)
              &m_metricsCache, SLOT(handleAddMetricViewData(QString,QString,QString,QVariantList,QStringList)) );
 #endif
 
+    connect( &m_metricsCache, SIGNAL(signalSelectedMetricChanged(QString,QString)), this, SLOT(update()) );
+
     m_metricsCache.moveToThread( &m_thread );
     m_thread.start();
 }
@@ -84,6 +88,9 @@ SourceView::~SourceView()
 {
     m_thread.quit();
     m_thread.wait();
+
+    qDeleteAll( m_actions );
+    m_actions.clear();
 }
 
 void SourceView::setCurrentLineNumber(const int &lineNumber)
@@ -117,6 +124,9 @@ void SourceView::handleClearSourceView()
     m_Annotations.clear();
 
     m_metricsCache.clear();
+
+    qDeleteAll( m_actions );
+    m_actions.clear();
 }
 
 void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int lineNumber)
@@ -172,7 +182,7 @@ int SourceView::sideBarAreaWidth()
 
     QFontMetrics fontMetrics( m_metricsFont );
 
-    m_metricValueWidth = fontMetrics.width( QStringLiteral("9999999.9") );
+    m_metricValueWidth = fontMetrics.width( QStringLiteral("999999999999.9") );
 
     return digitWidth + m_metricValueWidth + 10;
 }
@@ -223,8 +233,12 @@ void SourceView::sideBarAreaPaintEvent(QPaintEvent *event)
     painter.setFont( m_font );
     const int height = fontMetrics().height();
 
-    QMap< QString, QVector< double > > metricViewData = m_metricsCache.getMetricsCache( m_currentMetricView );
-    QVector< double >& metrics = metricViewData[ m_currentFilename ];
+    QVector< double > metrics = m_metricsCache.getMetricsCache( m_currentMetricView, m_currentFilename );
+
+    QString selectedMetricName;
+    QVariant::Type selectedMetricType;
+
+    m_metricsCache.getSelectedMetricDetails( m_currentMetricView, selectedMetricName, selectedMetricType );
 
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
@@ -234,7 +248,14 @@ void SourceView::sideBarAreaPaintEvent(QPaintEvent *event)
             bool lineHasMetrics( metrics.size() > lineNumber && metrics[lineNumber] > 0.0 );
 
             if ( lineHasMetrics ) {
-                QString value = QString::number( metrics[lineNumber], 'f', 1 );
+                QString value;
+                if ( QVariant::Double == selectedMetricType ) {
+                    value = QString::number( metrics[lineNumber], 'f', 1 );
+                }
+                else {
+                    qulonglong tempValue = metrics[lineNumber];
+                    value = QString::number( tempValue );
+                }
                 painter.setPen( Qt::darkRed );
                 painter.setFont( m_metricsFont );
                 painter.drawText( 0, top, m_metricValueWidth, height, Qt::AlignRight|Qt::AlignVCenter, value );
@@ -315,6 +336,54 @@ bool SourceView::event(QEvent *event)
     return QPlainTextEdit::event(event);
 }
 
+#ifndef QT_NO_CONTEXTMENU
+/**
+ * @brief SourceView::contextMenuEvent
+ * @param event - the context-menu event details
+ *
+ * This is the handler to receive context-menu events for the widget.
+ */
+void SourceView::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu menu( this );
+
+    const QStringList metricNameChoices = m_metricsCache.getMetricChoices( m_currentMetricView );
+
+    // user has only one or no metric choices so don't create context-menu
+    //if ( metricNameChoices.size() < 2 )
+    //    return;
+
+    // get details regarding the currently selected metric - name and value type
+
+    QString selectedMetricName;
+    QVariant::Type selectedMetricType;
+
+    m_metricsCache.getSelectedMetricDetails( m_currentMetricView, selectedMetricName, selectedMetricType );
+
+    // add the name of each selectable metric to the context menu with the currently selected metric being checked
+    foreach ( const QString& choice, metricNameChoices ) {
+        QAction* action;
+        if ( ! m_actions.contains( choice ) ) {
+            action = new QAction( choice, this );
+            action->setCheckable( true );
+            action->setProperty( "metricViewName", m_currentMetricView );
+            m_actions[ choice ] = action;
+        }
+        else {
+            action = m_actions[ choice ];
+            disconnect( action, SIGNAL(changed()), &m_metricsCache, SLOT(handleSelectedMetricChanged()) );
+        }
+
+        action->setChecked( choice == selectedMetricName );
+        connect( action, SIGNAL(changed()), &m_metricsCache, SLOT(handleSelectedMetricChanged()) );
+
+        menu.addAction( action );
+    }
+
+    menu.exec( event->globalPos() );
+}
+#endif // QT_NO_CONTEXTMENU
+
 /**
  * @brief SourceView::handleRequestMetricView
  * @param metricViewName - the name of the current view active in the Metric Table View
@@ -327,6 +396,7 @@ void SourceView::handleMetricViewChanged(const QString& metricViewName)
 
     update();
 }
+
 
 } // GUI
 } // ArgoNavis

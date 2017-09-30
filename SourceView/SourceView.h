@@ -30,12 +30,19 @@
 #include <QSize>
 #include <QColor>
 #include <QThread>
+#include <QMap>
 
 #include "SourceViewMetricsCache.h"
 
 class QPaintEvent;
 class QResizeEvent;
 class QEvent;
+class QAction;
+
+#ifndef QT_NO_CONTEXTMENU
+class QContextMenuEvent;
+#endif
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -73,6 +80,12 @@ protected:
     void resizeEvent(QResizeEvent *event);
     bool event(QEvent *event);
 
+#ifndef QT_NO_CONTEXTMENU
+protected slots:
+
+    void contextMenuEvent(QContextMenuEvent *event) Q_DECL_OVERRIDE;
+#endif // QT_NO_CONTEXTMENU
+
 private:
 
     void sideBarAreaPaintEvent(QPaintEvent *event);
@@ -94,6 +107,8 @@ private:
 
     QString m_currentFilename;
     QString m_currentMetricView;
+
+    QMap< QString, QAction* > m_actions;
 
     int m_metricValueWidth;
 

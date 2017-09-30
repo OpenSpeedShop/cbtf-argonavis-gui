@@ -26,6 +26,7 @@
 #include "ModifyPathSubstitutionsDialog.h"
 
 #include <QVariant>
+#include <QAction>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -60,15 +61,68 @@ SourceViewMetricsCache::~SourceViewMetricsCache()
 /**
  * @brief SourceViewMetricsCache::getMetricsCache
  * @param metricViewName - the metric view name
+ * @param currentFileName - the name of the file current displayed in the source-code view
  * @return the map for the specified metric view
  *
  * Get a copy of the metric cache for the specified metric view.
  */
-QMap<QString, QVector<double> > SourceViewMetricsCache::getMetricsCache(const QString &metricViewName)
+QVector<double> SourceViewMetricsCache::getMetricsCache(const QString &metricViewName, const QString &currentFileName)
 {
     QMutexLocker guard( &m_mutex );
 
-    return m_metrics[ metricViewName ];
+    if ( m_watchedMetricNames.contains( metricViewName ) && m_metrics.contains( metricViewName ) && m_metrics[ metricViewName ].contains( currentFileName ) ) {
+
+        const QMap< QString, QVector<double> >& metrics = m_metrics[ metricViewName ][ currentFileName ];
+
+        const QString selectedMetricName = m_watchedMetricNames[ metricViewName ];
+
+        if ( metrics.contains( selectedMetricName ) )
+            return metrics[ selectedMetricName ];
+    }
+
+    return QVector<double>();
+}
+
+/**
+ * @brief SourceViewMetricsCache::getMetricChoices
+ * @param metricViewName - the current metric view name
+ * @return - the list of metric names that can be selected
+ *
+ * This function returns the list of metric names that can be selected for a particular metric view.
+ */
+QStringList SourceViewMetricsCache::getMetricChoices(const QString& metricViewName) const
+{
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_watchableMetricNames.contains( metricViewName ) ) {
+        return m_watchableMetricNames[ metricViewName ];
+    }
+
+    return QStringList();
+}
+
+/**
+ * @brief SourceViewMetricsCache::selectedMetricDetails
+ * @param metricViewName - the current metric view name
+ * @param name - returns the name of the selected metric
+ * @param type - returns the value type of the selected metric
+ *
+ * This function returns details regarding the selected metric - the name and the value type.
+ */
+void SourceViewMetricsCache::getSelectedMetricDetails(const QString& metricViewName, QString &name, QVariant::Type &type) const
+{
+    QMutexLocker guard( &m_mutex );
+
+    if ( m_watchedMetricNames.contains( metricViewName ) ) {
+        name = m_watchedMetricNames[ metricViewName ];
+
+        type = ( name == s_timeTitle ) ? QVariant::Double : QVariant::ULongLong;
+    }
+    else {
+        name = QString();
+
+        type = QVariant::Invalid;
+    }
 }
 
 /**
@@ -85,15 +139,40 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
 {
     Q_UNUSED( clusteringCriteriaName );
 
-    if ( metrics.contains( s_timeTitle ) && metrics.contains( s_functionTitle ) ) {
-        const QString metricViewname = metricName + "-" + viewName;
+    const QStringList PAPI_EVENT_LIST = metrics.filter( QStringLiteral("PAPI") );
+
+    if ( metrics.contains( s_functionTitle ) && ( metrics.contains( s_timeTitle ) || ! PAPI_EVENT_LIST.empty() ) ) {
+
+        const QString metricViewName = metricName + "-" + viewName;
 
         const int timeTitleIdx = metrics.indexOf( s_timeTitle );
         const int functionTitleIdx = metrics.indexOf( s_functionTitle );
 
+        QMap< QString, int > metricIndexes;
+
+        metricIndexes[ s_functionTitle ] = functionTitleIdx;
+
+        if ( timeTitleIdx != -1 ) {
+            metricIndexes[ s_timeTitle ] = timeTitleIdx;
+        }
+
+        foreach ( const QString& papiEventName, PAPI_EVENT_LIST ) {
+            metricIndexes[ papiEventName ] = metrics.indexOf( papiEventName );
+        }
+
         QMutexLocker guard( &m_mutex );
 
-        m_watchedMetricViews.insert( metricViewname, qMakePair( timeTitleIdx, functionTitleIdx ) );
+        // initialize the map of indexes for each metric name
+        m_watchedMetricViews.insert( metricViewName, metricIndexes );
+
+        // initialize the entire set of metric names that can be selected
+        if ( timeTitleIdx != -1 ) {
+            m_watchableMetricNames[ metricViewName ] << s_timeTitle;
+        }
+        m_watchableMetricNames[ metricViewName ] << PAPI_EVENT_LIST;
+
+        // default selected metric is first item on watchable list
+        m_watchedMetricNames.insert( metricViewName, m_watchableMetricNames[ metricViewName ].first() );
     }
 }
 
@@ -116,13 +195,19 @@ void SourceViewMetricsCache::handleAddMetricViewData(const QString &clusteringCr
 
     QMutexLocker guard( &m_mutex );
 
-    if ( ! m_watchedMetricViews.contains( metricViewName ) )
+    // return if the metric view name is not contained in either watched data structures
+    if ( ! m_watchedMetricViews.contains( metricViewName ) || ! m_watchedMetricNames.contains( metricViewName ) )
         return;
 
-    QPair<int, int> indexes = m_watchedMetricViews.value( metricViewName );
+    QMap< QString, QMap< QString, QVector< double > > >& metricViewData = m_metrics[ metricViewName ];
 
-    const double value = data.at( indexes.first ).toDouble();
-    const QString definingLocation = data.at( indexes.second ).toString();
+    // get the list of metric name / index pairs
+    const QMap< QString, int >& metricIndexes = m_watchedMetricViews[ metricViewName ];
+
+    if ( ! metricIndexes.contains( s_functionTitle ) )
+         return;
+
+    const QString definingLocation = data.at( metricIndexes[ s_functionTitle ] ).toString();
 
     int lineNumber;
     QString filename;
@@ -130,27 +215,38 @@ void SourceViewMetricsCache::handleAddMetricViewData(const QString &clusteringCr
     ModifyPathSubstitutionsDialog::extractFilenameAndLine( definingLocation, filename, lineNumber );
 
     if ( filename.isEmpty() || lineNumber < 1 )
-        return;
+        return;   // skip invalid filename or line number
 
-    QMap< QString, QVector< double > >& metricViewData = m_metrics[ metricViewName ];
+    QMap< QString, QVector< double > >& metricFileData = metricViewData[ filename ];
 
-    QVector< double >& metrics = metricViewData[ filename ];
+    for ( QMap< QString, int >::const_iterator iter = metricIndexes.begin(); iter != metricIndexes.end(); iter++ ) {
+        const QString metricName = iter.key();
 
-    if ( metrics.size() == 0 ) {
-        // initialize max value to first value
-        metrics.push_back( value );
-    }
-    else {
-        // update max value as appropriate
-        if ( value > metrics[0] ) {
-            metrics[0] = value;
+        if ( metricName == s_functionTitle )
+            continue;  // skip the function name metric
+
+        const int metricIndex = iter.value();
+
+        const double value = data.at( metricIndex ).toDouble();
+
+        QVector< double >& metrics = metricFileData[ metricName ];
+
+        if ( metrics.size() == 0 ) {
+            // initialize max value to first value
+            metrics.push_back( value );
         }
+        else {
+            // update max value as appropriate
+            if ( value > metrics[0] ) {
+                metrics[0] = value;
+            }
+        }
+
+        if ( metrics.size() < lineNumber+1 )
+            metrics.resize( lineNumber+1 );
+
+        metrics[ lineNumber ] = value;
     }
-
-    if ( metrics.size() < lineNumber+1 )
-        metrics.resize( lineNumber+1 );
-
-    metrics[ lineNumber ] = value;
 }
 
 /**
@@ -165,6 +261,29 @@ void SourceViewMetricsCache::clear()
 
     m_watchedMetricViews.clear();
     m_metrics.clear();
+    m_watchedMetricNames.clear();
+    m_watchableMetricNames.clear();
+}
+
+/**
+ * @brief SourceViewMetricsCache::handleSelectedMetricChanged
+ *
+ * This handler is called when the user selects a metric name used to annotate the source-code view.
+ */
+void SourceViewMetricsCache::handleSelectedMetricChanged()
+{
+    QAction* action = qobject_cast< QAction* >( sender() );
+
+    if ( action ) {
+
+        const QString metricViewName = action->property( "metricViewName" ).toString();
+
+        QMutexLocker guard( &m_mutex );
+
+        m_watchedMetricNames[ metricViewName ] = action->text();
+
+        emit signalSelectedMetricChanged( metricViewName, action->text() );
+    }
 }
 
 
