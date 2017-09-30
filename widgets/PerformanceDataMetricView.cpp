@@ -306,6 +306,7 @@ void PerformanceDataMetricView::resetUI()
 
     ui->comboBox_ViewSelection->blockSignals( true );
     ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
+    ui->comboBox_ViewSelection->setCurrentIndex( 0 );
     ui->comboBox_ViewSelection->blockSignals( false );
 
     ui->pushButton_ApplyClearFilters->setText ( s_APPLY_FILTERS_STR );
