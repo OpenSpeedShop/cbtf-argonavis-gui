@@ -34,6 +34,8 @@
 
 #include "SourceViewMetricsCache.h"
 
+#include "common/openss-gui-config.h"
+
 class QPaintEvent;
 class QResizeEvent;
 class QEvent;
@@ -108,9 +110,6 @@ private:
 
     QString m_currentFilename;
     QString m_currentMetricView;
-
-    QMap< QString, QAction* > m_actions;
-    QActionGroup* m_actionGroup;
 
     int m_metricValueWidth;
 

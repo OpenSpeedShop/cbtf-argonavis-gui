@@ -51,7 +51,6 @@ SourceView::SourceView(QWidget *parent)
     : QPlainTextEdit( parent )
     , m_SideBarArea( new SideBarArea( this ) )
     , m_SyntaxHighlighter( new SyntaxHighlighter( this->document() ) )
-    , m_actionGroup( new QActionGroup( this ) )
 {
     connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateSideBarAreaWidth(int)));
     connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateSideBarArea(QRect,int)));
@@ -89,9 +88,6 @@ SourceView::~SourceView()
 {
     m_thread.quit();
     m_thread.wait();
-
-    qDeleteAll( m_actions );
-    m_actions.clear();
 }
 
 void SourceView::setCurrentLineNumber(const int &lineNumber)
@@ -125,13 +121,6 @@ void SourceView::handleClearSourceView()
     m_Annotations.clear();
 
     m_metricsCache.clear();
-
-    foreach ( QAction* action, m_actions ) {
-        m_actionGroup->removeAction( action );
-        delete action;
-    }
-
-    m_actions.clear();
 }
 
 void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int lineNumber)
@@ -361,20 +350,18 @@ void SourceView::contextMenuEvent(QContextMenuEvent *event)
 
     m_metricsCache.getSelectedMetricDetails( m_currentMetricView, selectedMetricName, selectedMetricType );
 
+    QActionGroup* actionGroup = new QActionGroup( this );
+    connect( &menu, SIGNAL(destroyed(QObject*)), actionGroup, SLOT(deleteLater()) );
+
     // add the name of each selectable metric to the context menu with the currently selected metric being checked
     foreach ( const QString& choice, metricNameChoices ) {
-        QAction* action;
-        if ( ! m_actions.contains( choice ) ) {
-            action = new QAction( choice, m_actionGroup );
-            action->setCheckable( true );
-            action->setChecked( choice == selectedMetricName );
-            action->setProperty( "metricViewName", m_currentMetricView );
-            m_actions[ choice ] = action;
-            connect( action, SIGNAL(changed()), &m_metricsCache, SLOT(handleSelectedMetricChanged()) );
-        }
-        else {
-            action = m_actions[ choice ];
-        }
+        QAction* action = new QAction( choice, actionGroup );
+
+        action->setCheckable( true );
+        action->setChecked( choice == selectedMetricName );
+        action->setProperty( "metricViewName", m_currentMetricView );
+
+        connect( action, SIGNAL(changed()), &m_metricsCache, SLOT(handleSelectedMetricChanged()) );
 
         menu.addAction( action );
     }
