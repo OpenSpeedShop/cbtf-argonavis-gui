@@ -135,8 +135,14 @@ void MetricViewFilterDialog::setColumns(const QStringList &columnList)
     // clear the current items from the combo-box
     ui->comboBox_SelectColumn->clear();
 
+    // get string list
+    QStringList uniqueColumnList;
+    for ( std::set<QString>::iterator iter = m_columns.begin(); iter != m_columns.end(); iter++ ) {
+        uniqueColumnList << *iter;
+    }
+
     // set the new list of combo-box items
-    ui->comboBox_SelectColumn->addItems( m_columns.toList() );
+    ui->comboBox_SelectColumn->addItems( uniqueColumnList );
 }
 
 /**

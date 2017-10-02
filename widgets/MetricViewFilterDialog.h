@@ -26,8 +26,8 @@
 
 #include <QDialog>
 
-#include <QSet>
 #include <QList>
+#include <set>
 
 #include "common/openss-gui-config.h"
 
@@ -109,7 +109,7 @@ private:
 
     FilterExpressionValidator* m_validator;
 
-    QSet< QString > m_columns;
+    std::set< QString > m_columns;
 
 };
 
