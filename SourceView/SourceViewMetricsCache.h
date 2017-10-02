@@ -31,6 +31,7 @@
 #include <QVector>
 #include <QVariantList>
 #include <QMutex>
+#include <set>
 
 namespace ArgoNavis { namespace GUI {
 
@@ -75,7 +76,7 @@ private:
     QMap< QString, QString > m_watchedMetricNames;
 
     // maps the metric view name to the set of metrics that can be selected for the metric view
-    QMap< QString, QStringList > m_watchableMetricNames;
+    QMap< QString, std::set< QString > > m_watchableMetricNames;
 
     // mutex for cache
     mutable QMutex m_mutex;

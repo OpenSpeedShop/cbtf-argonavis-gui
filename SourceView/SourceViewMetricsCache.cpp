@@ -95,7 +95,12 @@ QStringList SourceViewMetricsCache::getMetricChoices(const QString& metricViewNa
     QMutexLocker guard( &m_mutex );
 
     if ( m_watchableMetricNames.contains( metricViewName ) ) {
-        return m_watchableMetricNames[ metricViewName ];
+        QStringList choices;
+        const std::set< QString >& choiceSet( m_watchableMetricNames[ metricViewName ] );
+        for ( std::set< QString >::iterator iter = choiceSet.cbegin(); iter != choiceSet.cend(); iter++ ) {
+            choices << *iter;
+        }
+        return choices;
     }
 
     return QStringList();
@@ -165,14 +170,25 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
         // initialize the map of indexes for each metric name
         m_watchedMetricViews.insert( metricViewName, metricIndexes );
 
+        // determine default selected metrc name
+        QString defaultSelectedMetric;
+
         // initialize the entire set of metric names that can be selected
         if ( timeTitleIdx != -1 ) {
-            m_watchableMetricNames[ metricViewName ] << s_timeTitle;
+            m_watchableMetricNames[ metricViewName ].insert( s_timeTitle );
+            defaultSelectedMetric = s_timeTitle;
         }
-        m_watchableMetricNames[ metricViewName ] << PAPI_EVENT_LIST;
 
-        // default selected metric is first item on watchable list
-        m_watchedMetricNames.insert( metricViewName, m_watchableMetricNames[ metricViewName ].first() );
+        foreach ( const QString& event, PAPI_EVENT_LIST ) {
+            m_watchableMetricNames[ metricViewName ].insert( event );
+        }
+
+        if ( defaultSelectedMetric.isEmpty() && ! PAPI_EVENT_LIST.isEmpty() ) {
+            defaultSelectedMetric = PAPI_EVENT_LIST.first();
+        }
+
+        // default selected metric is either the time metric or the first PAPI event item
+        m_watchedMetricNames.insert( metricViewName, defaultSelectedMetric );
     }
 }
 
