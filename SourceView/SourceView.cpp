@@ -114,13 +114,18 @@ void SourceView::removeAnnotation(int lineNumber)
     m_Annotations.remove(lineNumber);
 }
 
+void SourceView::reset()
+{
+    handleClearSourceView();
+
+    m_metricsCache.clear();
+}
+
 void SourceView::handleClearSourceView()
 {
     clear();
 
     m_Annotations.clear();
-
-    m_metricsCache.clear();
 }
 
 void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int lineNumber)
@@ -176,7 +181,7 @@ int SourceView::sideBarAreaWidth()
 
     QFontMetrics fontMetrics( m_metricsFont );
 
-    m_metricValueWidth = fontMetrics.width( QStringLiteral("999999999999.9") );
+    m_metricValueWidth = fontMetrics.width( QStringLiteral("999999999999.99") );
 
     return digitWidth + m_metricValueWidth + 10;
 }
@@ -244,7 +249,7 @@ void SourceView::sideBarAreaPaintEvent(QPaintEvent *event)
             if ( lineHasMetrics ) {
                 QString value;
                 if ( QVariant::Double == selectedMetricType ) {
-                    value = QString::number( metrics[lineNumber], 'f', 1 );
+                    value = QString::number( metrics[lineNumber], 'f', 2 );
                 }
                 else {
                     qulonglong tempValue = metrics[lineNumber];

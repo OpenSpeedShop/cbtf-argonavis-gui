@@ -308,7 +308,7 @@ void MainWindow::unloadOpenSsExperiment()
 
         ui->widget_ExperimentPanel->handleRemoveExperiment( expName );
 
-        ui->widget_SourceCodeViewer->handleClearSourceView();
+        ui->widget_SourceCodeViewer->reset();
 
         ui->menuUnload_OSS_Experiment->removeAction( action );
         ui->menuUnload_OSS_Experiment->setDisabled( true );

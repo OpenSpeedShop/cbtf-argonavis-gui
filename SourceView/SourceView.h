@@ -65,6 +65,8 @@ public:
     void addAnnotation(int lineNumber, QString toolTip = QString(), QColor color = QColor("orange"));
     void removeAnnotation(int lineNumber);
 
+    void reset();
+
 signals:
 
     void addMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
