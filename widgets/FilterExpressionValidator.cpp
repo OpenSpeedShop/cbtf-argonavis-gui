@@ -62,16 +62,21 @@ QValidator::State FilterExpressionValidator::validate(QString &input, int &pos) 
     static QStringList INTERMEDIATE_ERROR_STRINGS = QStringList() << "unexpected end" << "no error occurred" << "bad repetition syntax";
 #endif
 
-    QRegExp regularExp( input );
-
     QValidator::State state;
 
-    if ( regularExp.isValid() )
-        state = Acceptable;
-    else if ( INTERMEDIATE_ERROR_STRINGS.contains( regularExp.errorString() ) )
-        state = Intermediate;
-    else
+    if ( input.isEmpty() ) {
         state = Invalid;
+    }
+    else {
+        QRegExp regularExp( input );
+
+        if ( regularExp.isValid() )
+            state = Acceptable;
+        else if ( INTERMEDIATE_ERROR_STRINGS.contains( regularExp.errorString() ) )
+            state = Intermediate;
+        else
+            state = Invalid;
+    }
 
     return state;
 }

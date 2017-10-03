@@ -188,6 +188,8 @@ void MetricViewFilterDialog::showEvent(QShowEvent *event)
             m_snapshot.items << new QTableWidgetItem( *ui->tableWidget_DefinedFilters->item( row, col ) );
         }
     }
+
+    handleClearPressed();
 }
 
 #ifndef QT_NO_CONTEXTMENU
@@ -217,6 +219,7 @@ void MetricViewFilterDialog::handleClearPressed()
 {
     ui->lineEdit_FilterText->clear();
     ui->comboBox_SelectColumn->setCurrentIndex( 0 );
+    ui->pushButton_Accept->setEnabled( false );
 }
 
 /**
