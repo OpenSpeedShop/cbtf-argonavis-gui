@@ -94,10 +94,13 @@ QString PerformanceDataManager::s_percentageTitle( tr("% of Time") );
 QString PerformanceDataManager::s_timeTitle( tr("Time (msec)") );
 QString PerformanceDataManager::s_functionTitle( tr("Function (defining location)") );
 QString PerformanceDataManager::s_minimumTitle( tr("Minimum (msec)") );
+QString PerformanceDataManager::s_minimumCountsTitle( tr("Minimum Counts") );
 QString PerformanceDataManager::s_minimumThreadTitle( tr("Minimum (name)") );
 QString PerformanceDataManager::s_maximumTitle( tr("Maximum (msec)") );
+QString PerformanceDataManager::s_maximumCountsTitle( tr("Maximum Counts") );
 QString PerformanceDataManager::s_maximumThreadTitle( tr("Maximum (name)") );
 QString PerformanceDataManager::s_meanTitle( tr("Average (msec)") );
+QString PerformanceDataManager::s_meanCountsTitle( tr("Average Counts") );
 QString PerformanceDataManager::s_meanThreadTitle( tr("Thread Nearest Avg (name)") );
 
 // define list of supported trace experiment types
@@ -443,20 +446,39 @@ void PerformanceDataManager::handleRequestLoadBalanceView(const QString &cluster
 
     const TimeInterval interval( info.getInterval() );
 
-    if ( viewName == QStringLiteral("Functions") ) {
-        processLoadBalanceView<Function>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
-    }
+    if ( metricName == QStringLiteral("overflows") ) {
+        if ( viewName == QStringLiteral("Functions") ) {
+            processLoadBalanceView<Function, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+        }
 
-    else if ( viewName == QStringLiteral("Statements") ) {
-        processLoadBalanceView<Statement>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
-    }
+        else if ( viewName == QStringLiteral("Statements") ) {
+            processLoadBalanceView<Statement, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+        }
 
-    else if ( viewName == QStringLiteral("LinkedObjects") ) {
-        processLoadBalanceView<LinkedObject>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
-    }
+        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+            processLoadBalanceView<LinkedObject, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+        }
 
-    else if ( viewName == QStringLiteral("Loops") ) {
-        processLoadBalanceView<Loop>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+        else if ( viewName == QStringLiteral("Loops") ) {
+            processLoadBalanceView<Loop, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+        }
+    }
+    else {
+        if ( viewName == QStringLiteral("Functions") ) {
+            processLoadBalanceView<Function, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+        }
+
+        else if ( viewName == QStringLiteral("Statements") ) {
+            processLoadBalanceView<Statement, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+        }
+
+        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+            processLoadBalanceView<LinkedObject, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+        }
+
+        else if ( viewName == QStringLiteral("Loops") ) {
+            processLoadBalanceView<Loop, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+        }
     }
 
     // Determine full time interval extent of this experiment
@@ -1713,7 +1735,7 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
  * NOTE: must be metrics providing time information.
  */
-template <typename TS>
+template <typename TS, typename TM, typename DT>
 void PerformanceDataManager::processLoadBalanceView(const CollectorGroup& collectors, const ThreadGroup& all_threads, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric)
 {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -1726,8 +1748,7 @@ void PerformanceDataManager::processLoadBalanceView(const CollectorGroup& collec
     if ( 0 == collectors.size() )
         return;
 
-    QStringList metricDesc;
-    metricDesc << s_maximumTitle << s_maximumThreadTitle << s_minimumTitle << s_minimumThreadTitle << s_meanTitle << s_meanThreadTitle << s_functionTitle;
+    QStringList metricDesc = getMetricsDesc<TM>();
 
     ThreadGroup threadGroup;
 
@@ -1737,7 +1758,7 @@ void PerformanceDataManager::processLoadBalanceView(const CollectorGroup& collec
     const Collector collector( *collectors.begin() );
 
     // Evaluate the first collector's time metric for all functions
-    SmartPtr<std::map<TS, std::map<Thread, double> > > individual;
+    SmartPtr<std::map<TS, std::map<Thread, TM> > > individual;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     std::string metricStr = metric.toStdString();
 #else
@@ -1751,11 +1772,11 @@ void PerformanceDataManager::processLoadBalanceView(const CollectorGroup& collec
                               getThreadSet<TS>( threadGroup ),
                               individual );
 
-    SmartPtr< std::map< TS, double > > dataMin =
+    SmartPtr< std::map< TS, TM > > dataMin =
             Queries::Reduction::Apply( individual, Queries::Reduction::Minimum );
-    SmartPtr< std::map< TS, double > > dataMax =
+    SmartPtr< std::map< TS, TM > > dataMax =
             Queries::Reduction::Apply( individual, Queries::Reduction::Maximum );
-    SmartPtr<std::map<TS, double> > dataMean =
+    SmartPtr<std::map<TS, TM> > dataMean =
             Queries::Reduction::Apply( individual, Queries::Reduction::ArithmeticMean );
 
     std::map< TS, Thread > minimumThreads;
@@ -1763,14 +1784,14 @@ void PerformanceDataManager::processLoadBalanceView(const CollectorGroup& collec
     std::map< TS, Thread > meanThreads;
 
     // find thread exhbiting the minimum and maximum times for each TS item
-    for( typename std::map< TS, std::map<Thread, double > >::const_iterator i = individual->begin(); i != individual->end(); ++i ) {
-        const std::map<Thread, double>& threadMetricMap = i->second;
-        const double min( dataMin->at( i->first ) );
-        const double max( dataMax->at( i->first ) );
-        const double mean( dataMean->at( i->first ) );
-        double diff( std::numeric_limits< double >::max() );
-        std::map< Thread, double >::const_iterator miter = threadMetricMap.begin();
-        for( std::map< Thread, double >::const_iterator titer = threadMetricMap.begin(); titer != threadMetricMap.end(); ++titer ) {
+    for( typename std::map< TS, std::map<Thread, TM > >::const_iterator i = individual->begin(); i != individual->end(); ++i ) {
+        const std::map<Thread, TM>& threadMetricMap = i->second;
+        const TM min( dataMin->at( i->first ) );
+        const TM max( dataMax->at( i->first ) );
+        const TM mean( dataMean->at( i->first ) );
+        TM diff( std::numeric_limits< TM >::max() );
+        typename std::map< Thread, TM >::const_iterator miter = threadMetricMap.begin();
+        for( typename std::map< Thread, TM >::const_iterator titer = threadMetricMap.begin(); titer != threadMetricMap.end(); ++titer ) {
             if ( min == titer->second ) {
                 minimumThreads.insert( std::make_pair( i->first, titer->first ) );
             }
@@ -1787,22 +1808,24 @@ void PerformanceDataManager::processLoadBalanceView(const CollectorGroup& collec
     }
 
     // reset the individual instance
-    individual = SmartPtr<std::map< TS, std::map< Thread, double > > >();
+    individual = SmartPtr<std::map< TS, std::map< Thread, TM > > >();
 
     // Sort the results
-    std::multimap< double, TS > sorted;
-    for( typename std::map< TS, double >::const_iterator i = dataMax->begin(); i != dataMax->end(); ++i ) {
+    std::multimap< TM, TS > sorted;
+    for( typename std::map< TS, TM >::const_iterator i = dataMax->begin(); i != dataMax->end(); ++i ) {
         sorted.insert( std::make_pair( i->second, i->first ) );
     }
 
     emit addMetricView( clusteringCriteriaName, QStringLiteral("Load Balance"), metric + "-" + viewName, metricDesc );
 
-    for( typename std::map< TS, double >::const_iterator i = dataMax->begin(); i != dataMax->end(); ++i ) {
+    const DT factor = ( metricDesc.contains( s_minimumTitle ) ) ? 1000 : 1;
+
+    for( typename std::map< TS, TM >::const_iterator i = dataMax->begin(); i != dataMax->end(); ++i ) {
         QVariantList metricData;
 
-        const double max( i->second * 1000.0 );
-        const double min( dataMin->at( i->first ) * 1000.0 );
-        const double mean( dataMean->at( i->first ) * 1000.0 );
+        const DT max( i->second * factor );
+        const DT min( dataMin->at( i->first ) * factor );
+        const DT mean( dataMean->at( i->first ) * factor );
 
         metricData << max;
         metricData << ArgoNavis::CUDA::getUniqueClusterName( maximumThreads.at( i->first ) );
@@ -3405,6 +3428,40 @@ QStringList PerformanceDataManager::getMetricsDesc<std::vector<IOTDetail>>() con
             << tr("System Call Id") << tr("Return Value");
 
     return metrics;
+}
+
+/**
+ * @brief PerformanceDataManager::getMetricsDesc<double>
+ * @return - the metrics descriptions (names of columns for time-based load balance views of type double).
+ *
+ * This is a template specialization of the getMetricsDesc template for the double typename.
+ * The function returns the names of columns for time-based load balance views of type double.
+ */
+template <>
+QStringList PerformanceDataManager::getMetricsDesc<double>() const
+{
+    QStringList metricDesc;
+
+    metricDesc << s_maximumTitle << s_maximumThreadTitle << s_minimumTitle << s_minimumThreadTitle << s_meanTitle << s_meanThreadTitle << s_functionTitle;
+
+    return metricDesc;
+}
+
+/**
+ * @brief PerformanceDataManager::getMetricsDesc<uint64_t>
+ * @return - the metrics descriptions (names of columns for hwc-based load balance views of type uint64_t).
+ *
+ * This is a template specialization of the getMetricsDesc template for the uint64_t typename.
+ * The function returns the names of columns for hwc-based load balance views of type uint64_t.
+ */
+template <>
+QStringList PerformanceDataManager::getMetricsDesc<uint64_t>() const
+{
+    QStringList metricDesc;
+
+    metricDesc << s_maximumCountsTitle << s_maximumThreadTitle << s_minimumCountsTitle << s_minimumThreadTitle << s_meanCountsTitle << s_meanThreadTitle << s_functionTitle;
+
+    return metricDesc;
 }
 
 /**

@@ -239,7 +239,7 @@ private:
                            const QString &clusteringCriteriaName,
                            QString metric);
 
-    template<typename TS>
+    template<typename TS, typename TM, typename DT>
     void processLoadBalanceView(const OpenSpeedShop::Framework::CollectorGroup& collectors,
                                 const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                                 const OpenSpeedShop::Framework::TimeInterval &interval,
@@ -413,10 +413,13 @@ private:
     static QString s_timeTitle;
     static QString s_functionTitle;
     static QString s_minimumTitle;
+    static QString s_minimumCountsTitle;
     static QString s_minimumThreadTitle;
     static QString s_maximumTitle;
+    static QString s_maximumCountsTitle;
     static QString s_maximumThreadTitle;
     static QString s_meanTitle;
+    static QString s_meanCountsTitle;
     static QString s_meanThreadTitle;
 
     static QStringList s_TRACING_EXPERIMENTS;
