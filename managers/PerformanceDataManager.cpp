@@ -1516,7 +1516,6 @@ double PerformanceDataManager::getSampleCounterTimeValue(const std::vector<Frame
  * @param columnUnits - the units for the metric value
  *
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
- * NOTE: must be metrics providing time information.
  */
 template<typename TS, typename TM, typename DT>
 void PerformanceDataManager::processCompareThreadView(const CollectorGroup& collectors, const ThreadGroup& all_threads, const TimeInterval &interval, const QString &clusteringCriteriaName, const QString metric, const QString compareMode, const QString columnUnits)
@@ -1621,7 +1620,6 @@ void PerformanceDataManager::processCompareThreadView(const CollectorGroup& coll
  * @param metric - the metric to generate data for
  *
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
- * NOTE: must be metrics providing time information.
  */
 template <typename TM, typename TS>
 void PerformanceDataManager::processMetricView(const CollectorGroup &collectors, const ThreadGroup& all_threads, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric)
@@ -1733,7 +1731,6 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
  * @param metric - the metric to generate data for
  *
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
- * NOTE: must be metrics providing time information.
  */
 template <typename TS, typename TM, typename DT>
 void PerformanceDataManager::processLoadBalanceView(const CollectorGroup& collectors, const ThreadGroup& all_threads, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric)
