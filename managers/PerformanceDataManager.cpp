@@ -543,6 +543,23 @@ void PerformanceDataManager::handleRequestCompareView(const QString &clusteringC
             processCompareThreadView<Loop, std::map<OpenSpeedShop::Framework::StackTrace, std::vector<OpenSpeedShop::Framework::HWCSampDetail>>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
     }
+    else if ( collectorId == "hwc" ) {
+        if ( viewName == QStringLiteral("Functions") ) {
+            processCompareThreadView<Function, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
+        }
+
+        else if ( viewName == QStringLiteral("Statements") ) {
+            processCompareThreadView<Statement, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
+        }
+
+        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+            processCompareThreadView<LinkedObject, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
+        }
+
+        else if ( viewName == QStringLiteral("Loops") ) {
+            processCompareThreadView<Loop, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
+        }
+    }
     else {
         if ( viewName == QStringLiteral("Functions") ) {
             processCompareThreadView<Function, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
@@ -1349,6 +1366,72 @@ double PerformanceDataManager::getMetricValue(const std::map<Framework::StackTra
 }
 
 /**
+ * @brief PerformanceDataManager::getMetricValues
+ * @param location - the defining location for the metric item
+ * @param value - the metric value
+ * @param totalValue - the sum of the metric values (used to compute percentage)
+ * @param min - the thread minimum metric value
+ * @param max - the thread maximum metric value
+ * @param mean - the thread mean metric value
+ * @return - the variant list representing a row in the metric table view
+ *
+ * This is a template specialization for time-based metric views of type double.
+ * This function takes the metric value items as input parameters and places them in the correct order in the variant list.
+ * The variant list represents one row in the metric table view.
+ */
+template<>
+QVariantList PerformanceDataManager::getMetricValues(const QString& location, const double &value, const double &totalValue, const double &min, const double &max, const double &mean)
+{
+    const double scaledValue( value * 1000.0 );
+    const double scaledMin( min * 1000.0 );
+    const double scaledMax( max * 1000.0 );
+    const double scaledMean( mean * 1000.0 );
+    const double percentage( value / totalValue * 100.0 );
+
+    QVariantList metricData;
+
+    metricData << scaledValue;
+    metricData << percentage;
+    metricData << location;
+    metricData << scaledMin;
+    metricData << scaledMax;
+    metricData << scaledMean;
+
+    return metricData;
+}
+
+/**
+ * @brief PerformanceDataManager::getMetricValues
+ * @param location - the defining location for the metric item
+ * @param value - the metric value
+ * @param totalValue - the sum of the metric values (used to compute percentage)
+ * @param min - the thread minimum metric value
+ * @param max - the thread maximum metric value
+ * @param mean - the thread mean metric value
+ * @return - the variant list representing a row in the metric table view
+ *
+ * This is a template specialization for hwc-based metric views of type uint64_t.
+ * This function takes the metric value items as input parameters and places them in the correct order in the variant list.
+ * The variant list represents one row in the metric table view.
+ */
+template<>
+QVariantList PerformanceDataManager::getMetricValues(const QString& location, const uint64_t &value, const uint64_t &totalValue, const uint64_t &min, const uint64_t &max, const uint64_t &mean)
+{
+    const double percentage( (double) value / totalValue * 100.0 );
+
+    QVariantList metricData;
+
+    metricData << (qulonglong) value;
+    metricData << percentage;
+    metricData << location;
+    metricData << (qulonglong) min;
+    metricData << (qulonglong) max;
+    metricData << (qulonglong) mean;
+
+    return metricData;
+}
+
+/**
  * @brief PerformanceDataManager::getSampleCounterValue
  * @param tm - the metric value
  * @return - the double value from the metric value
@@ -1518,7 +1601,7 @@ void PerformanceDataManager::processCompareThreadView(const CollectorGroup& coll
  * Build function/statement view output for the specified metrics for all threads over the entire experiment time period.
  * NOTE: must be metrics providing time information.
  */
-template <typename TS>
+template <typename TM, typename TS>
 void PerformanceDataManager::processMetricView(const CollectorGroup &collectors, const ThreadGroup& all_threads, const TimeInterval &interval, const QString &clusteringCriteriaName, QString metric)
 {
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -1531,18 +1614,41 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
     if ( 0 == collectors.size() )
         return;
 
-    QStringList metricDesc;
-    metricDesc << s_timeTitle << s_percentageTitle << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
+    const Collector collector( *collectors.begin() );
+
+    // get name of sample counter (if applicable for the collector)
+    std::string nameListStr;
+
+    std::set<Framework::Metadata> metadataSet = collector.getParameters();
+
+    for ( std::set<Framework::Metadata>::iterator iter = metadataSet.begin(); iter != metadataSet.end(); iter++ ) {
+        const Framework::Metadata metadata( *iter );
+
+        if ( metadata.getUniqueId() == "event" ) {
+            collector.getParameterValue( "event", nameListStr );
+            break;
+        }
+    }
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    const QString nameList = QString::fromStdString( nameListStr );
+#else
+    const QString nameList = QString( nameListStr.c_str() );
+#endif
+
+    QStringList sampleCounterNames = nameList.split( ',' );
+
+    // get an ordered list of metric names used as the column headers in the metric table view
+    QStringList metricDesc = getMetricsDesc<TM>( sampleCounterNames );
 
     ThreadGroup threadGroup;
 
     getThreadGroupFromSelectedClusters( clusteringCriteriaName, all_threads, threadGroup );
 
     const QString viewName = getViewName<TS>();
-    const Collector collector( *collectors.begin() );
 
     // Evaluate the first collector's time metric for all functions
-    SmartPtr<std::map<TS, std::map<Thread, double> > > individual;
+    SmartPtr<std::map<TS, std::map<Thread, TM> > > individual;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     std::string metricStr = metric.toStdString();
 #else
@@ -1554,20 +1660,20 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
                               threadGroup,
                               getThreadSet<TS>( threadGroup ),
                               individual );
-    SmartPtr<std::map<TS, double> > data =
+    SmartPtr<std::map<TS, TM> > data =
             Queries::Reduction::Apply( individual, Queries::Reduction::Summation );
-    SmartPtr<std::map<TS, double> > dataMin =
+    SmartPtr<std::map<TS, TM> > dataMin =
             Queries::Reduction::Apply( individual, Queries::Reduction::Minimum );
-    SmartPtr<std::map<TS, double> > dataMax =
+    SmartPtr<std::map<TS, TM> > dataMax =
             Queries::Reduction::Apply( individual, Queries::Reduction::Maximum );
-    SmartPtr<std::map<TS, double> > dataMean =
+    SmartPtr<std::map<TS, TM> > dataMean =
             Queries::Reduction::Apply( individual, Queries::Reduction::ArithmeticMean );
-    individual = SmartPtr<std::map<TS, std::map<Thread, double> > >();
+    individual = SmartPtr<std::map<TS, std::map<Thread, TM> > >();
 
     // Sort the results
-    std::multimap<double, TS> sorted;
-    double total( 0.0 );
-    for( typename std::map<TS, double>::const_iterator i = data->begin(); i != data->end(); ++i ) {
+    std::multimap<TM, TS> sorted;
+    TM total( 0 );
+    for( typename std::map<TS, TM>::const_iterator i = data->begin(); i != data->end(); ++i ) {
         sorted.insert(std::make_pair(i->second, i->first));
         total += i->second;
     }
@@ -1584,21 +1690,9 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
 
     emit addMetricView( clusteringCriteriaName, metric, viewName, metricDesc );
 
-    for ( typename std::multimap<double, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
-        QVariantList metricData;
+    for ( typename std::multimap<TM, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
 
-        const double value( i->first * 1000.0 );
-        const double min( dataMin->at(i->second) * 1000.0 );
-        const double max( dataMax->at(i->second) * 1000.0 );
-        const double mean( dataMean->at(i->second) * 1000.0 );
-        const double percentage( i->first / total * 100.0 );
-
-        metricData << value;
-        metricData << percentage;
-        metricData << getLocationInfo<TS>( i->second );
-        metricData << min;
-        metricData << max;
-        metricData << mean;
+        QVariantList metricData = getMetricValues( getLocationInfo<TS>( i->second ), i->first, total, dataMin->at(i->second), dataMax->at(i->second), dataMean->at(i->second) );
 
         emit addMetricViewData( clusteringCriteriaName, metric, viewName, metricData );
     }
@@ -1906,6 +2000,8 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             metricList = getMetricNameList< std::map<Framework::StackTrace, Framework::HWTimeDetail> >( i->getMetrics(), DETAIL_METRIC );
         else if ( collectorId == "hwcsamp" )
             metricList = getMetricNameList< std::map<Framework::StackTrace, std::vector<Framework::HWCSampDetail>> >( i->getMetrics(), DETAIL_METRIC );
+        else if ( collectorId == "hwc" )
+            metricList = getMetricNameList< uint64_t >( i->getMetrics(), QStringLiteral("overflows") );
         else
             metricList = getMetricNameList< double >( i->getMetrics(), TIME_METRIC );
         foundOne = ( metricList.size() > 0 );
@@ -2146,30 +2242,50 @@ void PerformanceDataManager::loadCudaMetricViews(
         foreach ( QString viewName, viewList ) {
             const QString futuresKey = metricName + QStringLiteral("-") + viewName;
             if ( viewName == QStringLiteral("Functions") ) {
-                futures[ futuresKey ] = QtConcurrent::run(
-                            boost::bind( &PerformanceDataManager::processMetricView<Function>, this,
-                                         boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
+                if ( metricName == QStringLiteral("overflows") )
+                    futures[ futuresKey ] = QtConcurrent::run(
+                                boost::bind( &PerformanceDataManager::processMetricView<uint64_t, Function>, this,
+                                             boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
+                else
+                    futures[ futuresKey ] = QtConcurrent::run(
+                                boost::bind( &PerformanceDataManager::processMetricView<double, Function>, this,
+                                             boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
             }
 
             else if ( viewName == QStringLiteral("Statements") ) {
-                futures[ futuresKey ] = QtConcurrent::run(
-                            boost::bind( &PerformanceDataManager::processMetricView<Statement>, this,
-                                         boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
+                if ( metricName == QStringLiteral("overflows") )
+                    futures[ futuresKey ] = QtConcurrent::run(
+                                boost::bind( &PerformanceDataManager::processMetricView<uint64_t, Statement>, this,
+                                             boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
+                else
+                    futures[ futuresKey ] = QtConcurrent::run(
+                                boost::bind( &PerformanceDataManager::processMetricView<double, Statement>, this,
+                                             boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
             }
 
             else if ( viewName == QStringLiteral("LinkedObjects") ) {
-                futures[ futuresKey ] = QtConcurrent::run(
-                            boost::bind( &PerformanceDataManager::processMetricView<LinkedObject>, this,
-                                         boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
+                if ( metricName == QStringLiteral("overflows") )
+                    futures[ futuresKey ] = QtConcurrent::run(
+                                boost::bind( &PerformanceDataManager::processMetricView<uint64_t, LinkedObject>, this,
+                                             boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
+                else
+                    futures[ futuresKey ] = QtConcurrent::run(
+                                boost::bind( &PerformanceDataManager::processMetricView<double, LinkedObject>, this,
+                                             boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
             }
 
             else if ( viewName == QStringLiteral("Loops") ) {
-                futures[ futuresKey ] = QtConcurrent::run(
-                            boost::bind( &PerformanceDataManager::processMetricView<Loop>, this,
-                                         boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
+                if ( metricName == QStringLiteral("overflows") )
+                    futures[ futuresKey ] = QtConcurrent::run(
+                                boost::bind( &PerformanceDataManager::processMetricView<uint64_t, Loop>, this,
+                                             boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
+                else
+                    futures[ futuresKey ] = QtConcurrent::run(
+                                boost::bind( &PerformanceDataManager::processMetricView<double, Loop>, this,
+                                             boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 synchronizer.addFuture( futures[ futuresKey ] );
             }
 
@@ -3256,10 +3372,10 @@ void PerformanceDataManager::getTraceMetricValues(const QString& functionName, c
 }
 
 /**
- * @brief PerformanceDataManager::getTraceMetrics<std::vector<MPITDetail>>
+ * @brief PerformanceDataManager::getMetricsDesc<std::vector<MPITDetail>>
  * @return - the trace metrics (names of columns for the MPI trace view).
  *
- * This is a template specialization of the getTraceMetrics template for the OpenSpeedShop::Framework::MPITDetail typename.
+ * This is a template specialization of the getMetricsDesc template for the OpenSpeedShop::Framework::MPITDetail typename.
  * The function returns the names of columns for the MPI trace view.
  */
 template <>
@@ -3274,10 +3390,10 @@ QStringList PerformanceDataManager::getMetricsDesc<std::vector<MPITDetail>>() co
 }
 
 /**
- * @brief PerformanceDataManager::getTraceMetrics<std::vector<IOTDetail>>
+ * @brief PerformanceDataManager::getMetricsDesc<std::vector<IOTDetail>>
  * @return - the trace metrics (names of columns for the MPI trace view).
  *
- * This is a template specialization of the getTraceMetrics template for the OpenSpeedShop::Framework::IOTDetail typename.
+ * This is a template specialization of the getMetricsDesc template for the OpenSpeedShop::Framework::IOTDetail typename.
  * The function returns the names of columns for the IO trace view.
  */
 template <>
@@ -3292,10 +3408,10 @@ QStringList PerformanceDataManager::getMetricsDesc<std::vector<IOTDetail>>() con
 }
 
 /**
- * @brief PerformanceDataManager::getTraceMetrics<Framework::HWTimeDetail>
+ * @brief PerformanceDataManager::getMetricsDesc<Framework::HWTimeDetail>
  * @return - the metrics descriptions (names of columns for the hwctime metric view).
  *
- * This is a template specialization of the getTraceMetrics template for the OpenSpeedShop::Framework::HWTimeDetail typename.
+ * This is a template specialization of the getMetricsDesc template for the OpenSpeedShop::Framework::HWTimeDetail typename.
  * The function returns the names of columns for the hwctime metric view.
  */
 template <>
@@ -3306,6 +3422,42 @@ QStringList PerformanceDataManager::getMetricsDesc<Framework::HWTimeDetail>(cons
     desc << s_functionTitle;
 
     return desc;
+}
+
+/**
+ * @brief PerformanceDataManager::getMetricsDesc<double>
+ * @return - the metrics descriptions (names of columns for time-based metric views of type double).
+ *
+ * This is a template specialization of the getMetricsDesc template for the double typename.
+ * The function returns the names of columns for time-based metric views of type double.
+ */
+template <>
+QStringList PerformanceDataManager::getMetricsDesc<double>(const QStringList& eventNames) const
+{
+    Q_UNUSED( eventNames );
+
+    QStringList metricDesc;
+
+    metricDesc << s_timeTitle << s_percentageTitle << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
+
+    return metricDesc;
+}
+
+/**
+ * @brief PerformanceDataManager::getMetricsDesc<uint64_t>
+ * @return - the metrics descriptions (names of columns for hwc-based metric views of type uint64_t).
+ *
+ * This is a template specialization of the getMetricsDesc template for the uint64_t typename.
+ * The function returns the names of columns for hwc-based metric views of type uint64_t.
+ */
+template <>
+QStringList PerformanceDataManager::getMetricsDesc<uint64_t>(const QStringList& eventNames) const
+{
+    QStringList metricDesc( eventNames );
+
+    metricDesc << s_percentageTitle << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
+
+    return metricDesc;
 }
 
 /*

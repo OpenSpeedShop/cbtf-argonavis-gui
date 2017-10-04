@@ -232,7 +232,7 @@ private:
                              const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                              const OpenSpeedShop::Framework::TimeInterval& interval);
 
-    template <typename TS>
+    template <typename TM, typename TS>
     void processMetricView(const OpenSpeedShop::Framework::CollectorGroup &collectors,
                            const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                            const OpenSpeedShop::Framework::TimeInterval &interval,
@@ -266,6 +266,9 @@ private:
 
     template <typename TM>
     double getMetricValue(const TM& tm, int index = 0) { Q_UNUSED(index); return tm; }
+
+    template <typename TM>
+    QVariantList getMetricValues(const QString& location, const TM& value, const TM& totalValue, const TM& min, const TM& max, const TM& mean);
 
     template <typename TM>
     double getSampleCounterValue(const TM& tm, int index = 0) { Q_UNUSED(index); return tm; }
