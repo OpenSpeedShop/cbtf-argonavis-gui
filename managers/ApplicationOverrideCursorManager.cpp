@@ -123,10 +123,7 @@ void ApplicationOverrideCursorManager::finishWaitingOperation(const QString &nam
  */
 void ApplicationOverrideCursorManager::destroy()
 {
-    if ( s_instance )
-        delete s_instance;
-
-    s_instance = Q_NULLPTR;
+    delete s_instance.fetchAndStoreRelease( Q_NULLPTR );
 }
 
 

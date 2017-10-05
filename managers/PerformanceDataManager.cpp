@@ -334,10 +334,7 @@ PerformanceDataManager *PerformanceDataManager::instance()
  */
 void PerformanceDataManager::destroy()
 {
-    if ( s_instance )
-        delete s_instance;
-
-    s_instance = Q_NULLPTR;
+    delete s_instance.fetchAndStoreRelease( Q_NULLPTR );
 }
 
 /**
