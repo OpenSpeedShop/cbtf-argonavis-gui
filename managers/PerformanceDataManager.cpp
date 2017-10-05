@@ -38,7 +38,6 @@
 #include <iomanip>
 #include <string>
 #include <map>
-#include <vector>
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
