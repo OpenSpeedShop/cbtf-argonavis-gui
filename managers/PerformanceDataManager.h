@@ -41,12 +41,10 @@
 // use either std::tuple or boost::tuple
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <tuple>
-using namespace std;
 #else
 #include <QUuid>
 #include "boost/tuple/tuple.hpp"
 #include "boost/tuple/tuple_comparison.hpp"
-using namespace boost;
 #endif
 
 #include "common/openss-gui-config.h"
@@ -278,12 +276,18 @@ private:
     template <typename TM>
     double getSampleCounterTimeValue(const TM& tm) { Q_UNUSED(tm); return 0.0; }
 
-    typedef tuple< int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > > all_details_data_t;
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    typedef std::tuple< std::int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > > all_details_data_t;
+    typedef std::tuple< std::int64_t, double, OpenSpeedShop::Framework::Function, std::uint32_t > details_data_t;  // count, time, Function, calltree depth
+    typedef std::set< std::tuple< std::set< OpenSpeedShop::Framework::Function >, OpenSpeedShop::Framework::Function > > FunctionSet;
+#else
+    typedef boost::tuple< std::int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > > all_details_data_t;
+    typedef boost::tuple< std::int64_t, double, OpenSpeedShop::Framework::Function, std::uint32_t > details_data_t;  // count, time, Function, calltree depth
+    typedef std::set< boost::tuple< std::set< OpenSpeedShop::Framework::Function >, OpenSpeedShop::Framework::Function > > FunctionSet;
+#endif
     typedef std::vector< all_details_data_t > TALLDETAILS;
 
-    typedef tuple< int64_t, double, OpenSpeedShop::Framework::Function, uint32_t > details_data_t;  // count, time, Function, calltree depth
     typedef std::vector< details_data_t > TDETAILS;
-    typedef std::set< tuple< std::set< OpenSpeedShop::Framework::Function >, OpenSpeedShop::Framework::Function > > FunctionSet;
 
     typedef std::pair< OpenSpeedShop::Framework::Function, OpenSpeedShop::Framework::Function > FunctionCallPair;
     typedef std::map< FunctionCallPair, CalltreeGraphManager::handle_t > CallPairToEdgeMap;
@@ -317,7 +321,7 @@ private:
             CallPairToEdgeMap& callPairToEdgeMap);
 
     template <typename DETAIL_t>
-    std::pair< uint64_t, double > getDetailTotals(const DETAIL_t& detail, const double factor) { return std::make_pair( detail.dm_count, detail.dm_time / factor ); }
+    std::pair< std::uint64_t, double > getDetailTotals(const DETAIL_t& detail, const double factor) { return std::make_pair( detail.dm_count, detail.dm_time / factor ); }
 
     template <typename TS>
     QStringList getMetricsDesc() const { return QStringList(); }
@@ -374,7 +378,7 @@ private:
 
     bool processPeriodicSample(const ArgoNavis::Base::Time& time_origin,
                                const ArgoNavis::Base::Time& time,
-                               const std::vector<uint64_t>& counts,
+                               const std::vector<boost::uint64_t>& counts,
                                const QSet< int >& gpuCounterIndexes,
                                const QString& clusterName,
                                const QString& clusteringCriteriaName);
@@ -399,7 +403,7 @@ private:
                                   bool& flag);
 
     bool hasCudaPeriodicSamples(const QSet< int >& gpuCounterIndexes,
-                                const std::vector<uint64_t>& counts,
+                                const std::vector<boost::uint64_t>& counts,
                                 bool& flag);
 
     bool hasCudaEvents(const ArgoNavis::CUDA::PerformanceData& data,
@@ -446,7 +450,11 @@ private:
 
     struct {
         bool operator() (const details_data_t& lhs, const details_data_t& rhs) {
-            return ( get<3>(lhs) < get<3>(rhs) ) || ( get<3>(lhs) == get<3>(rhs) && get<1>(lhs) > get<1>(rhs) );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+            return ( std::get<3>(lhs) < std::get<3>(rhs) ) || ( std::get<3>(lhs) == std::get<3>(rhs) && std::get<1>(lhs) > std::get<1>(rhs) );
+#else
+            return ( lhs.get<3>() < rhs.get<3>() ) || ( lhs.get<3>() == rhs.get<3>() && lhs.get<1>() > rhs.get<1>() );
+#endif
         }
     } details_compare;
 
