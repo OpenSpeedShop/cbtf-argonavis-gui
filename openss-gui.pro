@@ -15,11 +15,11 @@ DEFINES += APP_MINOR_VERSION=2
 DEFINES += APP_SUBMINOR_VERSION=0
 DEFINES += APP_BUILD_VERSION=0000
 
-greaterThan(QT_MAJOR_VERSION, 4): CONFIG += c++11
-else: QMAKE_CXXFLAGS += -std=c++11
+#greaterThan(QT_MAJOR_VERSION, 4): CONFIG += c++11
+#else: QMAKE_CXXFLAGS += -std=c++11
 
 # uncomment when need to look for deprecated declarations within this source-code
-QMAKE_CXXFLAGS += -Wno-deprecated-declarations
+QMAKE_CXXFLAGS += -Wno-deprecated-declarations -Wno-unused-local-typedefs -Wno-placement-new -Wno-implicit-fallthrough
 
 TARGET = openss-gui
 TEMPLATE = app
