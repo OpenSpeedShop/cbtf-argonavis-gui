@@ -18,8 +18,10 @@ DEFINES += APP_BUILD_VERSION=0000
 greaterThan(QT_MAJOR_VERSION, 4): CONFIG += c++11
 else: QMAKE_CXXFLAGS += -std=c++11
 
-# uncomment when need to look for deprecated declarations within this source-code
+# comment out when need to look for deprecated declarations within this source-code
 QMAKE_CXXFLAGS += -Wno-deprecated-declarations
+# comment out when need to observe the occurrence of these types of warnings
+QMAKE_CXXFLAGS += -Wno-unused-local-typedefs -Wno-placement-new -Wno-implicit-fallthrough
 
 TARGET = openss-gui
 TEMPLATE = app

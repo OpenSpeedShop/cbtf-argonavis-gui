@@ -917,7 +917,7 @@ bool PerformanceDataManager::processKernelExecutionEvent(const Base::Time& time_
  */
 bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin,
                                                    const Base::Time& time,
-                                                   const std::vector<uint64_t>& counts,
+                                                   const std::vector<boost::uint64_t>& counts,
                                                    const QSet< int >& gpuCounterIndexes,
                                                    const QString& clusterName,
                                                    const QString& clusteringCriteriaName)
@@ -1086,7 +1086,7 @@ bool PerformanceDataManager::hasKernelExecutionEvents(const CUDA::KernelExecutio
  * If the visitation finds a thread which has CUDA periodic samples, then the flag will be set 'true' and visitation will halt.
  */
 bool PerformanceDataManager::hasCudaPeriodicSamples(const QSet< int >& gpuCounterIndexes,
-                                                    const std::vector<uint64_t>& counts,
+                                                    const std::vector<boost::uint64_t>& counts,
                                                     bool& flag)
 {
     for ( std::vector<uint64_t>::size_type i = 0; i < counts.size(); ++i ) {
@@ -2707,7 +2707,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
         // Determine the GPU thread from the thread set generated earlier
         clusterNames << hostName;
         Base::ThreadName threadName( iter.key() );
-        std::vector< uint64_t> counterValues( data.counts( threadName, data.interval() ) );
+        std::vector< boost::uint64_t> counterValues( data.counts( threadName, data.interval() ) );
         bool hasGpuCounters( false );
         bool hasGpuPercentageCounter( false );
         for ( std::size_t i=0; i<counterValues.size() && ! hasGpuCounters; i++ ) {
@@ -2867,6 +2867,11 @@ bool PerformanceDataManager::partition_sort(const Function& function,
                                             const std::set< Function >& callingFunctionSet,
                                             const all_details_data_t& d)
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    using namespace std;
+#else
+    using namespace boost;
+#endif
     const Function& func( get<2>(d) );
     const std::set< Function >& callingFuncSet( get<3>(d) );
 
