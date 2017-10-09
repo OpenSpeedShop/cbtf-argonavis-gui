@@ -3552,12 +3552,6 @@ void PerformanceDataManager::ShowTraceDetail(
     Queries::GetMetricValues( collector, metric.toStdString(), interval, threadGroup, functions,  // input - metric search criteria
                               raw_items );                                                        // output - raw metric values
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    std::vector< std::tuple< std::string, double, double, double, double, int, int, long, int > > metrics;
-#else
-    std::vector< boost::tuple< std::string, double, double, double, double, int, int, long, int > > metrics;
-#endif
-
     const QString metricViewName = traceViewName + "-" + ALL_EVENTS_DETAILS_VIEW;
 
     // build the proxy views and tree views for the various trace views: "All Events"
