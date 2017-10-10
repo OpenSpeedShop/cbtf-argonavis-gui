@@ -35,7 +35,6 @@
 #include <QFutureSynchronizer>
 #include <QMutex>
 
-#include <cstdint>
 #include <vector>
 #include <set>
 // use either std::tuple or boost::tuple
