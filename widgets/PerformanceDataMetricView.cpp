@@ -32,6 +32,7 @@
 #include "managers/ApplicationOverrideCursorManager.h"
 #include "SourceView/ModifyPathSubstitutionsDialog.h"
 #include "widgets/ShowDeviceDetailsDialog.h"
+#include "widgets/MetricViewFilterDialog.h"
 
 #include <QStackedLayout>
 #include <QHeaderView>
@@ -66,6 +67,9 @@ QString PerformanceDataMetricView::s_loopsViewName( tr("Loops") );
 QString PerformanceDataMetricView::s_noneName( QStringLiteral("none") );
 
 QString PerformanceDataMetricView::s_allEventsDetailsName( tr("All Events") );
+
+QString PerformanceDataMetricView::s_APPLY_FILTERS_STR = tr("Apply Filters");
+QString PerformanceDataMetricView::s_CLEAR_FILTERS_STR = tr("Clear Filters");
 
 
 /**
@@ -170,6 +174,9 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     // create show device details dialog
     m_deviceDetailsDialog = new ShowDeviceDetailsDialog( this );
 
+    // create metric view filters dialog
+    m_metricViewFilterDialog = new MetricViewFilterDialog( this );
+
     // connect signal/slot for handling adding device information to show device details dialog
     connect( this, SIGNAL(signalAddDevice(quint32,quint32,NameValueList,NameValueList)), m_deviceDetailsDialog, SLOT(handleAddDevice(quint32,quint32,NameValueList,NameValueList)) );
 
@@ -179,6 +186,13 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
 #else
     connect( m_modifyPathsDialog, SIGNAL(signalAddPathSubstitution(int,QString,QString)), this, SIGNAL(signalAddPathSubstitution(int,QString,QString)) );
 #endif
+
+    // connect metric view filter dialog;s applyFilter signal to the handler in this class
+    connect( m_metricViewFilterDialog, SIGNAL(applyFilters(QList<QPair<QString,QString> >,bool)),
+             this, SLOT(handleApplyFilter(QList<QPair<QString,QString> >,bool)) );
+
+    // connect 'Apply Filters' button to handler
+    connect( ui->pushButton_ApplyClearFilters, SIGNAL(pressed()), this, SLOT(handleApplyClearFilters()) );
 }
 
 /**
@@ -233,7 +247,11 @@ void PerformanceDataMetricView::deleteAllModelsViews()
         m_proxyModels.clear();
     }
 
+    // reset the Metric Table View widget
     resetUI();
+
+    // reset the Metric View Filter dialog
+    m_metricViewFilterDialog->resetUI();
 }
 
 /**
@@ -288,7 +306,13 @@ void PerformanceDataMetricView::resetUI()
 
     ui->comboBox_ViewSelection->blockSignals( true );
     ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
+    ui->comboBox_ViewSelection->setCurrentIndex( 0 );
     ui->comboBox_ViewSelection->blockSignals( false );
+
+    ui->pushButton_ApplyClearFilters->setText ( s_APPLY_FILTERS_STR );
+    ui->pushButton_ApplyClearFilters->setEnabled( false );
+
+    m_currentFilter.clear();
 
     m_detailsViewModel.clear();
     m_traceViewModel.clear();
@@ -440,7 +464,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     if ( s_detailsModeName == metricName  )
         return;
 
-    QSortFilterProxyModel* proxyModel( Q_NULLPTR );
+    DefaultSortFilterProxyModel* proxyModel( Q_NULLPTR );
 
     if ( ! metricName.contains( s_compareModeName ) ) {
         ViewSortFilterProxyModel* viewProxyModel = new ViewSortFilterProxyModel;
@@ -454,7 +478,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
         proxyModel = viewProxyModel;
     }
     else {
-        proxyModel = new QSortFilterProxyModel;
+        proxyModel = new DefaultSortFilterProxyModel;
 
         if ( Q_NULLPTR == proxyModel )
             return;
@@ -777,6 +801,81 @@ void PerformanceDataMetricView::handleCustomContextMenuRequested(const QPoint &p
 }
 
 /**
+ * @brief PerformanceDataMetricView::handleApplyClearFilters
+ *
+ * Handler invoked when the 'Apply Filters' or 'Clear Filters' button pressed.
+ *
+ * When the button label is 'Apply Filters', this method invokes the helper method
+ * PerformanceDataMetricView::applyFilterToCurrentView passing in the new filter.
+ * When the button label is 'Clear Filters', this method invokes the helper method
+ * PerformanceDataMetricView::applyFilterToCurrentView passing in an empty list.
+ * Finally the method swaps the label of the button: 'Apply Filters' to 'Clear Filters'
+ * or 'Clear Filters' to 'Apply Filters'.
+ */
+void PerformanceDataMetricView::handleApplyClearFilters()
+{
+    if ( ui->pushButton_ApplyClearFilters->text() == s_APPLY_FILTERS_STR ) {
+        applyFilterToCurrentView( m_currentFilter );
+        ui->pushButton_ApplyClearFilters->setText( s_CLEAR_FILTERS_STR );
+    }
+    else {
+        applyFilterToCurrentView( QList< QPair< QString, QString > >() );
+        ui->pushButton_ApplyClearFilters->setText( s_APPLY_FILTERS_STR );
+    }
+}
+
+/**
+ * @brief PerformanceDataMetricView::applyFilterToCurrentView
+ * @param filters - the current user-defined filter that can be applied to any active metric view
+ *
+ * This method is called to determine the current metric view's proxy model and call the setFilterCriteria method of
+ * the proxy model instance to apply the new user-defined filter.
+ */
+void PerformanceDataMetricView::applyFilterToCurrentView(const QList<QPair<QString, QString> > &filters)
+{
+    const QString metricViewName = getMetricViewName();
+
+    QMutexLocker guard( &m_mutex );
+
+    // apply this new filter immediately to the current proxy model
+    DefaultSortFilterProxyModel* proxyModel =
+            qobject_cast< DefaultSortFilterProxyModel* >( m_proxyModels.value( metricViewName, Q_NULLPTR ) );
+
+    if ( proxyModel ) {
+        proxyModel->setFilterCriteria( filters );
+    }
+}
+
+/**
+ * @brief PerformanceDataMetricView::handleApplyFilter
+ * @param filters - the current user-defined filter that can be applied to any active metric view
+ * @param applyNow - apply the filter to the active metric view immediately
+ *
+ * Handler invoked when the MetricViewFilterDialog::applyFilter signal is emitted.  The handler stores
+ * the filter criteria when the user wishes to apply the filter or the filter can be immediately applied
+ * to the current metric view if the 'applyNow' flag is set.
+ */
+void PerformanceDataMetricView::handleApplyFilter(const QList<QPair<QString, QString> > &filters, bool applyNow)
+{
+    if ( applyNow || filters.isEmpty() ) {
+        applyFilterToCurrentView( filters );
+        // set the button label as appropriate
+        if ( filters.isEmpty() )
+            ui->pushButton_ApplyClearFilters->setText( s_APPLY_FILTERS_STR );
+        else
+            ui->pushButton_ApplyClearFilters->setText( s_CLEAR_FILTERS_STR );
+    }
+    else
+        ui->pushButton_ApplyClearFilters->setText( s_APPLY_FILTERS_STR );
+
+    // button is enabled when the filter list is not empty; otherwise it is disabled
+    ui->pushButton_ApplyClearFilters->setDisabled( filters.isEmpty() );
+
+    // save filters
+    m_currentFilter = filters;
+}
+
+/**
  * @brief PerformanceDataMetricView::processCustomContextMenuRequested
  * @param view - pointer to QTreeView instance
  * @param pos - point on widget were custom context menu was request
@@ -796,6 +895,9 @@ void PerformanceDataMetricView::processCustomContextMenuRequested(QTreeView* vie
             }
             else if ( columnHeader.toString() == s_deviceTitle ) {
                 menuType = SHOW_DEVICE_DETAILS;
+            }
+            else {
+                menuType = DEFAULT_CONTEXT_MENU;
             }
             if ( menuType != MENU_TYPE_UNDEFINED ) {
                 showContextMenu( menuType, model->data( index ), view->viewport()->mapToGlobal( pos ) );
@@ -1062,6 +1164,14 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         view = m_views.value( metricViewName, Q_NULLPTR );
     }
 
+    // clear any filters that had been applied
+    DefaultSortFilterProxyModel* proxyModel =
+            qobject_cast< DefaultSortFilterProxyModel* >( m_proxyModels.value( metricViewName, Q_NULLPTR ) );
+
+    if ( proxyModel ) {
+        proxyModel->setFilterCriteria( QList< QPair<QString, QString> >() );
+    }
+
     // if the request view has not been generated yet, then show blank view and request view update
     if ( Q_NULLPTR == view ) {
         // show blank view
@@ -1073,6 +1183,11 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         // display existing metric view
         m_viewStack->setCurrentWidget( view );
     }
+
+    ui->pushButton_ApplyClearFilters->setText( s_APPLY_FILTERS_STR );
+
+    // button is enabled when the filter list is not empty; otherwise it is disabled
+    ui->pushButton_ApplyClearFilters->setDisabled( m_currentFilter.isEmpty() );
 
     emit signalMetricViewChanged( metricViewName );
 }
@@ -1131,6 +1246,17 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
             }
         }
 
+        QStandardItemModel* model = m_models.value( metricViewName, Q_NULLPTR );
+        if ( model ) {
+            QStringList columnList;
+
+            for ( int i=0; i<model->columnCount(); ++i ) {
+                columnList << model->headerData( i, Qt::Horizontal ).toString();
+            }
+
+            m_metricViewFilterDialog->setColumns( columnList );
+        }
+
         if ( Q_NULLPTR != view ) {
             handleRangeChanged( clusteringCriteriaName, metricName, viewName, lower, upper );
 
@@ -1152,6 +1278,9 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
  */
 void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType, const QVariant& data, const QPoint &globalPos)
 {
+    if ( MENU_TYPE_UNDEFINED == menuType )
+        return;
+
     QMenu menu;
 
     // setup action for modifying path substitutions
@@ -1174,9 +1303,12 @@ void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType,
 
         action->setData( data );
     }
-    else {
+    else if ( DEFAULT_CONTEXT_MENU != menuType ) {
         return;
     }
+
+    // add menu items for default context menu (menu items common to all menu types)
+    action = menu.addAction( tr("&Define View Filters"), m_metricViewFilterDialog, SLOT(exec()) );
 
     menu.exec( globalPos );
 }

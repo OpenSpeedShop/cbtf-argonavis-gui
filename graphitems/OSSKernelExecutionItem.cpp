@@ -90,7 +90,7 @@ void OSSKernelExecutionItem::setData(const Base::Time &time_origin, const CUDA::
     bottomRight->setCoords( timeEnd, 0.55 );
 }
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 4, 0))
 /**
  * @brief demangle
  * @param mangled - the mangled function name

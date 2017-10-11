@@ -35,7 +35,9 @@
 #include <QFutureSynchronizer>
 #include <QMutex>
 
+#include <cstdint>
 #include <vector>
+#include <set>
 // use either std::tuple or boost::tuple
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <tuple>
@@ -107,7 +109,7 @@ public:
 
     static void destroy();
 
-    void loadCudaViews(const QString& filePath);
+    void loadDefaultViews(const QString& filePath);
     void unloadCudaViews(const QString& clusteringCriteriaName, const QStringList& clusterNames);
 
 #if defined(HAS_OSSCUDA2XML)
@@ -232,14 +234,14 @@ private:
                              const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                              const OpenSpeedShop::Framework::TimeInterval& interval);
 
-    template <typename TS>
+    template <typename TM, typename TS>
     void processMetricView(const OpenSpeedShop::Framework::CollectorGroup &collectors,
                            const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                            const OpenSpeedShop::Framework::TimeInterval &interval,
                            const QString &clusteringCriteriaName,
                            QString metric);
 
-    template<typename TS>
+    template<typename TS, typename TM, typename DT>
     void processLoadBalanceView(const OpenSpeedShop::Framework::CollectorGroup& collectors,
                                 const OpenSpeedShop::Framework::ThreadGroup& all_threads,
                                 const OpenSpeedShop::Framework::TimeInterval &interval,
@@ -265,7 +267,16 @@ private:
     QString getViewName() const { return QString("CallTree"); }
 
     template <typename TM>
-    double getMetricValue(const TM& tm) { return tm; }
+    double getMetricValue(const TM& tm, int index = 0) { Q_UNUSED(index); return tm; }
+
+    template <typename TM>
+    QVariantList getMetricValues(const QString& location, const TM& value, const TM& totalValue, const TM& min, const TM& max, const TM& mean);
+
+    template <typename TM>
+    double getSampleCounterValue(const TM& tm, int index = 0) { Q_UNUSED(index); return tm; }
+
+    template <typename TM>
+    double getSampleCounterTimeValue(const TM& tm) { Q_UNUSED(tm); return 0.0; }
 
     typedef tuple< int64_t, double, OpenSpeedShop::Framework::Function, std::set< OpenSpeedShop::Framework::Function > > all_details_data_t;
     typedef std::vector< all_details_data_t > TALLDETAILS;
@@ -309,7 +320,10 @@ private:
     std::pair< uint64_t, double > getDetailTotals(const DETAIL_t& detail, const double factor) { return std::make_pair( detail.dm_count, detail.dm_time / factor ); }
 
     template <typename TS>
-    QStringList getTraceMetrics() const { return QStringList(); }
+    QStringList getMetricsDesc() const { return QStringList(); }
+
+    template <typename TS>
+    QStringList getMetricsDesc(const QStringList& eventNames) const { QStringList list( eventNames ); list.prepend( s_timeTitle ); list << s_functionTitle; return list; }
 
     template <typename DETAIL_t>
     void getTraceMetricValues(const QString& functionName, const double time_origin, const DETAIL_t& details, QVector<QVariantList>& metricData);
@@ -401,10 +415,13 @@ private:
     static QString s_timeTitle;
     static QString s_functionTitle;
     static QString s_minimumTitle;
+    static QString s_minimumCountsTitle;
     static QString s_minimumThreadTitle;
     static QString s_maximumTitle;
+    static QString s_maximumCountsTitle;
     static QString s_maximumThreadTitle;
     static QString s_meanTitle;
+    static QString s_meanCountsTitle;
     static QString s_meanThreadTitle;
 
     static QStringList s_TRACING_EXPERIMENTS;

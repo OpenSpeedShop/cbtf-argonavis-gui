@@ -1,5 +1,5 @@
 /*!
-   \file ViewSortFilterProxyModel.h
+   \file FilterExpressionValidator.h
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
@@ -21,44 +21,24 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef VIEWSORTFILTERPROXYMODEL_H
-#define VIEWSORTFILTERPROXYMODEL_H
+#ifndef FILTEREXPRESSIONVALIDATOR_H
+#define FILTEREXPRESSIONVALIDATOR_H
 
-#include "DefaultSortFilterProxyModel.h"
-
-#include "common/openss-gui-config.h"
-
-#include <QSet>
-#include <QString>
+#include <QValidator>
 
 
 namespace ArgoNavis { namespace GUI {
 
 
-class ViewSortFilterProxyModel : public DefaultSortFilterProxyModel
+class FilterExpressionValidator : public QValidator
 {
     Q_OBJECT
 
 public:
 
-    explicit ViewSortFilterProxyModel(const QString& type = "*", QObject* parent = Q_NULLPTR);
-    virtual ~ViewSortFilterProxyModel();
+    explicit FilterExpressionValidator(QObject* parent = 0);
 
-    void setColumnHeaders(const QStringList &columnHeaders);
-
-    void setFilterRange(double lower, double upper);
-
-protected:
-
-    bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
-    bool filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
-
-private:
-
-    double m_lower;
-    double m_upper;
-
-    QSet< int > m_columns;
+    State validate(QString &input, int &pos) const;
 
 };
 
@@ -66,4 +46,4 @@ private:
 } // GUI
 } // ArgoNavis
 
-#endif // VIEWSORTFILTERPROXYMODEL_H
+#endif // FILTEREXPRESSIONVALIDATOR_H

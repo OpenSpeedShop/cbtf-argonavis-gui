@@ -205,7 +205,10 @@ SOURCES += \
     widgets/ThreadSelectionCommand.cpp \
     managers/MetricTableViewInfo.cpp \
     SourceView/SourceViewMetricsCache.cpp \
-    graphitems/OSSHighlightItem.cpp
+    graphitems/OSSHighlightItem.cpp \
+    widgets/MetricViewFilterDialog.cpp \
+    widgets/DefaultSortFilterProxyModel.cpp \
+    widgets/FilterExpressionValidator.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -254,14 +257,18 @@ HEADERS += \
     widgets/ThreadSelectionCommand.h \
     managers/MetricTableViewInfo.h \
     SourceView/SourceViewMetricsCache.h \
-    graphitems/OSSHighlightItem.h
+    graphitems/OSSHighlightItem.h \
+    widgets/MetricViewFilterDialog.h \
+    widgets/DefaultSortFilterProxyModel.h \
+    widgets/FilterExpressionValidator.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataPlotView.ui \
     widgets/PerformanceDataMetricView.ui \
     SourceView/ModifyPathSubstitutionsDialog.ui \
     widgets/MetricViewManager.ui \
-    widgets/ShowDeviceDetailsDialog.ui
+    widgets/ShowDeviceDetailsDialog.ui \
+    widgets/MetricViewFilterDialog.ui
 
 RESOURCES += \
     openss-gui.qrc

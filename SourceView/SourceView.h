@@ -30,12 +30,22 @@
 #include <QSize>
 #include <QColor>
 #include <QThread>
+#include <QMap>
 
 #include "SourceViewMetricsCache.h"
+
+#include "common/openss-gui-config.h"
 
 class QPaintEvent;
 class QResizeEvent;
 class QEvent;
+class QAction;
+class QActionGroup;
+
+#ifndef QT_NO_CONTEXTMENU
+class QContextMenuEvent;
+#endif
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -55,6 +65,8 @@ public:
     void addAnnotation(int lineNumber, QString toolTip = QString(), QColor color = QColor("orange"));
     void removeAnnotation(int lineNumber);
 
+    void reset();
+
 signals:
 
     void addMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
@@ -72,6 +84,12 @@ protected:
 
     void resizeEvent(QResizeEvent *event);
     bool event(QEvent *event);
+
+#ifndef QT_NO_CONTEXTMENU
+protected slots:
+
+    void contextMenuEvent(QContextMenuEvent *event) Q_DECL_OVERRIDE;
+#endif // QT_NO_CONTEXTMENU
 
 private:
 

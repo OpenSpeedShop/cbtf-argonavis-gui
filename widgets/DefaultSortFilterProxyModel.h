@@ -1,5 +1,5 @@
 /*!
-   \file ViewSortFilterProxyModel.h
+   \file DefaultSortFilterProxyModel.h
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
@@ -21,44 +21,45 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef VIEWSORTFILTERPROXYMODEL_H
-#define VIEWSORTFILTERPROXYMODEL_H
+#ifndef DEFAULTSORTFILTERPROXYMODEL_H
+#define DEFAULTSORTFILTERPROXYMODEL_H
 
-#include "DefaultSortFilterProxyModel.h"
+
+#include <QSortFilterProxyModel>
+#include <QList>
+#include <QPair>
+#include <QString>
+#include <QStringList>
+#include <QRegExp>
 
 #include "common/openss-gui-config.h"
-
-#include <QSet>
-#include <QString>
 
 
 namespace ArgoNavis { namespace GUI {
 
 
-class ViewSortFilterProxyModel : public DefaultSortFilterProxyModel
+class DefaultSortFilterProxyModel : public QSortFilterProxyModel
 {
     Q_OBJECT
 
 public:
 
-    explicit ViewSortFilterProxyModel(const QString& type = "*", QObject* parent = Q_NULLPTR);
-    virtual ~ViewSortFilterProxyModel();
+    explicit DefaultSortFilterProxyModel(const QString& type = QString(), QObject *parent = Q_NULLPTR);
 
-    void setColumnHeaders(const QStringList &columnHeaders);
+public slots:
 
-    void setFilterRange(double lower, double upper);
+    void setFilterCriteria(const QList<QPair<QString,QString>>& criteria);
 
 protected:
 
     bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
-    bool filterAcceptsColumn(int source_column, const QModelIndex &source_parent) const Q_DECL_OVERRIDE;
 
-private:
+protected:
 
-    double m_lower;
-    double m_upper;
+    QString m_type;
 
-    QSet< int > m_columns;
+    // list of criteria - each individual criteria item consists of a column index and filter regular expression
+    QList< QPair<int, QRegExp> > m_filterCriteria;
 
 };
 
@@ -66,4 +67,4 @@ private:
 } // GUI
 } // ArgoNavis
 
-#endif // VIEWSORTFILTERPROXYMODEL_H
+#endif // DEFAULTSORTFILTERPROXYMODEL_H

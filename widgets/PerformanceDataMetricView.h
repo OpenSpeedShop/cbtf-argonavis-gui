@@ -49,6 +49,7 @@ namespace ArgoNavis { namespace GUI {
 
 class ModifyPathSubstitutionsDialog;
 class ShowDeviceDetailsDialog;
+class MetricViewFilterDialog;
 
 
 /*!
@@ -59,7 +60,7 @@ class PerformanceDataMetricView : public QWidget
 {
     Q_OBJECT
 
-    typedef enum { MENU_TYPE_UNDEFINED, DEFINE_PATH_MAPPINGS, SHOW_DEVICE_DETAILS } DetailsMenuTypes;
+    typedef enum { MENU_TYPE_UNDEFINED, DEFAULT_CONTEXT_MENU, DEFINE_PATH_MAPPINGS, SHOW_DEVICE_DETAILS } DetailsMenuTypes;
 
 public:
 
@@ -118,9 +119,12 @@ private slots:
     void showContextMenu(const DetailsMenuTypes menuType, const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);
+    void handleApplyClearFilters();
+    void handleApplyFilter(const QList<QPair<QString,QString> >& filters, bool applyNow);
 
 private:
 
+    void applyFilterToCurrentView(const QList<QPair<QString, QString> > &filters);
     void processTableViewItemClicked(const QAbstractItemModel *model, const QModelIndex &index);
     void processTableViewItemClicked(QTreeView* view, const QModelIndex& index);
     void processCustomContextMenuRequested(QTreeView* view, const QPoint &pos);
@@ -158,11 +162,16 @@ private:
 
     static QString s_noneName;
 
+    static QString s_APPLY_FILTERS_STR;
+    static QString s_CLEAR_FILTERS_STR;
+
     QString m_clusteringCritieriaName;                      // clustering criteria name associated to metric views
     QMutex m_mutex;                                         // mutex for the following QMap objects
     QMap< QString, QStandardItemModel* > m_models;          // map metric to model
     QMap< QString, QSortFilterProxyModel* > m_proxyModels;  // map metric to model
     QMap< QString, QTreeView* > m_views;                    // map metric to view
+
+    QList< QPair< QString, QString > > m_currentFilter;     // currently available user-defined metric view filters
 
     QStackedLayout* m_viewStack;                            // vertical layout holding current view
 
@@ -178,6 +187,7 @@ private:
 
     ModifyPathSubstitutionsDialog* m_modifyPathsDialog;
     ShowDeviceDetailsDialog* m_deviceDetailsDialog;
+    MetricViewFilterDialog* m_metricViewFilterDialog;
 
 };
 
