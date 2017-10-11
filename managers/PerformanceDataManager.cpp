@@ -32,6 +32,7 @@
 #include "CBTF-ArgoNavis-Ext/ClusterNameBuilder.h"
 #include "CBTF-ArgoNavis-Ext/CudaDeviceHelper.h"
 
+#include <cstdint>
 #include <numeric>
 #include <utility>
 #include <iostream>
@@ -205,9 +206,9 @@ void Get_Subextents_To_Object_Map (
  *
  * Determine the number of calls found in the stack frame within the extent.
  */
-inline int64_t stack_contains_N_calls(const Framework::StackTrace& st, Framework::ExtentGroup& subextents)
+inline std::int64_t stack_contains_N_calls(const Framework::StackTrace& st, Framework::ExtentGroup& subextents)
 {
-    int64_t num_calls = 0;
+    std::int64_t num_calls = 0;
 
     Time t = st.getTime();
 
@@ -445,19 +446,19 @@ void PerformanceDataManager::handleRequestLoadBalanceView(const QString &cluster
 
     if ( metricName == QStringLiteral("overflows") ) {
         if ( viewName == QStringLiteral("Functions") ) {
-            processLoadBalanceView<Function, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+            processLoadBalanceView<Function, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
 
         else if ( viewName == QStringLiteral("Statements") ) {
-            processLoadBalanceView<Statement, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+            processLoadBalanceView<Statement, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
 
         else if ( viewName == QStringLiteral("LinkedObjects") ) {
-            processLoadBalanceView<LinkedObject, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+            processLoadBalanceView<LinkedObject, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
 
         else if ( viewName == QStringLiteral("Loops") ) {
-            processLoadBalanceView<Loop, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
+            processLoadBalanceView<Loop, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
     }
     else {
@@ -564,19 +565,19 @@ void PerformanceDataManager::handleRequestCompareView(const QString &clusteringC
     }
     else if ( collectorId == "hwc" ) {
         if ( viewName == QStringLiteral("Functions") ) {
-            processCompareThreadView<Function, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
+            processCompareThreadView<Function, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
 
         else if ( viewName == QStringLiteral("Statements") ) {
-            processCompareThreadView<Statement, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
+            processCompareThreadView<Statement, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
 
         else if ( viewName == QStringLiteral("LinkedObjects") ) {
-            processCompareThreadView<LinkedObject, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
+            processCompareThreadView<LinkedObject, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
 
         else if ( viewName == QStringLiteral("Loops") ) {
-            processCompareThreadView<Loop, uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
+            processCompareThreadView<Loop, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
     }
     else {
@@ -925,14 +926,14 @@ bool PerformanceDataManager::processKernelExecutionEvent(const Base::Time& time_
  */
 bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin,
                                                    const Base::Time& time,
-                                                   const std::vector<uint64_t>& counts,
+                                                   const std::vector<boost::uint64_t>& counts,
                                                    const QSet< int >& gpuCounterIndexes,
                                                    const QString& clusterName,
                                                    const QString& clusteringCriteriaName)
 {
     Q_UNUSED( gpuCounterIndexes )
 
-    double timeStamp = static_cast<uint64_t>( time - time_origin ) / 1000000.0;
+    double timeStamp = static_cast<boost::uint64_t>( time - time_origin ) / 1000000.0;
     double lastTimeStamp;
 
     if ( m_sampleKeys.size() > 0 )
@@ -944,7 +945,7 @@ bool PerformanceDataManager::processPeriodicSample(const Base::Time& time_origin
 
     double value( 0.0 );
 
-    for ( std::vector<uint64_t>::size_type i = 0; i < counts.size(); ++i ) {
+    for ( std::vector<boost::uint64_t>::size_type i = 0; i < counts.size(); ++i ) {
         const QVector< double >& counterValues = m_rawValues[i];
 
         if ( counterValues.size() != 0 ) {
@@ -1094,10 +1095,10 @@ bool PerformanceDataManager::hasKernelExecutionEvents(const CUDA::KernelExecutio
  * If the visitation finds a thread which has CUDA periodic samples, then the flag will be set 'true' and visitation will halt.
  */
 bool PerformanceDataManager::hasCudaPeriodicSamples(const QSet< int >& gpuCounterIndexes,
-                                                    const std::vector<uint64_t>& counts,
+                                                    const std::vector<boost::uint64_t>& counts,
                                                     bool& flag)
 {
-    for ( std::vector<uint64_t>::size_type i = 0; i < counts.size(); ++i ) {
+    for ( std::vector<boost::uint64_t>::size_type i = 0; i < counts.size(); ++i ) {
         if ( gpuCounterIndexes.contains( i ) && counts[i] != 0 ) {
             flag = true;
             return false;
@@ -1436,12 +1437,12 @@ QVariantList PerformanceDataManager::getMetricValues(const QString& location, co
  * @param mean - the thread mean metric value
  * @return - the variant list representing a row in the metric table view
  *
- * This is a template specialization for hwc-based metric views of type uint64_t.
+ * This is a template specialization for hwc-based metric views of type std::uint64_t.
  * This function takes the metric value items as input parameters and places them in the correct order in the variant list.
  * The variant list represents one row in the metric table view.
  */
 template<>
-QVariantList PerformanceDataManager::getMetricValues(const QString& location, const uint64_t &value, const uint64_t &totalValue, const uint64_t &min, const uint64_t &max, const uint64_t &mean)
+QVariantList PerformanceDataManager::getMetricValues(const QString& location, const std::uint64_t &value, const std::uint64_t &totalValue, const std::uint64_t &min, const std::uint64_t &max, const std::uint64_t &mean)
 {
     const double percentage( (double) value / totalValue * 100.0 );
 
@@ -2025,7 +2026,7 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
         else if ( collectorId == "hwcsamp" )
             metricList = getMetricNameList< std::map<Framework::StackTrace, std::vector<Framework::HWCSampDetail>> >( i->getMetrics(), DETAIL_METRIC );
         else if ( collectorId == "hwc" )
-            metricList = getMetricNameList< uint64_t >( i->getMetrics(), QStringLiteral("overflows") );
+            metricList = getMetricNameList< std::uint64_t >( i->getMetrics(), QStringLiteral("overflows") );
         else
             metricList = getMetricNameList< double >( i->getMetrics(), TIME_METRIC );
         foundOne = ( metricList.size() > 0 );
@@ -2268,7 +2269,7 @@ void PerformanceDataManager::loadCudaMetricViews(
             if ( viewName == QStringLiteral("Functions") ) {
                 if ( metricName == QStringLiteral("overflows") )
                     futures[ futuresKey ] = QtConcurrent::run(
-                                boost::bind( &PerformanceDataManager::processMetricView<uint64_t, Function>, this,
+                                boost::bind( &PerformanceDataManager::processMetricView<std::uint64_t, Function>, this,
                                              boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 else
                     futures[ futuresKey ] = QtConcurrent::run(
@@ -2280,7 +2281,7 @@ void PerformanceDataManager::loadCudaMetricViews(
             else if ( viewName == QStringLiteral("Statements") ) {
                 if ( metricName == QStringLiteral("overflows") )
                     futures[ futuresKey ] = QtConcurrent::run(
-                                boost::bind( &PerformanceDataManager::processMetricView<uint64_t, Statement>, this,
+                                boost::bind( &PerformanceDataManager::processMetricView<std::uint64_t, Statement>, this,
                                              boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 else
                     futures[ futuresKey ] = QtConcurrent::run(
@@ -2292,7 +2293,7 @@ void PerformanceDataManager::loadCudaMetricViews(
             else if ( viewName == QStringLiteral("LinkedObjects") ) {
                 if ( metricName == QStringLiteral("overflows") )
                     futures[ futuresKey ] = QtConcurrent::run(
-                                boost::bind( &PerformanceDataManager::processMetricView<uint64_t, LinkedObject>, this,
+                                boost::bind( &PerformanceDataManager::processMetricView<std::uint64_t, LinkedObject>, this,
                                              boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 else
                     futures[ futuresKey ] = QtConcurrent::run(
@@ -2304,7 +2305,7 @@ void PerformanceDataManager::loadCudaMetricViews(
             else if ( viewName == QStringLiteral("Loops") ) {
                 if ( metricName == QStringLiteral("overflows") )
                     futures[ futuresKey ] = QtConcurrent::run(
-                                boost::bind( &PerformanceDataManager::processMetricView<uint64_t, Loop>, this,
+                                boost::bind( &PerformanceDataManager::processMetricView<std::uint64_t, Loop>, this,
                                              boost::cref(collectors), boost::cref(all_threads), boost::cref(interval), boost::cref(clusteringCriteriaName), metricName ) );
                 else
                     futures[ futuresKey ] = QtConcurrent::run(
@@ -2715,7 +2716,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
         // Determine the GPU thread from the thread set generated earlier
         clusterNames << hostName;
         Base::ThreadName threadName( iter.key() );
-        std::vector< uint64_t> counterValues( data.counts( threadName, data.interval() ) );
+        std::vector< boost::uint64_t> counterValues( data.counts( threadName, data.interval() ) );
         bool hasGpuCounters( false );
         bool hasGpuPercentageCounter( false );
         for ( std::size_t i=0; i<counterValues.size() && ! hasGpuCounters; i++ ) {
@@ -2875,6 +2876,11 @@ bool PerformanceDataManager::partition_sort(const Function& function,
                                             const std::set< Function >& callingFunctionSet,
                                             const all_details_data_t& d)
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    using namespace std;
+#else
+    using namespace boost;
+#endif
     const Function& func( get<2>(d) );
     const std::set< Function >& callingFuncSet( get<3>(d) );
 
@@ -3074,7 +3080,7 @@ void PerformanceDataManager::generate_calltree_graph(
  * of the OpenSpeedShop::Framework::CUDAExecDetail implementation.
  */
 template <>
-std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::CUDAExecDetail >& detail, const double factor)
+std::pair< std::uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::CUDAExecDetail >& detail, const double factor)
 {
     double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::CUDAExecDetail& d) {
         return sum + d.getTime();
@@ -3095,7 +3101,7 @@ std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std:
  * of the OpenSpeedShop::Framework::MPIDetail implementation.
  */
 template <>
-std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::MPIDetail >& detail, const double factor)
+std::pair< std::uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::MPIDetail >& detail, const double factor)
 {
     double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::MPIDetail& d) {
         return sum + d.dm_time;
@@ -3116,7 +3122,7 @@ std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std:
  * of the OpenSpeedShop::Framework::PthreadsDetail implementation.
  */
 template <>
-std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::PthreadsDetail >& detail, const double factor)
+std::pair< std::uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector< Framework::PthreadsDetail >& detail, const double factor)
 {
     double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::PthreadsDetail& d) {
         return sum + d.dm_time;
@@ -3137,7 +3143,7 @@ std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std:
  * of the OpenSpeedShop::Framework::MPITDetail implementation.
  */
 template <>
-std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::MPITDetail>& detail, const double factor)
+std::pair< std::uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::MPITDetail>& detail, const double factor)
 {
     double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::MPITDetail& d) {
         return sum + d.dm_time;
@@ -3158,7 +3164,7 @@ std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std:
  * of the OpenSpeedShop::Framework::IODetail implementation.
  */
 template <>
-std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::IODetail>& detail, const double factor)
+std::pair< std::uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::IODetail>& detail, const double factor)
 {
     double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::IODetail& d) {
         return sum + d.dm_time;
@@ -3179,7 +3185,7 @@ std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std:
  * of the OpenSpeedShop::Framework::IOTDetail implementation.
  */
 template <>
-std::pair< uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::IOTDetail>& detail, const double factor)
+std::pair< std::uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::IOTDetail>& detail, const double factor)
 {
     double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::IOTDetail& d) {
         return sum + d.dm_time;
@@ -3258,7 +3264,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
                 subExtents = (*tei).second;
             }
 
-            const int64_t num_calls = ( subExtents.begin() == subExtents.end() ) ? 1 : stack_contains_N_calls( stacktrace, subExtents );
+            const double num_calls = ( subExtents.begin() == subExtents.end() ) ? 1.0 : (double) stack_contains_N_calls( stacktrace, subExtents );
 
             std::size_t index;
             for ( index=0; index<stacktrace.size(); index++ ) {
@@ -3278,7 +3284,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
             const DETAIL_t& detail( siter->second );
 
             // compute the 'count' and 'time' metric for this 'detail' instance
-            std::pair< uint64_t, double > results = getDetailTotals( detail, num_calls );
+            std::pair< std::uint64_t, double > results = getDetailTotals( detail, num_calls );
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
             all_details_data_t detail_tuple = std::make_tuple( results.first, results.second, function, caller );
@@ -3502,14 +3508,14 @@ QStringList PerformanceDataManager::getMetricsDesc<double>() const
 }
 
 /**
- * @brief PerformanceDataManager::getMetricsDesc<uint64_t>
+ * @brief PerformanceDataManager::getMetricsDesc<std::uint64_t>
  * @return - the metrics descriptions (names of columns for hwc-based load balance views of type uint64_t).
  *
- * This is a template specialization of the getMetricsDesc template for the uint64_t typename.
- * The function returns the names of columns for hwc-based load balance views of type uint64_t.
+ * This is a template specialization of the getMetricsDesc template for the std::uint64_t typename.
+ * The function returns the names of columns for hwc-based load balance views of type std::uint64_t.
  */
 template <>
-QStringList PerformanceDataManager::getMetricsDesc<uint64_t>() const
+QStringList PerformanceDataManager::getMetricsDesc<std::uint64_t>() const
 {
     QStringList metricDesc;
 
@@ -3555,14 +3561,14 @@ QStringList PerformanceDataManager::getMetricsDesc<double>(const QStringList& ev
 }
 
 /**
- * @brief PerformanceDataManager::getMetricsDesc<uint64_t>
- * @return - the metrics descriptions (names of columns for hwc-based metric views of type uint64_t).
+ * @brief PerformanceDataManager::getMetricsDesc<std::uint64_t>
+ * @return - the metrics descriptions (names of columns for hwc-based metric views of type std::uint64_t).
  *
- * This is a template specialization of the getMetricsDesc template for the uint64_t typename.
- * The function returns the names of columns for hwc-based metric views of type uint64_t.
+ * This is a template specialization of the getMetricsDesc template for the std::uint64_t typename.
+ * The function returns the names of columns for hwc-based metric views of type std::uint64_t.
  */
 template <>
-QStringList PerformanceDataManager::getMetricsDesc<uint64_t>(const QStringList& eventNames) const
+QStringList PerformanceDataManager::getMetricsDesc<std::uint64_t>(const QStringList& eventNames) const
 {
     QStringList metricDesc( eventNames );
 

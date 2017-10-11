@@ -1283,11 +1283,8 @@ void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType,
 
     QMenu menu;
 
-    // setup action for modifying path substitutions
-    QAction* action;
-
     if ( DEFINE_PATH_MAPPINGS == menuType ) {
-        action = menu.addAction( tr("&Modify Path Substitutions"), m_modifyPathsDialog, SLOT(exec()) );
+        QAction* action = menu.addAction( tr("&Modify Path Substitutions"), m_modifyPathsDialog, SLOT(exec()) );
 
         QString filename;
         int lineNumber;
@@ -1299,7 +1296,7 @@ void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType,
         action->setData( fileInfo.path() );
     }
     else if ( SHOW_DEVICE_DETAILS == menuType ) {
-        action = menu.addAction( tr("&Show Device Info"), m_deviceDetailsDialog, SLOT(exec()) );
+        QAction* action = menu.addAction( tr("&Show Device Info"), m_deviceDetailsDialog, SLOT(exec()) );
 
         action->setData( data );
     }
@@ -1308,7 +1305,7 @@ void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType,
     }
 
     // add menu items for default context menu (menu items common to all menu types)
-    action = menu.addAction( tr("&Define View Filters"), m_metricViewFilterDialog, SLOT(exec()) );
+    menu.addAction( tr("&Define View Filters"), m_metricViewFilterDialog, SLOT(exec()) );
 
     menu.exec( globalPos );
 }

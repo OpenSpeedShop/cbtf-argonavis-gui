@@ -26,6 +26,8 @@
 
 #include <QSyntaxHighlighter>
 
+#include "common/openss-gui-config.h"
+
 class QTextDocument;
 
 namespace ArgoNavis { namespace GUI {
@@ -40,7 +42,7 @@ public:
 
     void init();
 
-    void highlightBlock(const QString &text);
+    void highlightBlock(const QString &text) Q_DECL_OVERRIDE;
 
 private:
 

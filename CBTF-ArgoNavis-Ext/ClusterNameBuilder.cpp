@@ -52,7 +52,7 @@ const QString getUniqueClusterName(const Base::ThreadName& thread)
         clusterName += ( "-r" + QString::number(mpiRank.get()) );
     }
 
-    boost::optional<uint64_t> tidval = thread.tid();
+    boost::optional<boost::uint64_t> tidval = thread.tid();
     if ( tidval ) {
         uint64_t tid = tidval.get();
         uint16_t val;

@@ -39,6 +39,9 @@ namespace ArgoNavis { namespace GUI {
  */
 OSSPeriodicSampleItem::OSSPeriodicSampleItem(QCPAxisRect* axisRect, QCustomPlot *parentPlot)
     : QCPItemRect( parentPlot )
+    , m_time_begin( 0.0 )
+    , m_time_end( 0.0 )
+    , m_count( 0.0 )
 {
     // set brushes and pens for normal (non-selected) appearance
     setBrush( QColor(140, 140, 140, 80) );
