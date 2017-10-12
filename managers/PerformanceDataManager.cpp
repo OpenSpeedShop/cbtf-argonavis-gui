@@ -786,13 +786,13 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
     Base::TimeInterval graphInterval = ConvertToArgoNavis( interval );
     const double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
     const double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
-    const double time_origin = ( experimentInterval.begin() ) / 1000000.0;
+    const Framework::Time::value_type time_origin = experimentInterval.begin();
 
     if ( collectorId == "mpit" ) {
         ShowTraceDetail< std::vector<Framework::MPITDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
     }
     else if ( collectorId == "mem" ) {
-        ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
+        ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "highwater_inclusive_details" );
     }
     else if ( collectorId == "iot" ) {
         ShowTraceDetail< std::vector<Framework::IOTDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
@@ -1999,7 +1999,7 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
     // Get full experiment time interval
     TimeInterval experiment_interval = extent.getTimeInterval();
     // Compute time origin
-    const double time_origin = experiment_interval.getBegin().getValue();
+    const Framework::Time::value_type time_origin = experiment_interval.getBegin().getValue();
 #ifdef HAS_TEST_DATA_RANGE_CONSTRAINT
     const Time stime = experiment_interval.getBegin();
     const Time etime = experiment_interval.getEnd();
@@ -2647,7 +2647,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
     // Get full experiment time interval
     TimeInterval experiment_interval = extent.getTimeInterval();
     // Compute time origin
-    const double time_origin = experiment_interval.getBegin().getValue();
+    const Framework::Time::value_type time_origin = experiment_interval.getBegin().getValue();
 #ifdef HAS_TEST_DATA_RANGE_CONSTRAINT
     // Get experiment start time
     const Time stime = experiment_interval.getBegin();
@@ -3361,13 +3361,16 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
  * This method generates a vector of trace metrics from the metric details.
  */
 template <>
-void PerformanceDataManager::getTraceMetricValues(const QString& functionName, const double time_origin, const std::vector<MPITDetail>& details, QVector< QVariantList >& metricData)
+void PerformanceDataManager::getTraceMetricValues(const QString& functionName, const Framework::Time::value_type time_origin, const std::vector<MPITDetail>& details, QVector< QVariantList >& metricData)
 {
+    const long double FACTOR_TO_MSEC = 1000000.0;
+
     for ( std::vector<MPITDetail>::const_iterator iter = details.begin(); iter != details.end(); iter++ ) {
         const MPITDetail& detail( *iter );
 
-        const double lower = ( detail.dm_interval.getBegin().getValue() / 1000000.0 ) - time_origin;
-        const double upper = ( detail.dm_interval.getEnd().getValue() / 1000000.0 ) - time_origin;
+        const double lower = ( detail.dm_interval.getBegin().getValue() - time_origin ) / FACTOR_TO_MSEC;
+        const double upper = ( detail.dm_interval.getEnd().getValue() - time_origin ) / FACTOR_TO_MSEC;
+
         const double time_in_call = detail.dm_time * 1000.0;
 
         metricData.push_back( QVariantList() << functionName << lower << upper << time_in_call << detail.dm_id.first
@@ -3387,13 +3390,15 @@ void PerformanceDataManager::getTraceMetricValues(const QString& functionName, c
  * This method generates a vector of trace metrics from the metric details.
  */
 template <>
-void PerformanceDataManager::getTraceMetricValues(const QString& functionName, const double time_origin, const std::vector<IOTDetail>& details, QVector< QVariantList >& metricData)
+void PerformanceDataManager::getTraceMetricValues(const QString& functionName, const Framework::Time::value_type time_origin, const std::vector<IOTDetail>& details, QVector< QVariantList >& metricData)
 {
+    const long double FACTOR_TO_MSEC = 1000000.0;
+
     for ( std::vector<IOTDetail>::const_iterator iter = details.begin(); iter != details.end(); iter++ ) {
         const IOTDetail& detail( *iter );
 
-        const double lower = ( detail.dm_interval.getBegin().getValue() / 1000000.0 ) - time_origin;
-        const double upper = ( detail.dm_interval.getEnd().getValue() / 1000000.0 ) - time_origin;
+        const double lower = ( detail.dm_interval.getBegin().getValue() - time_origin ) / FACTOR_TO_MSEC;
+        const double upper = ( detail.dm_interval.getEnd().getValue() - time_origin ) / FACTOR_TO_MSEC;
         const double time_in_call = detail.dm_time * 1000.0;
 
         metricData.push_back( QVariantList() << functionName << lower << upper << time_in_call << detail.dm_id.first
@@ -3430,25 +3435,24 @@ QStringList PerformanceDataManager::getMetricsDesc<std::vector<MPITDetail>>() co
  * This method generates a vector of trace metrics from the metric details.
  */
 template <>
-void PerformanceDataManager::getTraceMetricValues(const QString& functionName, const double time_origin, const std::vector<Framework::MemDetail>& details, QVector< QVariantList >& metricData)
+void PerformanceDataManager::getTraceMetricValues(const QString& functionName, const Framework::Time::value_type time_origin, const std::vector<Framework::MemDetail>& details, QVector< QVariantList >& metricData)
 {
+    const long double FACTOR_TO_MSEC = 1000000.0;
+
     for ( std::vector<MemDetail>::const_iterator iter = details.begin(); iter != details.end(); iter++ ) {
         const MemDetail& detail( *iter );
 
-        const double lower = ( detail.dm_interval.getBegin().getValue() / 1000000.0 ) - time_origin;
-        const double upper = ( detail.dm_interval.getEnd().getValue() / 1000000.0 ) - time_origin;
+        const double lower = ( detail.dm_interval.getBegin().getValue() - time_origin ) / FACTOR_TO_MSEC;
+        const double upper = ( detail.dm_interval.getEnd().getValue() - time_origin ) / FACTOR_TO_MSEC;
         const double duration = detail.dm_time * 1000.0;
+        const quint64 allocSize = ( detail.dm_size2 == 0 ) ? detail.dm_size1 : detail.dm_size1 * detail.dm_size2;
 
-        if ( lower < 0.0 )
-            continue;
+        Q_ASSERT( lower >= 0.0 );
 
-        metricData.push_back( QVariantList() << functionName << lower << upper << duration << detail.dm_id.first
-                                             << QVariant::fromValue<quint32>(detail.dm_count)
-                                             << QVariant::fromValue<quint64>(detail.dm_size1)
-                                             << QVariant::fromValue<quint64>(detail.dm_size2)
-                                             << QVariant::fromValue<quint64>(detail.dm_retval)
-                                             << QVariant::fromValue<quint64>(detail.dm_max)
-                                             << QVariant::fromValue<quint64>(detail.dm_min)
+        metricData.push_back( QVariantList() << functionName << lower << upper << duration
+                                             << QVariant::fromValue<quint64>(detail.dm_id.second)
+                                             << detail.dm_id.first
+                                             << QVariant::fromValue<quint64>(allocSize)
                                              << QVariant::fromValue<quint64>(detail.dm_total_allocation) );
     }
 }
@@ -3461,13 +3465,11 @@ void PerformanceDataManager::getTraceMetricValues(const QString& functionName, c
  * The function returns the names of columns for the MPI trace view.
  */
 template <>
-QStringList PerformanceDataManager::getTraceMetrics<std::vector<Framework::MemDetail>>() const
+QStringList PerformanceDataManager::getMetricsDesc<std::vector<Framework::MemDetail>>() const
 {
     QStringList metrics;
 
-    metrics << s_functionTitle << tr("Time Begin (ms)") << tr("Time End (ms)") << tr("Duration (ms)") << tr("Rank")
-            << tr("Count") << tr("Size 1 Arg") << tr("Size 2 Arg") << tr("Return Value")
-            << tr("Max Allocation Seen") << tr("Min Allocation Seen") << tr("Total Allocation");
+    metrics << s_functionTitle << tr("Time Begin (ms)") << tr("Time End (ms)") << tr("Duration (ms)") << tr("Rank") << tr("Process/Thread Id") << tr("Allocation") << tr("New Highwater");
 
     return metrics;
 }
@@ -3597,7 +3599,7 @@ void PerformanceDataManager::ShowTraceDetail(
         const QString& clusteringCriteriaName,
         const Framework::Collector& collector,
         const Framework::ThreadGroup& threadGroup,
-        const double time_origin,
+        const Framework::Time::value_type time_origin,
         const double lower,
         const double upper,
         const Framework::TimeInterval& interval,

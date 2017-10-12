@@ -329,7 +329,7 @@ private:
     QStringList getMetricsDesc(const QStringList& eventNames) const { QStringList list( eventNames ); list.prepend( s_timeTitle ); list << s_functionTitle; return list; }
 
     template <typename DETAIL_t>
-    void getTraceMetricValues(const QString& functionName, const double time_origin, const DETAIL_t& details, QVector<QVariantList>& metricData);
+    void getTraceMetricValues(const QString& functionName, const OpenSpeedShop::Framework::Time::value_type time_origin, const DETAIL_t& details, QVector<QVariantList>& metricData);
 
     template <typename DETAIL_t>
     void ShowCalltreeDetail(const OpenSpeedShop::Framework::Collector& collector,
@@ -344,7 +344,7 @@ private:
     void ShowTraceDetail(const QString& clusteringCriteriaName,
                          const OpenSpeedShop::Framework::Collector &collector,
                          const OpenSpeedShop::Framework::ThreadGroup &threadGroup,
-                         const double time_origin,
+                         const OpenSpeedShop::Framework::Time::value_type time_origin,
                          const double lower,
                          const double upper,
                          const OpenSpeedShop::Framework::TimeInterval &interval,
