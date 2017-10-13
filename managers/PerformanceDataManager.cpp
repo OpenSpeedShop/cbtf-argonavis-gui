@@ -3668,7 +3668,7 @@ void PerformanceDataManager::ShowTraceDetail(
 
                 foreach( const QVariantList& list, traceList ) {
                     if ( list.size() == metricDesc.size() ) {
-                        emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, list[0].toString(), list[1].toDouble(), list[2].toDouble(), list[4].toInt() );
+                        emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, functionName, list[1].toDouble(), list[2].toDouble(), list[4].toInt() );
                     }
                 }
 
