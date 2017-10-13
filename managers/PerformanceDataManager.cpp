@@ -792,7 +792,7 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
         ShowTraceDetail< std::vector<Framework::MPITDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
     }
     else if ( collectorId == "mem" ) {
-        ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "highwater_inclusive_details" );
+        ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "leaked_inclusive_details" );
     }
     else if ( collectorId == "iot" ) {
         ShowTraceDetail< std::vector<Framework::IOTDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
@@ -1201,7 +1201,7 @@ std::set<Loop> PerformanceDataManager::getThreadSet<Loop>(const ThreadGroup& thr
 }
 
 /**
- * @brief getLocationInfo
+ * @brief PerformanceDataManager::getLocationInfo
  * @param metric - the Function metric object reference
  * @return - the defining location information form the metric object reference
  *
@@ -1231,7 +1231,7 @@ QString PerformanceDataManager::getLocationInfo(const Function& metric)
 }
 
 /**
- * @brief getLocationInfo
+ * @brief PerformanceDataManager::getLocationInfo
  * @param metric - the LinkedObject metric object reference
  * @return - the defining location information form the metric object reference
  *
@@ -1253,7 +1253,7 @@ QString PerformanceDataManager::getLocationInfo(const LinkedObject& metric)
 }
 
 /**
- * @brief getLocationInfo
+ * @brief PerformanceDataManager::getLocationInfo
  * @param metric - the Statement metric object reference
  * @return - the defining location information form the metric object reference
  *
@@ -1276,7 +1276,7 @@ QString PerformanceDataManager::getLocationInfo(const Statement& metric)
 }
 
 /**
- * @brief getLocationInfo
+ * @brief PerformanceDataManager::getLocationInfo
  * @param metric - the Loop metric object reference
  * @return - the defining location information form the metric object reference
  *
@@ -3656,8 +3656,15 @@ void PerformanceDataManager::ShowTraceDetail(
                 if ( ! ret.second )
                     continue;
 
+                QString definingLocation;
+                std::set< Statement > statements = stacktrace.getStatementsAt( 1 );
+                if ( statements.size() > 0 ) {
+                    Statement statement( *statements.begin() );
+                    definingLocation = QStringLiteral(" (") + getLocationInfo(statement ) + QStringLiteral(" )");
+                }
+
                 QVector< QVariantList > traceList;
-                getTraceMetricValues( functionName, time_origin, details, traceList );
+                getTraceMetricValues( functionName + definingLocation, time_origin, details, traceList );
 
                 foreach( const QVariantList& list, traceList ) {
                     if ( list.size() == metricDesc.size() ) {
