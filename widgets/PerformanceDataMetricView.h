@@ -88,6 +88,8 @@ public:
 
     static QString getMetricModeName(const ModeType mode);
 
+    static QString getMetricViewName(const ModeType mode, const QString &metricName, const QString &viewName);
+
 signals:
 
     void signalAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);

@@ -1111,34 +1111,48 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
 
 /**
  * @brief PerformanceDataMetricView::getMetricViewName
+ * @param modeName - the mode selection
+ * @param metricName - name of metric view
+ * @param viewName - name of the view
+ * @return - metric view name formed from the specified mode, metric and view values.
+ *
+ * Build the metric view name formed from the specified mode, metric and view values.
+ */
+QString PerformanceDataMetricView::getMetricViewName(const ModeType mode, const QString& metricName, const QString& viewName)
+{
+    QString metricViewName;
+
+    if ( DETAILS_MODE == mode )
+        metricViewName = s_detailsModeName + "-" + viewName;
+    else if ( CALLTREE_MODE == mode )
+        metricViewName = s_calltreeModeName + "-" + s_calltreeModeName;
+    else if ( TRACE_MODE == mode )
+        metricViewName = s_traceModeName + "-" + viewName;
+    else if ( COMPARE_MODE == mode )
+        metricViewName = s_compareModeName + "-" + metricName + "-" + viewName;
+    else if ( COMPARE_BY_RANK_MODE == mode )
+        metricViewName = s_compareByRankModeName + "-" +metricName + "-" + viewName;
+    else if ( COMPARE_BY_HOST_MODE == mode )
+        metricViewName = s_compareByHostModeName + "-" + metricName + "-" + viewName;
+    else if ( COMPARE_BY_PROCESS_MODE == mode )
+        metricViewName = s_compareByProcessModeName + "-" + metricName + "-" + viewName;
+    else if ( LOAD_BALANCE_MODE == mode )
+        metricViewName = s_loadBalanceModeName + "-" + metricName + "-" + viewName;
+    else
+        metricViewName = metricName + "-" + viewName;
+
+    return metricViewName;
+}
+
+/**
+ * @brief PerformanceDataMetricView::getMetricViewName
  * @return - metric view name formed from internal class state and values of UI comboboxes.
  *
  * Build metric view name string formed from internal class state and values of UI comboboxes.
  */
 QString PerformanceDataMetricView::getMetricViewName() const
 {
-    QString metricViewName;
-
-    if ( DETAILS_MODE == m_mode )
-        metricViewName = s_detailsModeName + "-" + ui->comboBox_ViewSelection->currentText();
-    else if ( CALLTREE_MODE == m_mode )
-        metricViewName = s_calltreeModeName + "-" + s_calltreeModeName;
-    else if ( TRACE_MODE == m_mode )
-        metricViewName = s_traceModeName + "-" + ui->comboBox_ViewSelection->currentText();
-    else if ( COMPARE_MODE == m_mode )
-        metricViewName = s_compareModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
-    else if ( COMPARE_BY_RANK_MODE == m_mode )
-        metricViewName = s_compareByRankModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
-    else if ( COMPARE_BY_HOST_MODE == m_mode )
-        metricViewName = s_compareByHostModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
-    else if ( COMPARE_BY_PROCESS_MODE == m_mode )
-        metricViewName = s_compareByProcessModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
-    else if ( LOAD_BALANCE_MODE == m_mode )
-        metricViewName = s_loadBalanceModeName + "-" + ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
-    else
-        metricViewName = ui->comboBox_MetricSelection->currentText() + "-" + ui->comboBox_ViewSelection->currentText();
-
-    return metricViewName;
+    return getMetricViewName( m_mode, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
 }
 
 /**
