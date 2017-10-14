@@ -1153,7 +1153,10 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
  */
 QString PerformanceDataMetricView::getMetricViewName(const QString& modeName, const QString& metricName, const QString& viewName)
 {
-    return modeName + "-" + metricName + "-" + viewName;
+    if ( modeName == s_detailsModeName )
+        return modeName + "-" + QStringLiteral("None") + "-" + viewName;
+    else
+        return modeName + "-" + metricName + "-" + viewName;
 }
 
 /**
@@ -1176,9 +1179,6 @@ QString PerformanceDataMetricView::getMetricViewName() const
 void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 {
     Q_UNUSED( text )
-
-    if ( ui->comboBox_MetricSelection->currentText().isEmpty() )
-        return;
 
     QTreeView* view( Q_NULLPTR );
 

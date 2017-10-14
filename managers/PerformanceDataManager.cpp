@@ -760,7 +760,7 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
     if ( ! s_TRACING_EXPERIMENTS.contains( collectorId ) )
         return;
 
-    const QString metricViewName = metricName + "-" + viewName;
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( TRACE_EVENT_DETAILS_METRIC, metricName, viewName );
 
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
@@ -783,7 +783,8 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
         if ( collectorId == "mem" && ! info.isTracedMemoryFunction( functionName ) )
             continue;
         functions.insert( function );
-        info.addMetricView( TRACE_EVENT_DETAILS_METRIC + "-" + functionName );
+        const QString metricSubviewName = PerformanceDataMetricView::getMetricViewName( TRACE_EVENT_DETAILS_METRIC, metricName, functionName );
+        info.addMetricView( metricSubviewName );
     }
 
     // Determine full time interval extent of this experiment
