@@ -2223,7 +2223,7 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
             handleRequestLoadBalanceView( clusteringCriteriaName, tokens[1], tokens[2] );
         }
         else {
-            handleRequestMetricView( clusteringCriteriaName, tokens[0], tokens[1] );
+            handleRequestMetricView( clusteringCriteriaName, tokens[1], tokens[2] );
         }
     }
 }
