@@ -115,8 +115,8 @@ MainWindow::MainWindow(QWidget *parent)
                  ui->widget_ExperimentPanel, SLOT(handleAddExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)) );
         connect( ui->widget_ExperimentPanel, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)),
                  dataMgr, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)) );
-        connect( dataMgr, SIGNAL(metricViewRangeChanged(QString,QString,QString,double,double)),
-                 ui->widget_MetricTableView, SLOT(handleRangeChanged(QString,QString,QString,double,double)) );
+        connect( dataMgr, SIGNAL(metricViewRangeChanged(QString,QString,QString,QString,double,double)),
+                 ui->widget_MetricTableView, SLOT(handleRangeChanged(QString,QString,QString,QString,double,double)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalClearSourceView()), ui->widget_SourceCodeViewer, SLOT(handleClearSourceView()) );
         connect( ui->widget_MetricTableView, SIGNAL(signalDisplaySourceFileLineNumber(QString,int)), ui->widget_SourceCodeViewer, SLOT(handleDisplaySourceFileLineNumber(QString,int)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalAddPathSubstitution(int,QString,QString)), ui->widget_SourceCodeViewer, SLOT(handleAddPathSubstitution(int,QString,QString)) );
@@ -131,10 +131,10 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, SIGNAL(signalRequestCompareView(QString,QString,QString,QString)), dataMgr, SLOT(handleRequestCompareView(QString,QString,QString,QString)) );
         connect( dataMgr, SIGNAL(addCluster(QString,QString,double,double,bool,double,double)), this, SLOT(handleAdjustPlotViewScrollArea(QString,QString)) );
         connect( dataMgr, SIGNAL(removeCluster(QString,QString)), this, SLOT(handleRemoveCluster(QString,QString)) );
-        connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QStringList)),
-                 ui->widget_SourceCodeViewer, SIGNAL(addMetricView(QString,QString,QString,QStringList)) );
-        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList,QStringList)),
-                 ui->widget_SourceCodeViewer, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList,QStringList)) );
+        connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QString,QStringList)),
+                 ui->widget_SourceCodeViewer, SIGNAL(addMetricView(QString,QString,QString,QString,QStringList)) );
+        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QString,QVariantList,QStringList)),
+                 ui->widget_SourceCodeViewer, SIGNAL(addMetricViewData(QString,QString,QString,QString,QVariantList,QStringList)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalMetricViewChanged(QString)),
                  ui->widget_SourceCodeViewer, SLOT(handleMetricViewChanged(QString)) );
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );

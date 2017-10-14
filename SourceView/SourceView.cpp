@@ -72,10 +72,10 @@ SourceView::SourceView(QWidget *parent)
     connect( this, &SourceView::addMetricView, &m_metricsCache, &SourceViewMetricsCache::handleAddMetricView );
     connect( this, &SourceView::addMetricViewData, &m_metricsCache, &SourceViewMetricsCache::handleAddMetricViewData );
 #else
-    connect( this, SIGNAL(addMetricView(QString,QString,QString,QStringList)),
-             &m_metricsCache, SLOT(handleAddMetricView(QString,QString,QString,QStringList)) );
-    connect( this, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList,QStringList)),
-             &m_metricsCache, SLOT(handleAddMetricViewData(QString,QString,QString,QVariantList,QStringList)) );
+    connect( this, SIGNAL(addMetricView(QString,QString,QString,QString,QStringList)),
+             &m_metricsCache, SLOT(handleAddMetricView(QString,QString,QString,QString,QStringList)) );
+    connect( this, SIGNAL(addMetricViewData(QString,QString,QString,QString,QVariantList,QStringList)),
+             &m_metricsCache, SLOT(handleAddMetricViewData(QString,QString,QString,QString,QVariantList,QStringList)) );
 #endif
 
     connect( &m_metricsCache, SIGNAL(signalSelectedMetricChanged(QString,QString)), this, SLOT(update()) );

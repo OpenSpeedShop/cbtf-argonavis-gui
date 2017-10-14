@@ -69,9 +69,9 @@ public:
 
 signals:
 
-    void addMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
-    void addAssociatedMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
-    void addMetricViewData(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
+    void addMetricView(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void addAssociatedMetricView(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
+    void addMetricViewData(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
 
 public slots:
 

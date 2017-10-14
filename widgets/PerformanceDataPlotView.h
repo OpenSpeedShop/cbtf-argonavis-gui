@@ -115,6 +115,7 @@ private slots:
                                  const QImage& image);
 
     void handleRequestMetricViewComplete(const QString &clusteringCriteriaName,
+                                         const QString &modeName,
                                          const QString &metricName,
                                          const QString &viewName,
                                          double lower,

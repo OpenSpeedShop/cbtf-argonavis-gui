@@ -27,6 +27,7 @@
 
 #include "managers/BackgroundGraphRenderer.h"
 #include "managers/ApplicationOverrideCursorManager.h"
+#include "widgets/PerformanceDataMetricView.h"
 #include "CBTF-ArgoNavis-Ext/DataTransferDetails.h"
 #include "CBTF-ArgoNavis-Ext/KernelExecutionDetails.h"
 #include "CBTF-ArgoNavis-Ext/ClusterNameBuilder.h"
@@ -106,7 +107,7 @@ QString PerformanceDataManager::s_meanThreadTitle( tr("Thread Nearest Avg (name)
 
 // define list of supported trace experiment types
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = { "mpit", "iot". "mem" };
+QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = { "mpit", "iot", "mem" };
 #else
 QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS = QStringList() << "mpit" << "iot" << "mem";
 #endif
@@ -357,7 +358,11 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
 
     MetricTableViewInfo& info = m_tableViewInfo[ clusteringCriteriaName ];
 
-    const QString metricViewName = metricName + "-" + viewName;
+    const QString METRIC_MODE_NAME = PerformanceDataMetricView::getMetricModeName( PerformanceDataMetricView::METRIC_MODE );
+    const QString CALLTREE_MODE_NAME = PerformanceDataMetricView::getMetricModeName( PerformanceDataMetricView::CALLTREE_MODE );
+    const QString modeName = ( viewName != CALLTREE_MODE_NAME ) ? METRIC_MODE_NAME : CALLTREE_MODE_NAME;
+
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricName, viewName );
 
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
@@ -404,7 +409,7 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
 
             synchronizer.waitForFinished();
 
-            emit requestMetricViewComplete( clusteringCriteriaName, metricName, viewName, lower, upper );
+            emit requestMetricViewComplete( clusteringCriteriaName, modeName, metricName, viewName, lower, upper );
         }
     }
 
@@ -432,15 +437,16 @@ void PerformanceDataManager::handleRequestLoadBalanceView(const QString &cluster
     qDebug() << "PerformanceDataManager::handleRequestLoadBalanceView: clusteringCriteriaName=" << clusteringCriteriaName << "metric=" << metricName << "view=" << viewName;
 #endif
 
-    const QString metricViewName = metricName + "-" + viewName;
-    const QString loadBalanceViewName = QStringLiteral("Load Balance-") + metricViewName;
+    const QString LOAD_BALANCE_MODE_NAME = PerformanceDataMetricView::getMetricModeName( PerformanceDataMetricView::LOAD_BALANCE_MODE );
+
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( LOAD_BALANCE_MODE_NAME, metricName, viewName );
 
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
-        cursorManager->startWaitingOperation( QString("generate-%1").arg(loadBalanceViewName) );
+        cursorManager->startWaitingOperation( QString("generate-%1").arg(metricViewName) );
     }
 
-    info.addMetricView( loadBalanceViewName );
+    info.addMetricView( metricViewName );
 
     const TimeInterval interval( info.getInterval() );
 
@@ -488,10 +494,10 @@ void PerformanceDataManager::handleRequestLoadBalanceView(const QString &cluster
     double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
     double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
 
-    emit requestMetricViewComplete( clusteringCriteriaName, QStringLiteral("Load Balance"), metricViewName, lower, upper );
+    emit requestMetricViewComplete( clusteringCriteriaName, LOAD_BALANCE_MODE_NAME, metricName, viewName, lower, upper );
 
     if ( cursorManager ) {
-        cursorManager->finishWaitingOperation( QString("generate-%1").arg(loadBalanceViewName) );
+        cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
     }
 }
 
@@ -607,7 +613,7 @@ void PerformanceDataManager::handleRequestCompareView(const QString &clusteringC
     double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
     double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
 
-    emit requestMetricViewComplete( clusteringCriteriaName, compareMode, metricViewName, lower, upper );
+    emit requestMetricViewComplete( clusteringCriteriaName, compareMode, metricName, viewName, lower, upper );
 
     if ( cursorManager ) {
         cursorManager->finishWaitingOperation( QString("generate-%1").arg(compareViewName) );
@@ -633,17 +639,17 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusteringC
 
     MetricTableViewInfo& info = m_tableViewInfo[ clusteringCriteriaName ];
 
-    const QString metricViewName = CUDA_EVENT_DETAILS_METRIC + "-" + ALL_EVENTS_DETAILS_VIEW;
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), ALL_EVENTS_DETAILS_VIEW );
 
     // the details view should only be setup once
     info.addMetricView( metricViewName );
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    for ( auto metricName : { ALL_EVENTS_DETAILS_VIEW, KERNEL_EXECUTION_DETAILS_VIEW, DATA_TRANSFER_DETAILS_VIEW } ) {
+    for ( auto viewName : { ALL_EVENTS_DETAILS_VIEW, KERNEL_EXECUTION_DETAILS_VIEW, DATA_TRANSFER_DETAILS_VIEW } ) {
 #else
-    foreach ( const QString& metricName, QStringList() << ALL_EVENTS_DETAILS_VIEW << KERNEL_EXECUTION_DETAILS_VIEW << DATA_TRANSFER_DETAILS_VIEW ) {
+    foreach ( const QString& viewName, QStringList() << ALL_EVENTS_DETAILS_VIEW << KERNEL_EXECUTION_DETAILS_VIEW << DATA_TRANSFER_DETAILS_VIEW ) {
 #endif
-        info.addMetricView( CUDA_EVENT_DETAILS_METRIC + "-" + metricName );
+        info.addMetricView( PerformanceDataMetricView::getMetricViewName( CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), viewName ) );
     }
 
     ThreadGroup all_threads = info.getThreads();
@@ -690,12 +696,12 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusteringC
     }
 
     // for details view emit signal to create just the model
-    emit addMetricView( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW, tableColumnList );
+    emit addMetricView( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), ALL_EVENTS_DETAILS_VIEW, tableColumnList );
 
     // build the proxy views and tree views for the three details views: "All Events", "Kernel Executions" and "Data Transfers"
-    emit addAssociatedMetricView( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW, metricViewName, commonColumnList );
-    emit addAssociatedMetricView( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, KERNEL_EXECUTION_DETAILS_VIEW, metricViewName, ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList() );
-    emit addAssociatedMetricView( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, DATA_TRANSFER_DETAILS_VIEW, metricViewName, ArgoNavis::CUDA::getDataTransferDetailsHeaderList() );
+    emit addAssociatedMetricView( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), ALL_EVENTS_DETAILS_VIEW, metricViewName, commonColumnList );
+    emit addAssociatedMetricView( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), KERNEL_EXECUTION_DETAILS_VIEW, metricViewName, ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList() );
+    emit addAssociatedMetricView( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), DATA_TRANSFER_DETAILS_VIEW, metricViewName, ArgoNavis::CUDA::getDataTransferDetailsHeaderList() );
 
     QFutureSynchronizer<void> synchronizer;
 
@@ -721,9 +727,9 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusteringC
 
     synchronizer.waitForFinished();
 
-    emit requestMetricViewComplete( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW, lower, upper );
-    emit requestMetricViewComplete( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, KERNEL_EXECUTION_DETAILS_VIEW, lower, upper );
-    emit requestMetricViewComplete( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, DATA_TRANSFER_DETAILS_VIEW, lower, upper );
+    emit requestMetricViewComplete( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), ALL_EVENTS_DETAILS_VIEW, lower, upper );
+    emit requestMetricViewComplete( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), KERNEL_EXECUTION_DETAILS_VIEW, lower, upper );
+    emit requestMetricViewComplete( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), DATA_TRANSFER_DETAILS_VIEW, lower, upper );
 }
 
 /**
@@ -792,6 +798,7 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
         ShowTraceDetail< std::vector<Framework::MPITDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
     }
     else if ( collectorId == "mem" ) {
+        ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "highwater_inclusive_details" );
         ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "leaked_inclusive_details" );
     }
     else if ( collectorId == "iot" ) {
@@ -1030,7 +1037,7 @@ bool PerformanceDataManager::processDataTransferDetails(const QString &clusterin
 {
     QVariantList detailsData = ArgoNavis::CUDA::getDataTransferDetailsDataList( time_origin, details );
 
-    emit addMetricViewData( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW, detailsData, ArgoNavis::CUDA::getDataTransferDetailsHeaderList() );
+    emit addMetricViewData( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), ALL_EVENTS_DETAILS_VIEW, detailsData, ArgoNavis::CUDA::getDataTransferDetailsHeaderList() );
 
     return true; // continue the visitation
 }
@@ -1048,7 +1055,7 @@ bool PerformanceDataManager::processKernelExecutionDetails(const QString &cluste
 {
     QVariantList detailsData = ArgoNavis::CUDA::getKernelExecutionDetailsDataList( time_origin, details );
 
-    emit addMetricViewData( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW, detailsData, ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList() );
+    emit addMetricViewData( clusteringCriteriaName, CUDA_EVENT_DETAILS_METRIC, QStringLiteral("None"), ALL_EVENTS_DETAILS_VIEW, detailsData, ArgoNavis::CUDA::getKernelExecutionDetailsHeaderList() );
 
     return true; // continue the visitation
 }
@@ -1600,7 +1607,7 @@ void PerformanceDataManager::processCompareThreadView(const CollectorGroup& coll
         metricDesc << tr("%1 %2").arg(columnName).arg(columnUnits);
     }
 
-    emit addMetricView( clusteringCriteriaName, compareMode, metricViewName, metricDesc );
+    emit addMetricView( clusteringCriteriaName, compareMode, metric, viewName, metricDesc );
 
     for ( typename QMap< TS, QVariantList >::iterator i = metricData.begin(); i != metricData.end(); ++i ) {
         QVariantList& data = i.value();
@@ -1608,7 +1615,7 @@ void PerformanceDataManager::processCompareThreadView(const CollectorGroup& coll
         while ( data.size() < count+1 ) {
             data << NULL_VALUE;
         }
-        emit addMetricViewData( clusteringCriteriaName, compareMode, metricViewName, data );
+        emit addMetricViewData( clusteringCriteriaName, compareMode, metric, viewName, data );
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -1713,13 +1720,15 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
               << std::endl;
 #endif
 
-    emit addMetricView( clusteringCriteriaName, metric, viewName, metricDesc );
+    const QString METRIC_MODE_VIEW = QStringLiteral("Metric");
+
+    emit addMetricView( clusteringCriteriaName, METRIC_MODE_VIEW, metric, viewName, metricDesc );
 
     for ( typename std::multimap<TM, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
 
         QVariantList metricData = getMetricValues( getLocationInfo<TS>( i->second ), i->first, total, dataMin->at(i->second), dataMax->at(i->second), dataMean->at(i->second) );
 
-        emit addMetricViewData( clusteringCriteriaName, metric, viewName, metricData );
+        emit addMetricViewData( clusteringCriteriaName, METRIC_MODE_VIEW, metric, viewName, metricData );
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -1818,7 +1827,7 @@ void PerformanceDataManager::processLoadBalanceView(const CollectorGroup& collec
         sorted.insert( std::make_pair( i->second, i->first ) );
     }
 
-    emit addMetricView( clusteringCriteriaName, QStringLiteral("Load Balance"), metric + "-" + viewName, metricDesc );
+    emit addMetricView( clusteringCriteriaName, QStringLiteral("Load Balance"), metric, viewName, metricDesc );
 
     const DT factor = ( metricDesc.contains( s_minimumTitle ) ) ? 1000 : 1;
 
@@ -1837,7 +1846,7 @@ void PerformanceDataManager::processLoadBalanceView(const CollectorGroup& collec
         metricData << ArgoNavis::CUDA::getUniqueClusterName( meanThreads.at( i->first ) );
         metricData << getLocationInfo<TS>( i->first );
 
-        emit addMetricViewData( clusteringCriteriaName, QStringLiteral("Load Balance"), metric + "-" + viewName, metricData );
+        emit addMetricViewData( clusteringCriteriaName, QStringLiteral("Load Balance"), metric, viewName, metricData );
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -2200,24 +2209,20 @@ void PerformanceDataManager::handleLoadCudaMetricViewsTimeout(const QString& clu
 
     foreach ( const QString& metricViewName, info.getMetricViewList() ) {
         QStringList tokens = metricViewName.split('-');
-        if ( tokens.size() < 2 || tokens.size() > 3 )
+        if ( tokens.size() != 3 )
             continue;
-        if ( 2 == tokens.size() ) {
-            if ( tokens[0] == CUDA_EVENT_DETAILS_METRIC || tokens[0] == TRACE_EVENT_DETAILS_METRIC ) {
-                // Emit signal to update detail views corresponding to timeline in graph view
-                emit metricViewRangeChanged( clusteringCriteriaName, tokens[0], tokens[1], lower, upper );
-            }
-            else {
-                handleRequestMetricView( clusteringCriteriaName, tokens[0], tokens[1] );
-            }
+        if ( tokens[0] == CUDA_EVENT_DETAILS_METRIC || tokens[0] == TRACE_EVENT_DETAILS_METRIC ) {
+            // Emit signal to update detail views corresponding to timeline in graph view
+            emit metricViewRangeChanged( clusteringCriteriaName, tokens[0], tokens[1], tokens[2], lower, upper );
+        }
+        else if ( tokens[0].startsWith("Compare") ) {
+            handleRequestCompareView( clusteringCriteriaName, tokens[0], tokens[1], tokens[2] );
+        }
+        else if ( QStringLiteral("Load Balance") == tokens[0] ) {
+            handleRequestLoadBalanceView( clusteringCriteriaName, tokens[1], tokens[2] );
         }
         else {
-            if ( tokens[0].startsWith("Compare") ) {
-                handleRequestCompareView( clusteringCriteriaName, tokens[0], tokens[1], tokens[2] );
-            }
-            else if ( QStringLiteral("Load Balance") == tokens[0] ) {
-                handleRequestLoadBalanceView( clusteringCriteriaName, tokens[1], tokens[2] );
-            }
+            handleRequestMetricView( clusteringCriteriaName, tokens[0], tokens[1] );
         }
     }
 }
@@ -3219,7 +3224,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
     // bet view name
     const QString viewName = getViewName<DETAIL_t>();
 
-    emit addMetricView( clusteringCriteriaName, viewName, viewName, metricDesc );
+    emit addMetricView( clusteringCriteriaName, viewName, QStringLiteral("None"), viewName, metricDesc );
 
     SmartPtr< std::map< Function,
                 std::map< Framework::Thread,
@@ -3346,7 +3351,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
 #endif
         oss << func.getName() << " (" << func.getLinkedObject().getPath().getBaseName() << ")";
         metricData << QString::fromStdString( oss.str() );
-        emit addMetricViewData( clusteringCriteriaName, viewName, viewName, metricData );
+        emit addMetricViewData( clusteringCriteriaName, QStringLiteral("None"), viewName, viewName, metricData );
     }
 }
 
@@ -3612,7 +3617,7 @@ void PerformanceDataManager::ShowTraceDetail(
     const QStringList metricDesc = getMetricsDesc<DETAIL_t>();
 
     // for details view emit signal to create just the model
-    emit addMetricView( clusteringCriteriaName, traceViewName, ALL_EVENTS_DETAILS_VIEW, metricDesc );
+    emit addMetricView( clusteringCriteriaName, traceViewName, metric, ALL_EVENTS_DETAILS_VIEW, metricDesc );
 
     SmartPtr< std::map< Function,
                 std::map< Framework::Thread,
@@ -3621,11 +3626,11 @@ void PerformanceDataManager::ShowTraceDetail(
     Queries::GetMetricValues( collector, metric.toStdString(), interval, threadGroup, functions,  // input - metric search criteria
                               raw_items );                                                        // output - raw metric values
 
-    const QString metricViewName = traceViewName + "-" + ALL_EVENTS_DETAILS_VIEW;
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( traceViewName, metric, ALL_EVENTS_DETAILS_VIEW );
 
     // build the proxy views and tree views for the various trace views: "All Events"
     // NOTE: functions[0] .. functions[N-10] will be added below
-    emit addAssociatedMetricView( clusteringCriteriaName, traceViewName, ALL_EVENTS_DETAILS_VIEW, metricViewName, metricDesc );
+    emit addAssociatedMetricView( clusteringCriteriaName, traceViewName, metric, ALL_EVENTS_DETAILS_VIEW, metricViewName, metricDesc );
 
     for ( typename std::map< Function, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
         const Framework::Function& function( iter->first );
@@ -3636,7 +3641,7 @@ void PerformanceDataManager::ShowTraceDetail(
         const QString functionName = QString( function.getDemangledName().c_str() );
 #endif
 
-        emit addAssociatedMetricView( clusteringCriteriaName, traceViewName, functionName, metricViewName, metricDesc );
+        emit addAssociatedMetricView( clusteringCriteriaName, traceViewName, metric, functionName, metricViewName, metricDesc );
 
         typename std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > >& thread( iter->second );
 
@@ -3673,14 +3678,14 @@ void PerformanceDataManager::ShowTraceDetail(
                 }
 
                 foreach( const QVariantList& metricData, traceList ) {
-                    emit addMetricViewData( clusteringCriteriaName, traceViewName, ALL_EVENTS_DETAILS_VIEW, metricData );
+                    emit addMetricViewData( clusteringCriteriaName, traceViewName, metric, ALL_EVENTS_DETAILS_VIEW, metricData );
                 }
             }
         }
 
-        emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, ALL_EVENTS_DETAILS_VIEW, lower, upper );
+        emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, metric, ALL_EVENTS_DETAILS_VIEW, lower, upper );
 
-        emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, functionName, lower, upper );
+        emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, metric, functionName, lower, upper );
     }
 }
 
@@ -3708,6 +3713,8 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
         const QString metricName,
         const QString viewName)
 {
+    const QString METRIC_VIEW_MODE = QStringLiteral("Metric");
+
     // get name of sample counter
     std::string nameListStr;
     collector.getParameterValue( "event", nameListStr );
@@ -3723,7 +3730,7 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
     const QStringList metricDesc = getMetricsDesc<DETAIL_t>( sampleCounterNames );
 
     // for details view emit signal to create just the model
-    emit addMetricView( clusteringCriteriaName, metricName, viewName, metricDesc );
+    emit addMetricView( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, metricDesc );
 
     SmartPtr< std::map< TS,
                 std::map< Framework::Thread,
@@ -3771,10 +3778,10 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
 
         metricValues << locationName;
 
-        emit addMetricViewData( clusteringCriteriaName, metricName, viewName, metricValues );
+        emit addMetricViewData( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, metricValues );
     }
 
-    emit requestMetricViewComplete( clusteringCriteriaName, metricName, viewName, lower, upper );
+    emit requestMetricViewComplete( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, lower, upper );
 }
 
 

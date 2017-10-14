@@ -24,6 +24,7 @@
 #include "SourceViewMetricsCache.h"
 
 #include "ModifyPathSubstitutionsDialog.h"
+#include "widgets/PerformanceDataMetricView.h"
 
 #include <QVariant>
 #include <QAction>
@@ -133,6 +134,7 @@ void SourceViewMetricsCache::getSelectedMetricDetails(const QString& metricViewN
 /**
  * @brief SourceViewMetricsCache::handleAddMetricView
  * @param clusteringCriteriaName - the name of the clustering criteria
+ * @param modeName - the mode name
  * @param metricName - the name of the metric requested in the metric view
  * @param viewName - the name of the view requested in the metric view
  * @param metrics - list of metrics for setting column headers
@@ -140,7 +142,7 @@ void SourceViewMetricsCache::getSelectedMetricDetails(const QString& metricViewN
  * Extracts the column numbers for the defining location and metric value for the specified metric view
  * and adds an entry in the watched metric views map.
  */
-void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QStringList &metrics)
+void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriteriaName, const QString& modeName, const QString &metricName, const QString &viewName, const QStringList &metrics)
 {
     Q_UNUSED( clusteringCriteriaName );
 
@@ -148,7 +150,7 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
 
     if ( metrics.contains( s_functionTitle ) && ( metrics.contains( s_timeTitle ) || ! PAPI_EVENT_LIST.empty() ) ) {
 
-        const QString metricViewName = metricName + "-" + viewName;
+        const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricName, viewName );
 
         const int timeTitleIdx = metrics.indexOf( s_timeTitle );
         const int functionTitleIdx = metrics.indexOf( s_functionTitle );
@@ -195,6 +197,7 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
 /**
  * @brief SourceViewMetricsCache::handleAddMetricViewData
  * @param clusteringCriteriaName - the name of the clustering criteria
+ * @param modeName - the mode name
  * @param metricName - the name of the metric requested in the metric view
  * @param viewName - the name of the view requested in the metric view
  * @param data - the data to add to the model
@@ -202,12 +205,12 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
  *
  * Extracts the data for one entry of the specified metric view and stores in the corresponding cache map .
  */
-void SourceViewMetricsCache::handleAddMetricViewData(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QVariantList &data, const QStringList &columnHeaders)
+void SourceViewMetricsCache::handleAddMetricViewData(const QString &clusteringCriteriaName, const QString& modeName, const QString &metricName, const QString &viewName, const QVariantList &data, const QStringList &columnHeaders)
 {
     Q_UNUSED( clusteringCriteriaName );
     Q_UNUSED( columnHeaders );
 
-    const QString metricViewName = metricName + "-" + viewName;
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricName, viewName );
 
     QMutexLocker guard( &m_mutex );
 

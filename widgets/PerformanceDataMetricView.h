@@ -88,7 +88,7 @@ public:
 
     static QString getMetricModeName(const ModeType mode);
 
-    static QString getMetricViewName(const ModeType mode, const QString &metricName, const QString &viewName);
+    static QString getMetricViewName(const QString &modeName, const QString &metricName, const QString &viewName);
 
 signals:
 
@@ -107,17 +107,17 @@ signals:
 
 public slots:
 
-    void handleInitModel(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
-    void handleInitModelView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
-    void handleAddData(const QString& clusteringCriteriaName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders);
-    void handleRangeChanged(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void handleInitModel(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void handleInitModelView(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
+    void handleAddData(const QString& clusteringCriteriaName, const QString& modeName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders);
+    void handleRangeChanged(const QString& clusteringCriteriaName, const QString &modeName, const QString& metricName, const QString& viewName, double lower, double upper);
     void handleRequestViewUpdate(bool clearExistingViews);
 
 private slots:
 
     void handleViewModeChanged(const QString &text);
     void handleMetricViewChanged(const QString &text);
-    void handleRequestMetricViewComplete(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void handleRequestMetricViewComplete(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, double lower, double upper);
     void showContextMenu(const DetailsMenuTypes menuType, const QVariant& index, const QPoint& globalPos);
     void handleTableViewItemClicked(const QModelIndex& index);
     void handleCustomContextMenuRequested(const QPoint& pos);
@@ -180,12 +180,17 @@ private:
     ModeType m_mode;
 
     QStandardItemModel m_dummyModel;                        // dummy model
+
+    // models for view combobox
     QStandardItemModel m_metricViewModel;                   // snapshot of view combobox model for metric mode
     QStandardItemModel m_loadBalanceViewModel;              // snapshot of view combobox model for load balance mode
     QStandardItemModel m_detailsViewModel;                  // initialized view combobox model for details mode
     QStandardItemModel m_calltreeViewModel;                 // empty combobox model for calltree mode
     QStandardItemModel m_traceViewModel;                    // empty combobox model for trace mode
     QStandardItemModel m_compareViewModel;                  // snapshot of view combobox model for compare mode
+    // models for metric combobox
+    QStandardItemModel m_metricModeMetricModel;             // snapshot of metric combobox model for metric mode
+    QStandardItemModel m_traceModeMetricModel;              // snapshot of metric combobox model for trace mode
 
     ModifyPathSubstitutionsDialog* m_modifyPathsDialog;
     ShowDeviceDetailsDialog* m_deviceDetailsDialog;

@@ -163,21 +163,21 @@ signals:
 
     void addCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
 
-    void addMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList& metrics);
-    void addAssociatedMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
+    void addMetricView(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QStringList& metrics);
+    void addAssociatedMetricView(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QString& attachedMetricViewName, const QStringList& metrics);
 
-    void addMetricViewData(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
+    void addMetricViewData(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QVariantList& data, const QStringList& columnHeaders = QStringList());
 
     void addCluster(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper);
     void removeCluster(const QString& clusteringCriteriaName, const QString& clusterName);
 
     void graphRangeChanged(const QString& clusteringCriteriaName,const QString& clusterName, double lower, double upper, const QSize& size);
 
-    void metricViewRangeChanged(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void metricViewRangeChanged(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, double lower, double upper);
 
     void loadComplete();
 
-    void requestMetricViewComplete(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, double lower, double upper);
+    void requestMetricViewComplete(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, double lower, double upper);
 
     void signalDisplayCalltreeGraph(const QString& graph);
 

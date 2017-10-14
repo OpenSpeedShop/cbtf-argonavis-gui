@@ -121,8 +121,9 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     // default mode is metric mode
     m_mode = METRIC_MODE;
 
-    // since default mode is metric model, set the metric mode model as the view selection model
+    // since default mode is metric model, set the metric mode model as the metric and view selection models
     ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
+    ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
 
     // connect performance data manager signals to performance data metric view slots
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
@@ -133,14 +134,14 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::addMetricViewData, this, &PerformanceDataMetricView::handleAddData, Qt::QueuedConnection );
         connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataMetricView::handleRequestMetricViewComplete, Qt::QueuedConnection );
 #else
-        connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QStringList)),
-                 this, SLOT(handleInitModel(QString,QString,QString,QStringList)), Qt::QueuedConnection );
-        connect( dataMgr, SIGNAL(addAssociatedMetricView(QString,QString,QString,QString,QStringList)),
-                 this, SLOT(handleInitModelView(QString,QString,QString,QString,QStringList)), Qt::QueuedConnection );
-        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QVariantList,QStringList)),
-                 this, SLOT(handleAddData(QString,QString,QString,QVariantList,QStringList)), Qt::QueuedConnection );
-        connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,double,double)),
-                 this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,double,double)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addMetricView(QString,QString,QString,QString,QStringList)),
+                 this, SLOT(handleInitModel(QString,QString,QString,QString,QStringList)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addAssociatedMetricView(QString,QString,QString,QString,QString,QStringList)),
+                 this, SLOT(handleInitModelView(QString,QString,QString,QString,QString,QStringList)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(addMetricViewData(QString,QString,QString,QString,QVariantList,QStringList)),
+                 this, SLOT(handleAddData(QString,QString,QString,QString,QVariantList,QStringList)), Qt::QueuedConnection );
+        connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,QString,double,double)),
+                 this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,QString,double,double)), Qt::QueuedConnection );
 #endif
     }
 
@@ -301,7 +302,8 @@ void PerformanceDataMetricView::resetUI()
     ui->comboBox_ModeSelection->blockSignals( false );
 
     ui->comboBox_MetricSelection->blockSignals( true );
-    ui->comboBox_MetricSelection->clear();
+    ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
+    ui->comboBox_MetricSelection->setCurrentIndex( 0 );
     ui->comboBox_MetricSelection->blockSignals( false );
 
     ui->comboBox_ViewSelection->blockSignals( true );
@@ -316,6 +318,8 @@ void PerformanceDataMetricView::resetUI()
 
     m_detailsViewModel.clear();
     m_traceViewModel.clear();
+    m_metricModeMetricModel.clear();
+    m_traceModeMetricModel.clear();
 
     m_deviceDetailsDialog->clearAllDevices();
 
@@ -434,13 +438,14 @@ void PerformanceDataMetricView::clearExistingModelsAndViews(const QString& metri
 /**
  * @brief PerformanceDataMetricView::handleInitModel
  * @param clusteringCriteriaName - clustering criteria name associated to the metric view
+ * @param modeName - the mode name
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param metrics - list of metrics for setting column headers
  *
  * Create and initialize the model and view for the new metric view.
  */
-void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName, const QStringList &metrics)
+void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QStringList &metrics)
 {
     if ( m_clusteringCritieriaName.isEmpty() )
         m_clusteringCritieriaName = clusteringCriteriaName;
@@ -448,7 +453,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     if ( m_clusteringCritieriaName != clusteringCriteriaName )
         return;
 
-    const QString metricViewName = metricName + "-" + viewName;
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricName, viewName );
 
     clearExistingModelsAndViews( metricViewName );
 
@@ -545,11 +550,13 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
     }
 
     // Make sure metric view not already in combobox
-    if ( metricName != s_traceModeName && metricName != s_calltreeModeName &&
-         metricName != s_loadBalanceModeName && ! metricName.startsWith( s_compareModeName ) &&
-         ui->comboBox_MetricSelection->findText( metricName ) == -1 ) {
-        // Add metric view to combobox
-        ui->comboBox_MetricSelection->addItem( metricName );
+    if ( modeName == s_metricModeName && m_metricModeMetricModel.findItems( metricName ).isEmpty() ) {
+        // NOTE: The compare and load balance views use the same set of metrics
+        m_metricModeMetricModel.appendRow( new QStandardItem( metricName ) );
+    }
+    else if ( modeName == s_traceModeName && m_traceModeMetricModel.findItems( metricName ).isEmpty() ) {
+        // Add metric to model for trace mode
+        m_traceModeMetricModel.appendRow ( new QStandardItem( metricName ) );
     }
 
     // initialize this as the current view only when the blank view is active
@@ -561,6 +568,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
 /**
  * @brief PerformanceDataMetricView::handleInitModelView
  * @param clusteringCriteriaName - clustering criteria name associated to the metric view
+ * @param modeName - the mode name
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param attachedMetricViewName - name of metric view whose model should also be attached to this new metric view
@@ -568,7 +576,7 @@ void PerformanceDataMetricView::handleInitModel(const QString& clusteringCriteri
  *
  * Create and initialize the model and view for the new metric view.  Attach the view to the model associated with the attached metric view.
  */
-void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, const QString &attachedMetricViewName, const QStringList &metrics)
+void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCriteriaName, const QString& modeName, const QString &metricName, const QString &viewName, const QString &attachedMetricViewName, const QStringList &metrics)
 {
     if ( m_clusteringCritieriaName.isEmpty() )
         m_clusteringCritieriaName = clusteringCriteriaName;
@@ -576,7 +584,7 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
     if ( m_clusteringCritieriaName != clusteringCriteriaName )
         return;
 
-    const QString metricViewName = metricName + "-" + viewName;
+    const QString metricViewName = getMetricViewName( modeName, metricName, viewName );
 
     clearExistingModelsAndViews( metricViewName, false );
 
@@ -663,9 +671,9 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
 
         // select appropriate model
         QStandardItemModel* viewModel = Q_NULLPTR;
-        if ( s_detailsModeName == metricName ) {
+        if ( s_detailsModeName == modeName ) {
             viewModel = &m_detailsViewModel;
-        } else if ( s_traceModeName == metricName ) {
+        } else if ( s_traceModeName == modeName ) {
             viewModel = &m_traceViewModel;
         }
 
@@ -909,6 +917,7 @@ void PerformanceDataMetricView::processCustomContextMenuRequested(QTreeView* vie
 /**
  * @brief PerformanceDataMetricView::handleAddData
  * @param clusteringCriteriaName - clustering criteria name associated to the metric view
+ * @param modeName - the mode name
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param data - the data to add to the model
@@ -916,12 +925,12 @@ void PerformanceDataMetricView::processCustomContextMenuRequested(QTreeView* vie
  *
  * Inserts a row into the model of the specified metric view.
  */
-void PerformanceDataMetricView::handleAddData(const QString& clusteringCriteriaName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList &columnHeaders)
+void PerformanceDataMetricView::handleAddData(const QString& clusteringCriteriaName, const QString &modeName, const QString &metricName, const QString& viewName, const QVariantList& data, const QStringList &columnHeaders)
 {
     if ( m_clusteringCritieriaName != clusteringCriteriaName || ( ! columnHeaders.isEmpty() && data.size() != columnHeaders.size() ) )
         return;
 
-    const QString metricViewName = metricName + "-" + viewName;
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricName, viewName );
 
     QMutexLocker guard( &m_mutex );
 
@@ -962,6 +971,7 @@ void PerformanceDataMetricView::handleAddData(const QString& clusteringCriteriaN
 /**
  * @brief PerformanceDataMetricView::handleRangeChanged
  * @param clusteringCriteriaName - clustering criteria name associated to the metric view
+ * @param modeName - the mode name
  * @param metricName - name of metric view having a time range change
  * @param viewName - name of the view having a time range change
  * @param lower - lower value of range to actually view
@@ -970,7 +980,7 @@ void PerformanceDataMetricView::handleAddData(const QString& clusteringCriteriaN
  * After a details view was requested and the model, proxy model and view are created and initialized, this method will handle changes to the time range
  * of data shown in the details view as the user changes the graph timeline.
  */
-void PerformanceDataMetricView::handleRangeChanged(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, double lower, double upper)
+void PerformanceDataMetricView::handleRangeChanged(const QString &clusteringCriteriaName, const QString &modeName,  const QString &metricName, const QString &viewName, double lower, double upper)
 {
     if ( m_clusteringCritieriaName != clusteringCriteriaName )
         return;
@@ -980,7 +990,7 @@ void PerformanceDataMetricView::handleRangeChanged(const QString &clusteringCrit
         cursorManager->startWaitingOperation( QStringLiteral("metric-view-filtering") );
     }
 
-    const QString metricViewName = metricName + "-" + viewName;
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricName, viewName );
 
     QMutexLocker guard( &m_mutex );
 
@@ -1061,49 +1071,72 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
         m_mode = DETAILS_MODE;
         ui->comboBox_ViewSelection->setModel( &m_detailsViewModel );
         ui->comboBox_MetricSelection->setEnabled( false );
+        ui->comboBox_MetricSelection->setModel( &m_dummyModel );
     }
     else if ( s_calltreeModeName == text ) {
         m_mode = CALLTREE_MODE;
         ui->comboBox_ViewSelection->setModel( &m_calltreeViewModel );
         ui->comboBox_MetricSelection->setEnabled( false );
+        ui->comboBox_MetricSelection->setModel( &m_dummyModel );
     }
     else if ( s_traceModeName == text ) {
         m_mode = TRACE_MODE;
+        ui->comboBox_MetricSelection->blockSignals( true );
+        ui->comboBox_MetricSelection->setModel( &m_traceModeMetricModel );
+        ui->comboBox_MetricSelection->blockSignals( false );
         ui->comboBox_ViewSelection->setModel( &m_traceViewModel );
-        ui->comboBox_MetricSelection->setEnabled( false );
+        ui->comboBox_MetricSelection->setEnabled( true );
     }
     else if ( text.startsWith( s_compareModeName ) ) {
         ui->comboBox_ViewSelection->blockSignals( true );
         ui->comboBox_ViewSelection->setModel( &m_dummyModel );
         ui->comboBox_ViewSelection->blockSignals( false );
-        if ( s_compareModeName== text ) {
+        if ( s_compareModeName == text ) {
             m_mode = COMPARE_MODE;
+            ui->comboBox_MetricSelection->blockSignals( true );
+            ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
+            ui->comboBox_MetricSelection->blockSignals( false );
             ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
             ui->comboBox_MetricSelection->setEnabled( true );
         }
         else if ( s_compareByRankModeName == text ) {
             m_mode = COMPARE_BY_RANK_MODE;
+            ui->comboBox_MetricSelection->blockSignals( true );
+            ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
+            ui->comboBox_MetricSelection->blockSignals( false );
             ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
             ui->comboBox_MetricSelection->setEnabled( true );
         }
         else if ( s_compareByHostModeName == text ) {
             m_mode = COMPARE_BY_HOST_MODE;
+            ui->comboBox_MetricSelection->blockSignals( true );
+            ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
+            ui->comboBox_MetricSelection->blockSignals( false );
             ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
             ui->comboBox_MetricSelection->setEnabled( true );
         }
         else if ( s_compareByProcessModeName == text ) {
             m_mode = COMPARE_BY_PROCESS_MODE;
+            ui->comboBox_MetricSelection->blockSignals( true );
+            ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
+            ui->comboBox_MetricSelection->blockSignals( false );
             ui->comboBox_ViewSelection->setModel( &m_compareViewModel );
             ui->comboBox_MetricSelection->setEnabled( true );
         }
     }
     else if ( s_loadBalanceModeName == text ) {
         m_mode = LOAD_BALANCE_MODE;
+        ui->comboBox_MetricSelection->blockSignals( true );
+        ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
+        ui->comboBox_MetricSelection->blockSignals( false );
         ui->comboBox_ViewSelection->setModel( &m_loadBalanceViewModel );
         ui->comboBox_MetricSelection->setEnabled( true );
     }
     else {
         m_mode = METRIC_MODE;
+        ui->comboBox_MetricSelection->blockSignals( true );
+        ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
+        ui->comboBox_MetricSelection->blockSignals( false );
         ui->comboBox_ViewSelection->setModel( &m_metricViewModel );
         ui->comboBox_MetricSelection->setEnabled( true );
     }
@@ -1118,30 +1151,9 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
  *
  * Build the metric view name formed from the specified mode, metric and view values.
  */
-QString PerformanceDataMetricView::getMetricViewName(const ModeType mode, const QString& metricName, const QString& viewName)
+QString PerformanceDataMetricView::getMetricViewName(const QString& modeName, const QString& metricName, const QString& viewName)
 {
-    QString metricViewName;
-
-    if ( DETAILS_MODE == mode )
-        metricViewName = s_detailsModeName + "-" + viewName;
-    else if ( CALLTREE_MODE == mode )
-        metricViewName = s_calltreeModeName + "-" + s_calltreeModeName;
-    else if ( TRACE_MODE == mode )
-        metricViewName = s_traceModeName + "-" + viewName;
-    else if ( COMPARE_MODE == mode )
-        metricViewName = s_compareModeName + "-" + metricName + "-" + viewName;
-    else if ( COMPARE_BY_RANK_MODE == mode )
-        metricViewName = s_compareByRankModeName + "-" +metricName + "-" + viewName;
-    else if ( COMPARE_BY_HOST_MODE == mode )
-        metricViewName = s_compareByHostModeName + "-" + metricName + "-" + viewName;
-    else if ( COMPARE_BY_PROCESS_MODE == mode )
-        metricViewName = s_compareByProcessModeName + "-" + metricName + "-" + viewName;
-    else if ( LOAD_BALANCE_MODE == mode )
-        metricViewName = s_loadBalanceModeName + "-" + metricName + "-" + viewName;
-    else
-        metricViewName = metricName + "-" + viewName;
-
-    return metricViewName;
+    return modeName + "-" + metricName + "-" + viewName;
 }
 
 /**
@@ -1152,7 +1164,7 @@ QString PerformanceDataMetricView::getMetricViewName(const ModeType mode, const 
  */
 QString PerformanceDataMetricView::getMetricViewName() const
 {
-    return getMetricViewName( m_mode, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+    return getMetricViewName( getMetricModeName( m_mode ), ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
 }
 
 /**
@@ -1209,6 +1221,7 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 /**
  * @brief PerformanceDataMetricView::handleRequestMetricViewComplete
  * @param clusteringCriteriaName - the name of the cluster criteria
+ * @param modeName - the mode name
  * @param metricName - name of metric view for which to add data to model
  * @param viewName - name of the view for which to add data to model
  * @param lower - lower value of range to actually view
@@ -1217,14 +1230,14 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
  * Once a handled request metric or detail view signal ('signalRequestMetricView' or 'signalRequestDetailView') is completed,
  * this method will insure the currently selected view is shown.
  */
-void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName, double lower, double upper)
+void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &clusteringCriteriaName, const QString &modeName, const QString &metricName, const QString &viewName, double lower, double upper)
 {
     qDebug() << "PerformanceDataMetricView::handleRequestMetricViewComplete: clusteringCriteriaName=" << clusteringCriteriaName << "metricName=" << metricName << "viewName=" << viewName;
 
     if ( m_clusteringCritieriaName == clusteringCriteriaName || ! metricName.isEmpty() || ! viewName.isEmpty() ) {
         QTreeView* view( Q_NULLPTR );
 
-        const QString metricViewName = metricName + "-" + viewName;
+        const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricName, viewName );
 
         {
             QMutexLocker guard( &m_mutex );
@@ -1233,22 +1246,22 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
 
             if ( view != Q_NULLPTR ) {
                 // now sorting can be enabled
-                if ( s_calltreeModeName == metricName ) {
+                if ( s_calltreeModeName == modeName ) {
                     // calltree has fixed order
                     view->setSortingEnabled( false );
                 }
                 else {
                     view->setSortingEnabled( true );
-                    if ( s_detailsModeName == metricName ) {
+                    if ( s_detailsModeName == modeName ) {
                         if ( s_allEventsDetailsName == viewName )
                             view->sortByColumn( 1, Qt::AscendingOrder );
                         else
                             view->sortByColumn( 2, Qt::AscendingOrder );
                     }
-                    else if ( metricName.startsWith( s_compareModeName ) ) {
+                    else if ( modeName.startsWith( s_compareModeName ) ) {
                         view->sortByColumn( 1, Qt::DescendingOrder );
                     }
-                    else if ( metricName == s_traceModeName ) {
+                    else if ( modeName == s_traceModeName ) {
                         if ( s_allEventsDetailsName == viewName )
                             view->sortByColumn( 1, Qt::AscendingOrder );
                         else
@@ -1272,7 +1285,7 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
         }
 
         if ( Q_NULLPTR != view ) {
-            handleRangeChanged( clusteringCriteriaName, metricName, viewName, lower, upper );
+            handleRangeChanged( clusteringCriteriaName, modeName, metricName, viewName, lower, upper );
 
             return;
         }
