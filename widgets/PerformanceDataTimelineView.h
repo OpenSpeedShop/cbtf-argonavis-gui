@@ -1,10 +1,10 @@
 /*!
-   \file PerformanceDataPlotView.h
+   \file PerformanceDataTimelineView.h
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
    This file is part of the Open|SpeedShop Graphical User Interface
-   Copyright (C) 2010-2016 Argo Navis Technologies, LLC
+   Copyright (C) 2010-2017 Argo Navis Technologies, LLC
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU Lesser General Public License as published by the
@@ -21,8 +21,8 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef PERFORMANCE_DATA_VIEW_H
-#define PERFORMANCE_DATA_VIEW_H
+#ifndef PERFORMANCE_DATA_TIMELINE_VIEW_H
+#define PERFORMANCE_DATA_TIMELINE_VIEW_H
 
 #include <QWidget>
 #include <QMutex>
@@ -32,7 +32,7 @@
 #include "common/openss-gui-config.h"
 
 namespace Ui {
-class PerformanceDataPlotView;
+class PerformanceDataTimelineView;
 }
 
 
@@ -52,14 +52,14 @@ namespace GUI {
 class OSSEventsSummaryItem;
 class OSSHighlightItem;
 
-class PerformanceDataPlotView : public QWidget
+class PerformanceDataTimelineView : public QWidget
 {
     Q_OBJECT
 
 public:
 
-    explicit PerformanceDataPlotView(QWidget *parent = 0);
-    virtual ~PerformanceDataPlotView();
+    explicit PerformanceDataTimelineView(QWidget *parent = 0);
+    virtual ~PerformanceDataTimelineView();
 
     void unloadExperimentDataFromView(const QString& experimentName);
 
@@ -136,7 +136,7 @@ private:
 
 private:
 
-    Ui::PerformanceDataPlotView *ui;
+    Ui::PerformanceDataTimelineView *ui;
 
     typedef struct {
         QCPRange range;                           // time range for metric group
@@ -161,4 +161,4 @@ private:
 } // GUI
 } // ArgoNavis
 
-#endif // PERFORMANCE_DATA_VIEW_H
+#endif // PERFORMANCE_DATA_TIMELINE_VIEW_H

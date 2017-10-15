@@ -1,10 +1,10 @@
 /*!
-   \file PerformanceDataPlotView.cpp
+   \file PerformanceDataTimelineView.cpp
    \author Gregory Schultz <gregory.schultz@embarqmail.com>
 
    \section LICENSE
    This file is part of the Open|SpeedShop Graphical User Interface
-   Copyright (C) 2010-2016 Argo Navis Technologies, LLC
+   Copyright (C) 2010-2017 Argo Navis Technologies, LLC
 
    This library is free software; you can redistribute it and/or modify it
    under the terms of the GNU Lesser General Public License as published by the
@@ -21,8 +21,8 @@
    Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "PerformanceDataPlotView.h"
-#include "ui_PerformanceDataPlotView.h"
+#include "PerformanceDataTimelineView.h"
+#include "ui_PerformanceDataTimelineView.h"
 
 #include "managers/PerformanceDataManager.h"
 #include "common/openss-gui-config.h"
@@ -44,15 +44,15 @@ namespace ArgoNavis { namespace GUI {
 
 
 /**
- * @brief PerformanceDataPlotView::PerformanceDataPlotView
- * @param parent - specify parent of the PerformanceDataPlotView instance
+ * @brief PerformanceDataTimelineView::PerformanceDataTimelineView
+ * @param parent - specify parent of the PerformanceDataTimelineView instance
  *
  * Constructs a widget which is a child of parent.  If parent is 0, the new widget becomes a window.  If parent is another widget,
  * this widget becomes a child window inside parent. The new widget is deleted when its parent is deleted.
  */
-PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
+PerformanceDataTimelineView::PerformanceDataTimelineView(QWidget *parent)
     : QWidget( parent )
-    , ui( new Ui::PerformanceDataPlotView )
+    , ui( new Ui::PerformanceDataTimelineView )
     , m_metricCount( 0 )
     , m_highlightItem( Q_NULLPTR )
 {
@@ -80,7 +80,7 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
 
     // connect slot when an item is clicked
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    connect( ui->graphView, &QCustomPlot::itemClick, this, &PerformanceDataPlotView::handleItemClick );
+    connect( ui->graphView, &QCustomPlot::itemClick, this, &PerformanceDataTimelineView::handleItemClick );
 #else
     connect( ui->graphView, SIGNAL(itemClick(QCPAbstractItem*,QMouseEvent*)), this, SLOT(handleItemClick(QCPAbstractItem*,QMouseEvent*)) );
 #endif
@@ -89,15 +89,15 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        connect( dataMgr, &PerformanceDataManager::addCluster, this, &PerformanceDataPlotView::handleAddCluster, Qt::QueuedConnection );
-        connect( dataMgr, &PerformanceDataManager::addDataTransfer, this, &PerformanceDataPlotView::handleAddDataTransfer, Qt::QueuedConnection );
-        connect( dataMgr, &PerformanceDataManager::addKernelExecution, this, &PerformanceDataPlotView::handleAddKernelExecution, Qt::QueuedConnection );
-        connect( dataMgr, &PerformanceDataManager::addPeriodicSample, this, &PerformanceDataPlotView::handleAddPeriodicSample, Qt::QueuedConnection );
-        connect( dataMgr, &PerformanceDataManager::addTraceItem, this, &PerformanceDataPlotView::handleAddTraceItem, Qt::QueuedConnection );
-        connect( dataMgr, &PerformanceDataManager::addCudaEventSnapshot, this, &PerformanceDataPlotView::handleCudaEventSnapshot, Qt::QueuedConnection );
-        connect( this, &PerformanceDataPlotView::graphRangeChanged, dataMgr, &PerformanceDataManager::graphRangeChanged );
-        connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataPlotView::handleRequestMetricViewComplete, Qt::QueuedConnection );
-        connect( dataMgr, &PerformanceDataManager::setMetricDuration, this, &PerformanceDataPlotView::handleSetMetricDuration, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addCluster, this, &PerformanceDataTimelineView::handleAddCluster, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addDataTransfer, this, &PerformanceDataTimelineView::handleAddDataTransfer, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addKernelExecution, this, &PerformanceDataTimelineView::handleAddKernelExecution, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addPeriodicSample, this, &PerformanceDataTimelineView::handleAddPeriodicSample, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addTraceItem, this, &PerformanceDataTimelineView::handleAddTraceItem, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::addCudaEventSnapshot, this, &PerformanceDataTimelineView::handleCudaEventSnapshot, Qt::QueuedConnection );
+        connect( this, &PerformanceDataTimelineView::graphRangeChanged, dataMgr, &PerformanceDataManager::graphRangeChanged );
+        connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataTimelineView::handleRequestMetricViewComplete, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::setMetricDuration, this, &PerformanceDataTimelineView::handleSetMetricDuration, Qt::QueuedConnection );
 #else
         connect( dataMgr, SIGNAL(addCluster(QString,QString,double,double,bool,double,double)),
                  this, SLOT(handleAddCluster(QString,QString,double,double,bool,double,double)), Qt::QueuedConnection );
@@ -118,22 +118,22 @@ PerformanceDataPlotView::PerformanceDataPlotView(QWidget *parent)
 }
 
 /**
- * @brief PerformanceDataPlotView::~PerformanceDataPlotView
+ * @brief PerformanceDataTimelineView::~PerformanceDataTimelineView
  *
- * Destroys the PerformanceDataPlotView instance.
+ * Destroys the PerformanceDataTimelineView instance.
  */
-PerformanceDataPlotView::~PerformanceDataPlotView()
+PerformanceDataTimelineView::~PerformanceDataTimelineView()
 {
     delete ui;
 }
 
 /**
- * @brief PerformanceDataPlotView::unloadExperimentDataFromView
+ * @brief PerformanceDataTimelineView::unloadExperimentDataFromView
  * @param experimentName - the name of the experiment to remove from view
  *
  * Removes the given experiment data from view.
  */
-void PerformanceDataPlotView::unloadExperimentDataFromView(const QString &experimentName)
+void PerformanceDataTimelineView::unloadExperimentDataFromView(const QString &experimentName)
 {
     Q_UNUSED( experimentName )  // for now until view supports more than one experiment
 
@@ -171,13 +171,13 @@ void PerformanceDataPlotView::unloadExperimentDataFromView(const QString &experi
 }
 
 /**
- * @brief PerformanceDataPlotView::handleValueAxisRangeChange
+ * @brief PerformanceDataTimelineView::handleValueAxisRangeChange
  * @param requestedRange - the range of this axis due to change
  *
  * Handle changes to x axis ranges.  Make sure any range change requests made, mainly from user axis range drag and zoom actions,
  * are keep within the valid range of the metric group.  The tick locations and label vectors are computed also.
  */
-void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRange)
+void PerformanceDataTimelineView::handleAxisRangeChange(const QCPRange &requestedRange)
 {
     // get the sender axis
     QCPAxis* xAxis = qobject_cast< QCPAxis* >( sender() );
@@ -272,13 +272,13 @@ void PerformanceDataPlotView::handleAxisRangeChange(const QCPRange &requestedRan
 }
 
 /**
- * @brief PerformanceDataPlotView::handleAxisRangeChangeForMetricGroup
+ * @brief PerformanceDataTimelineView::handleAxisRangeChangeForMetricGroup
  * @param senderAxis - the QCPAxis instance emitting the signal
  * @param requestedRange - the range of this axis due to change
  *
  * When the range of one axis of a metric group has changed, then all other related axes must have the same range.
  */
-void PerformanceDataPlotView::handleAxisRangeChangeForMetricGroup(QCPAxis* senderAxis, const QCPRange &requestedRange)
+void PerformanceDataTimelineView::handleAxisRangeChangeForMetricGroup(QCPAxis* senderAxis, const QCPRange &requestedRange)
 {
     // get metric group the axis is associated with
     QVariant metricGroupVar = senderAxis->property( "associatedMetricGroup" );
@@ -301,13 +301,13 @@ void PerformanceDataPlotView::handleAxisRangeChangeForMetricGroup(QCPAxis* sende
 }
 
 /**
- * @brief PerformanceDataPlotView::handleAxisLabelDoubleClick
+ * @brief PerformanceDataTimelineView::handleAxisLabelDoubleClick
  * @param axis - the axis that received the click
  * @param part - the part of the axis that was clicked
  *
  * Handler to process QCustomPlot::axisDoubleClick signal resulting when an axis is double clicked.
  */
-void PerformanceDataPlotView::handleAxisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part)
+void PerformanceDataTimelineView::handleAxisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part)
 {
     // Set an axis label by double clicking on it
     if ( part == QCPAxis::spAxisLabel ) { // only react when the actual axis label is clicked, not tick label or axis backbone
@@ -321,11 +321,11 @@ void PerformanceDataPlotView::handleAxisLabelDoubleClick(QCPAxis *axis, QCPAxis:
 }
 
 /**
- * @brief PerformanceDataPlotView::handleSelectionChanged
+ * @brief PerformanceDataTimelineView::handleSelectionChanged
  *
  * Process graph item or plottable selection changes.
  */
-void PerformanceDataPlotView::handleSelectionChanged()
+void PerformanceDataTimelineView::handleSelectionChanged()
 {
     // synchronize selection of graphs with selection of corresponding legend items:
     for ( int i=0; i< ui->graphView->plottableCount(); ++i ) {
@@ -339,14 +339,14 @@ void PerformanceDataPlotView::handleSelectionChanged()
 }
 
 /**
- * @brief PerformanceDataPlotView::handleItemClick
+ * @brief PerformanceDataTimelineView::handleItemClick
  * @param item - the item that received the click
  * @param event - the mouse event that caused the click
  *
  * Handle the user clicking an item in the graph.  Present overlay popup with more detailed
  * information of the graph item represented by the item that was clicked.
  */
-void PerformanceDataPlotView::handleItemClick(QCPAbstractItem *item, QMouseEvent *event)
+void PerformanceDataTimelineView::handleItemClick(QCPAbstractItem *item, QMouseEvent *event)
 {
     Q_UNUSED( event )
 #ifdef HAS_ITEM_CLICK_DEBUG
@@ -376,12 +376,12 @@ void PerformanceDataPlotView::handleItemClick(QCPAbstractItem *item, QMouseEvent
     }
 
 #ifdef HAS_ITEM_CLICK_DEBUG
-    qDebug() << "PerformanceDataPlotView::handleItemClick: " << text;
+    qDebug() << "PerformanceDataTimelineView::handleItemClick: " << text;
 #endif
 }
 
 /**
- * @brief PerformanceDataPlotView::handleCudaEventSnapshot
+ * @brief PerformanceDataTimelineView::handleCudaEventSnapshot
  * @param clusteringCriteriaName - the clustering criteria name associated with the cluster group
  * @param clusteringName - the cluster group name
  * @param lower - the new X-axis lower range
@@ -390,7 +390,7 @@ void PerformanceDataPlotView::handleItemClick(QCPAbstractItem *item, QMouseEvent
  *
  * This method handles updates to the CUDA event snapshot and adds the image to a graphics item in the graph.
  */
-void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage &image)
+void PerformanceDataTimelineView::handleCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage &image)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
     OSSEventsSummaryItem* eventSummaryItem( Q_NULLPTR );
@@ -409,7 +409,7 @@ void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringC
         }
     }
 #ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
-    qDebug() << "PerformanceDataPlotView::handleCudaEventSnapshot CALLED: clusterName=" << clusteringName << "lower=" << lower << "upper=" << upper << "image size=" << image.size();
+    qDebug() << "PerformanceDataTimelineView::handleCudaEventSnapshot CALLED: clusterName=" << clusteringName << "lower=" << lower << "upper=" << upper << "image size=" << image.size();
 #endif
 
     if ( Q_NULLPTR == axisRect )
@@ -448,7 +448,7 @@ void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringC
 }
 
 /**
- * @brief PerformanceDataPlotView::handleRequestMetricViewComplete
+ * @brief PerformanceDataTimelineView::handleRequestMetricViewComplete
  * @param clusteringCriteriaName - the name of the cluster criteria
  * @param modeName - the mode name
  * @param metricName - name of metric view for which to add data to model
@@ -458,12 +458,12 @@ void PerformanceDataPlotView::handleCudaEventSnapshot(const QString& clusteringC
  *
  * Once a signal 'requestMetricViewComplete' is emitted, this handler of the signal will insure the plot is updated.
  */
-void PerformanceDataPlotView::handleRequestMetricViewComplete(const QString &clusteringCriteriaName, const QString &modeName, const QString &metricName, const QString &viewName, double lower, double upper)
+void PerformanceDataTimelineView::handleRequestMetricViewComplete(const QString &clusteringCriteriaName, const QString &modeName, const QString &metricName, const QString &viewName, double lower, double upper)
 {
     Q_UNUSED( lower );
     Q_UNUSED( upper );
 
-    qDebug() << "PerformanceDataPlotView::handleRequestMetricViewComplete: clusteringCriteriaName=" << clusteringCriteriaName << "metricName=" << metricName << "viewName=" << viewName;
+    qDebug() << "PerformanceDataTimelineView::handleRequestMetricViewComplete: clusteringCriteriaName=" << clusteringCriteriaName << "metricName=" << metricName << "viewName=" << viewName;
 
     if ( clusteringCriteriaName.isEmpty() || modeName.isEmpty() || viewName.isEmpty() )
         return;
@@ -478,14 +478,14 @@ void PerformanceDataPlotView::handleRequestMetricViewComplete(const QString &clu
 }
 
 /**
- * @brief PerformanceDataPlotView::getRange
+ * @brief PerformanceDataTimelineView::getRange
  * @param values - vector of data for either x or y axis
  * @param sortHint - specifies if vector can be expected to be pre-sorted (increasing order)
  * @return - the QCPRange specifying the lowest and highest values in the vector
  *
  * Determine the range for the specified vector.  This range is the lowest and highest values in the vector.
  */
-const QCPRange PerformanceDataPlotView::getRange(const QVector<double> &values, bool sortHint)
+const QCPRange PerformanceDataTimelineView::getRange(const QVector<double> &values, bool sortHint)
 {
     double minValue;
     double maxValue;
@@ -510,7 +510,7 @@ const QCPRange PerformanceDataPlotView::getRange(const QVector<double> &values, 
 }
 
 /**
- * @brief PerformanceDataPlotView::getDurationForMetricGroup
+ * @brief PerformanceDataTimelineView::getDurationForMetricGroup
  * @param axis - the axis of interest
  * @param clusteringCriteriaName - the name of the clustering criteria
  * @param clusterName - the cluster group name associated with the axis
@@ -521,7 +521,7 @@ const QCPRange PerformanceDataPlotView::getRange(const QVector<double> &values, 
  * also determines the axis rect containing the specified axis as the bottom axis and returns the size of the
  * axis rect and the associated cluster name.
  */
-QCPRange PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusteringCriteriaName, QString& clusterName, QSize& size)
+QCPRange PerformanceDataTimelineView::getGraphInfoForMetricGroup(const QCPAxis *axis, QString& clusteringCriteriaName, QString& clusterName, QSize& size)
 {
     QCPRange durationResult( 0.0, 0.0 );
 
@@ -552,7 +552,7 @@ QCPRange PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis
 }
 
 /**
- * @brief PerformanceDataPlotView::initPlotView
+ * @brief PerformanceDataTimelineView::initPlotView
  * @param clusteringCriteriaName - the name of the metric group
  * @param clusterName - the cluster name
  * @param axisRect - initialize the x and y axis appropriate for metric graph
@@ -569,7 +569,7 @@ QCPRange PerformanceDataPlotView::getGraphInfoForMetricGroup(const QCPAxis *axis
  * - allow dragging and zoom of axis range
  * - setup signal/slot connections to handle axis range changes for individual axis and for metric group
  */
-void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName, const QString clusterName, QCPAxisRect *axisRect, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
+void PerformanceDataTimelineView::initPlotView(const QString &clusteringCriteriaName, const QString clusterName, QCPAxisRect *axisRect, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
 {
     Q_UNUSED( xAxisUpper )
 
@@ -628,7 +628,7 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         // connect slot to handle value axis range changes and regenerate the tick marks appropriately
         connect( xAxis, static_cast<void(QCPAxis::*)(const QCPRange &newRange)>(&QCPAxis::rangeChanged),
-                 this, &PerformanceDataPlotView::handleAxisRangeChange );
+                 this, &PerformanceDataTimelineView::handleAxisRangeChange );
 #else
         connect( xAxis, SIGNAL(rangeChanged(QCPRange)), this,SLOT(handleAxisRangeChange(QCPRange)) );
 #endif
@@ -691,12 +691,12 @@ void PerformanceDataPlotView::initPlotView(const QString &clusteringCriteriaName
 }
 
 /**
- * @brief PerformanceDataPlotView::addLegend
+ * @brief PerformanceDataTimelineView::addLegend
  * @param axisRect - the axis rect
  *
  * Add a legend for the CUDA events (kernel executions and data transfers) and the periodic sample histogram.
  */
-void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
+void PerformanceDataTimelineView::addLegend(QCPAxisRect* axisRect)
 {
     // add legend items on the first axis rect
     QCPItemRect* kernelExecutionLegendItem = new QCPItemRect( ui->graphView );
@@ -800,7 +800,7 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
 }
 
 /**
- * @brief PerformanceDataPlotView::handleAddCluster
+ * @brief PerformanceDataTimelineView::handleAddCluster
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterName - the cluster name
  * @param xAxisLower - the specified lower value of the x axis range
@@ -815,7 +815,7 @@ void PerformanceDataPlotView::addLegend(QCPAxisRect* axisRect)
  * grid layout for the metric group.  A metric group has synchronized x axis ranges; thus, if one axis has been
  * dragged or zoomed, then the ranges for the other axes of the metric group will be modified to be identical.
  */
-void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteriaName, const QString &clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
+void PerformanceDataTimelineView::handleAddCluster(const QString &clusteringCriteriaName, const QString &clusterName, double xAxisLower, double xAxisUpper, bool yAxisVisible, double yAxisLower, double yAxisUpper)
 {
     // create axis rect for this metric
     QCPAxisRect *axisRect = new QCPAxisRect( ui->graphView );
@@ -876,7 +876,7 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
 }
 
 /**
- * @brief PerformanceDataPlotView::handleAddDataTransfer
+ * @brief PerformanceDataTimelineView::handleAddDataTransfer
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterName - the cluster name
  * @param time_origin - the time origin of the experiment
@@ -885,7 +885,7 @@ void PerformanceDataPlotView::handleAddCluster(const QString &clusteringCriteria
  * Find the axis rect associated with the specified metric group and metric name.  Create the data transfer graph item from the details using the associated axis rect.
  * Add graph item to QCustomPlot instance.
  */
-void PerformanceDataPlotView::handleAddDataTransfer(const QString &clusteringCriteriaName, const QString &clusterName, const Base::Time &time_origin, const CUDA::DataTransfer &details)
+void PerformanceDataTimelineView::handleAddDataTransfer(const QString &clusteringCriteriaName, const QString &clusterName, const Base::Time &time_origin, const CUDA::DataTransfer &details)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
@@ -912,7 +912,7 @@ void PerformanceDataPlotView::handleAddDataTransfer(const QString &clusteringCri
 }
 
 /**
- * @brief PerformanceDataPlotView::handleAddTraceItem
+ * @brief PerformanceDataTimelineView::handleAddTraceItem
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterName - the cluster name
  * @param functionName - name of function that was traced
@@ -922,7 +922,7 @@ void PerformanceDataPlotView::handleAddDataTransfer(const QString &clusteringCri
  *
  * This method handles adding a trace event to the axis rect for the trace graph.
  */
-void PerformanceDataPlotView::handleAddTraceItem(const QString &clusteringCriteriaName, const QString &clusterName, const QString &functionName, double startTime, double endTime, int rankOrThread)
+void PerformanceDataTimelineView::handleAddTraceItem(const QString &clusteringCriteriaName, const QString &clusterName, const QString &functionName, double startTime, double endTime, int rankOrThread)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
@@ -949,7 +949,7 @@ void PerformanceDataPlotView::handleAddTraceItem(const QString &clusteringCriter
 }
 
 /**
- * @brief PerformanceDataPlotView::handleAddKernelExecution
+ * @brief PerformanceDataTimelineView::handleAddKernelExecution
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterName - the cluster name
  * @param time_origin - the time origin of the experiment
@@ -958,7 +958,7 @@ void PerformanceDataPlotView::handleAddTraceItem(const QString &clusteringCriter
  * Find the axis rect associated with the specified metric group and metric name.  Create the kernel execution graph item from the details using the associated axis rect.
  * Add graph item to QCustomPlot instance.
  */
-void PerformanceDataPlotView::handleAddKernelExecution(const QString &clusteringCriteriaName, const QString &clusterName, const Base::Time &time_origin, const CUDA::KernelExecution &details)
+void PerformanceDataTimelineView::handleAddKernelExecution(const QString &clusteringCriteriaName, const QString &clusterName, const Base::Time &time_origin, const CUDA::KernelExecution &details)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
@@ -985,7 +985,7 @@ void PerformanceDataPlotView::handleAddKernelExecution(const QString &clustering
 }
 
 /**
- * @brief PerformanceDataPlotView::handleAddPeriodicSample
+ * @brief PerformanceDataTimelineView::handleAddPeriodicSample
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterName - the cluster name
  * @param time_begin - the begin time of the periodic sample (relative to time origin of the experiment)
@@ -995,7 +995,7 @@ void PerformanceDataPlotView::handleAddKernelExecution(const QString &clustering
  * Find the axis rect associated with the specified metric group and sample counter index.  Create the periodic sample graph item from the details using the associated axis rect.
  * Add graph item to QCustomPlot instance.  Update y-axis upper range value if counter value is greater than the current y-axis upper range value.
  */
-void PerformanceDataPlotView::handleAddPeriodicSample(const QString &clusteringCriteriaName, const QString& clusterName, const double &time_begin, const double &time_end, const double &count)
+void PerformanceDataTimelineView::handleAddPeriodicSample(const QString &clusteringCriteriaName, const QString& clusterName, const double &time_begin, const double &time_end, const double &count)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 
@@ -1027,13 +1027,13 @@ void PerformanceDataPlotView::handleAddPeriodicSample(const QString &clusteringC
 }
 
 /**
- * @brief PerformanceDataPlotView::getAxisRectsForMetricGroup
+ * @brief PerformanceDataTimelineView::getAxisRectsForMetricGroup
  * @param clusteringCriteriaName - the clustering criteria name
  * @return - the list of axis rects for the metric group (if any or names a valid metric group)
  *
  * Determines the list of axis rects for the metric group, if any, or names a valid metric group.
  */
-QList<QCPAxisRect *> PerformanceDataPlotView::getAxisRectsForMetricGroup(const QString &clusteringCriteriaName)
+QList<QCPAxisRect *> PerformanceDataTimelineView::getAxisRectsForMetricGroup(const QString &clusteringCriteriaName)
 {
     QList<QCPAxisRect *> axisRects;
 
@@ -1052,25 +1052,25 @@ QList<QCPAxisRect *> PerformanceDataPlotView::getAxisRectsForMetricGroup(const Q
 }
 
 /**
- * @brief PerformanceDataPlotView::sizeHint
- * @return - the recommended size for the PerformanceDataPlotView instance
+ * @brief PerformanceDataTimelineView::sizeHint
+ * @return - the recommended size for the PerformanceDataTimelineView instance
  *
- * Overrides the QWidget::sizeHint method.  Returns the recommended size for the PerformanceDataPlotView instance.
+ * Overrides the QWidget::sizeHint method.  Returns the recommended size for the PerformanceDataTimelineView instance.
  */
-QSize PerformanceDataPlotView::sizeHint() const
+QSize PerformanceDataTimelineView::sizeHint() const
 {
     return QSize( QWIDGETSIZE_MAX, QWIDGETSIZE_MAX );
 }
 
 /**
- * @brief PerformanceDataPlotView::getAxisRectsForMetricGroup
+ * @brief PerformanceDataTimelineView::getAxisRectsForMetricGroup
  * @param axisType - the axis type desired
  * @param metricGroupName - the metric group name
  * @return - the list of matching axis instances
  *
  * Return all axes of the type specified found in the axis rects of the specified metric group.
  */
-QList<QCPAxis *> PerformanceDataPlotView::getAxesForMetricGroup(const QCPAxis::AxisType axisType, const QString &metricGroupName)
+QList<QCPAxis *> PerformanceDataTimelineView::getAxesForMetricGroup(const QCPAxis::AxisType axisType, const QString &metricGroupName)
 {
     QList<QCPAxis *> axes;
     QList<QCPAxisRect *> axisRects;
@@ -1096,7 +1096,7 @@ QList<QCPAxis *> PerformanceDataPlotView::getAxesForMetricGroup(const QCPAxis::A
 }
 
 /**
- * @brief PerformanceDataPlotView::handleSetMetricDuration
+ * @brief PerformanceDataTimelineView::handleSetMetricDuration
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterName - the cluster name
  * @param xAxisLower - the specified lower value of the x axis range
@@ -1104,7 +1104,7 @@ QList<QCPAxis *> PerformanceDataPlotView::getAxesForMetricGroup(const QCPAxis::A
  *
  * This method sets the upper value of the visible range of data in the graph view.  Also cause update of metric graph by calling QCustom
  */
-void PerformanceDataPlotView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper)
+void PerformanceDataTimelineView::handleSetMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper)
 {
     QCPAxisRect* axisRect( Q_NULLPTR );
 

@@ -124,7 +124,7 @@ greaterThan(QT_MAJOR_VERSION, 4) {
 # NOTE: For now only allow for Qt5
 #DEFINES += HAS_EXPERIMENTAL_CONCURRENT_PLOT_TO_IMAGE
 }
-#DEFINES += HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+DEFINES += HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
 #DEFINES += HAS_TIMER_THREAD_DESTROYED_CHECKING
 #DEFINES += HAS_PROCESS_EVENT_DEBUG
 #DEFINES += HAS_TEST_DATA_RANGE_CONSTRAINT
@@ -184,7 +184,6 @@ SOURCES += \
     widgets/TreeItem.cpp \
     widgets/TreeModel.cpp \
     widgets/ExperimentPanel.cpp \
-    widgets/PerformanceDataPlotView.cpp \
     widgets/PerformanceDataMetricView.cpp \
     SourceView/SourceView.cpp \
     SourceView/SyntaxHighlighter.cpp \
@@ -210,7 +209,8 @@ SOURCES += \
     graphitems/OSSHighlightItem.cpp \
     widgets/MetricViewFilterDialog.cpp \
     widgets/DefaultSortFilterProxyModel.cpp \
-    widgets/FilterExpressionValidator.cpp
+    widgets/FilterExpressionValidator.cpp \
+    widgets/PerformanceDataTimelineView.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -235,7 +235,6 @@ HEADERS += \
     widgets/TreeItem.h \
     widgets/TreeModel.h \
     widgets/ExperimentPanel.h \
-    widgets/PerformanceDataPlotView.h \
     widgets/PerformanceDataMetricView.h \
     SourceView/SourceView.h \
     SourceView/SyntaxHighlighter.h \
@@ -262,15 +261,16 @@ HEADERS += \
     graphitems/OSSHighlightItem.h \
     widgets/MetricViewFilterDialog.h \
     widgets/DefaultSortFilterProxyModel.h \
-    widgets/FilterExpressionValidator.h
+    widgets/FilterExpressionValidator.h \
+    widgets/PerformanceDataTimelineView.h
 
 FORMS += main/mainwindow.ui \
-    widgets/PerformanceDataPlotView.ui \
     widgets/PerformanceDataMetricView.ui \
     SourceView/ModifyPathSubstitutionsDialog.ui \
     widgets/MetricViewManager.ui \
     widgets/ShowDeviceDetailsDialog.ui \
-    widgets/MetricViewFilterDialog.ui
+    widgets/MetricViewFilterDialog.ui \
+    widgets/PerformanceDataTimelineView.ui
 
 RESOURCES += \
     openss-gui.qrc

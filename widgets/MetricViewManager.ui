@@ -13,14 +13,14 @@
   <property name="windowTitle">
    <string>StackedWidget</string>
   </property>
-  <widget class="ArgoNavis::GUI::PerformanceDataPlotView" name="widget_MetricPlotView"/>
+  <widget class="ArgoNavis::GUI::PerformanceDataTimelineView" name="widget_MetricTimelineView"/>
   <widget class="ArgoNavis::GUI::CalltreeGraphView" name="widget_CalltreeGraphView"/>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ArgoNavis::GUI::PerformanceDataPlotView</class>
+   <class>ArgoNavis::GUI::PerformanceDataTimelineView</class>
    <extends>QWidget</extends>
-   <header>widgets/PerformanceDataPlotView.h</header>
+   <header>widgets/PerformanceDataTimelineView.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

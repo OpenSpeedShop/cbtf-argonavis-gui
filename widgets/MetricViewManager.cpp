@@ -48,7 +48,7 @@ MetricViewManager::MetricViewManager(QWidget *parent)
     qRegisterMetaType<MetricViewTypes>("MetricViewTypes");
 
     connect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
-             ui->widget_MetricPlotView, SIGNAL(signalTraceItemSelected(QString,double,double,int)) );
+             ui->widget_MetricTimelineView, SIGNAL(signalTraceItemSelected(QString,double,double,int)) );
 }
 
 /**
@@ -72,7 +72,7 @@ void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
     qDebug() << "MetricViewManager::handleSwitchView: viewType=" << ( viewType == TIMELINE_VIEW ? "TIMELINE_VIEW" : "CALLTREE_VIEW" );
 
     if ( TIMELINE_VIEW == viewType )
-        setCurrentWidget( ui->widget_MetricPlotView );
+        setCurrentWidget( ui->widget_MetricTimelineView );
     else if ( CALLTREE_VIEW == viewType )
         setCurrentWidget( ui->widget_CalltreeGraphView );
 }
@@ -85,7 +85,7 @@ void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
  */
 void MetricViewManager::unloadExperimentDataFromView(const QString &experimentName)
 {
-    ui->widget_MetricPlotView->unloadExperimentDataFromView( experimentName );
+    ui->widget_MetricTimelineView->unloadExperimentDataFromView( experimentName );
     ui->widget_CalltreeGraphView->handleDisplayGraphView( QString() );
 }
 

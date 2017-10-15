@@ -767,7 +767,23 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
         cursorManager->startWaitingOperation( QString("generate-%1").arg(metricViewName) );
     }
 
-    info.addMetricView( metricViewName );
+    QStringList metricList;
+
+    if ( collectorId == "mpit" ) {
+        metricList << QStringLiteral( "exclusive_details" );
+    }
+    else if ( collectorId == "mem" ) {
+        metricList << QStringLiteral( "highwater_inclusive_details" );
+        metricList << QStringLiteral( "leaked_inclusive_details" );
+    }
+    else if ( collectorId == "iot" ) {
+        metricList << QStringLiteral( "exclusive_details" );
+    }
+
+    foreach ( const QString& metric, metricList ) {
+        const QString metricViewName = PerformanceDataMetricView::getMetricViewName( TRACE_EVENT_DETAILS_METRIC, metric, viewName );
+        info.addMetricView( metricViewName );
+    }
 
     const TimeInterval interval( info.getInterval() );
     const std::set< Function > all_threads( info.getThreads().getFunctions() );
@@ -783,8 +799,10 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
         if ( collectorId == "mem" && ! info.isTracedMemoryFunction( functionName ) )
             continue;
         functions.insert( function );
-        const QString metricSubviewName = PerformanceDataMetricView::getMetricViewName( TRACE_EVENT_DETAILS_METRIC, metricName, functionName );
-        info.addMetricView( metricSubviewName );
+        foreach ( const QString& metric, metricList ) {
+            const QString metricSubviewName = PerformanceDataMetricView::getMetricViewName( TRACE_EVENT_DETAILS_METRIC, metric, functionName );
+            info.addMetricView( metricSubviewName );
+        }
     }
 
     // Determine full time interval extent of this experiment
@@ -795,15 +813,16 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
     const double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
     const Framework::Time::value_type time_origin = experimentInterval.begin();
 
-    if ( collectorId == "mpit" ) {
-        ShowTraceDetail< std::vector<Framework::MPITDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
-    }
-    else if ( collectorId == "mem" ) {
-        ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "highwater_inclusive_details" );
-        ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "leaked_inclusive_details" );
-    }
-    else if ( collectorId == "iot" ) {
-        ShowTraceDetail< std::vector<Framework::IOTDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, "exclusive_details" );
+    foreach ( const QString& metric, metricList ) {
+        if ( collectorId == "mpit" ) {
+            ShowTraceDetail< std::vector<Framework::MPITDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, metric );
+        }
+        else if ( collectorId == "mem" ) {
+            ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, metric );
+        }
+        else if ( collectorId == "iot" ) {
+            ShowTraceDetail< std::vector<Framework::IOTDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, metric );
+        }
     }
 
     if ( cursorManager ) {

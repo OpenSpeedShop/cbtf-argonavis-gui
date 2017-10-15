@@ -36,6 +36,7 @@ namespace ArgoNavis { namespace GUI {
 
 enum MetricViewTypes {
     TIMELINE_VIEW,
+    GRAPH_VIEW,
     CALLTREE_VIEW
 };
 
