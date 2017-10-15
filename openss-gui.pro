@@ -210,7 +210,8 @@ SOURCES += \
     widgets/MetricViewFilterDialog.cpp \
     widgets/DefaultSortFilterProxyModel.cpp \
     widgets/FilterExpressionValidator.cpp \
-    widgets/PerformanceDataTimelineView.cpp
+    widgets/PerformanceDataTimelineView.cpp \
+    widgets/PerformanceDataGraphView.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -262,7 +263,8 @@ HEADERS += \
     widgets/MetricViewFilterDialog.h \
     widgets/DefaultSortFilterProxyModel.h \
     widgets/FilterExpressionValidator.h \
-    widgets/PerformanceDataTimelineView.h
+    widgets/PerformanceDataTimelineView.h \
+    widgets/PerformanceDataGraphView.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataMetricView.ui \
@@ -270,7 +272,8 @@ FORMS += main/mainwindow.ui \
     widgets/MetricViewManager.ui \
     widgets/ShowDeviceDetailsDialog.ui \
     widgets/MetricViewFilterDialog.ui \
-    widgets/PerformanceDataTimelineView.ui
+    widgets/PerformanceDataTimelineView.ui \
+    widgets/PerformanceDataGraphView.ui
 
 RESOURCES += \
     openss-gui.qrc

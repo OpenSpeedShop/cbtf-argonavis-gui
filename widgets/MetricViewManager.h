@@ -35,9 +35,10 @@ class MetricViewManager;
 namespace ArgoNavis { namespace GUI {
 
 enum MetricViewTypes {
-    TIMELINE_VIEW,
+    TIMELINE_VIEW = 0,
     GRAPH_VIEW,
-    CALLTREE_VIEW
+    CALLTREE_VIEW,
+    MAX_VIEW_TYPES
 };
 
 class MetricViewManager : public QStackedWidget

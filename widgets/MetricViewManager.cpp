@@ -69,12 +69,16 @@ MetricViewManager::~MetricViewManager()
  */
 void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
 {
-    qDebug() << "MetricViewManager::handleSwitchView: viewType=" << ( viewType == TIMELINE_VIEW ? "TIMELINE_VIEW" : "CALLTREE_VIEW" );
+    const QVector<QString> VIEW_TYPES = { "TIMELINE_VIEW", "GRAPH_VIEW", "CALLTREE_VIEW" };
+
+    qDebug() << "MetricViewManager::handleSwitchView: viewType=" << VIEW_TYPES[ viewType ];
 
     if ( TIMELINE_VIEW == viewType )
         setCurrentWidget( ui->widget_MetricTimelineView );
     else if ( CALLTREE_VIEW == viewType )
         setCurrentWidget( ui->widget_CalltreeGraphView );
+    else if ( GRAPH_VIEW == viewType )
+        setCurrentWidget( ui->widget_MetricGraphView );
 }
 
 /**

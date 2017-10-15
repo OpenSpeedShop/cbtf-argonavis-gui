@@ -119,6 +119,13 @@ QStringList PerformanceDataManager::s_SAMPLING_EXPERIMENTS = { "hwctime", "hwcsa
 QStringList PerformanceDataManager::s_SAMPLING_EXPERIMENTS = QStringList() << "hwctime" << "hwcsamp";
 #endif
 
+// define list of supported sampling experiment types
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS_WITH_GRAPHS = { "mem" };
+#else
+QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS_WITH_GRAPHS = QStringList() << "mem";
+#endif
+
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral( "Details" );
 const QString TRACE_EVENT_DETAILS_METRIC = QStringLiteral( "Trace" );
 const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral( "All Events" );
@@ -2067,7 +2074,9 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
 
         const bool hasCudaCollector( "cuda" == collectorId );
 
-        const bool hasTraceExperiment = s_TRACING_EXPERIMENTS.contains( collectorId );
+        const bool hasTraceExperiment = s_TRACING_EXPERIMENTS.contains( collectorId ) && ! s_TRACING_EXPERIMENTS_WITH_GRAPHS.contains( collectorId );
+
+        const bool hasExperimentWithGraphs = s_TRACING_EXPERIMENTS_WITH_GRAPHS.contains( collectorId );
 
         QFutureSynchronizer<void> synchronizer;
 
@@ -2133,7 +2142,15 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
         }
         else {
             // set default metric view
-            emit signalSetDefaultMetricView( hasTraceExperiment ? TIMELINE_VIEW : CALLTREE_VIEW, true, !s_SAMPLING_EXPERIMENTS.contains(collectorId), hasTraceExperiment );
+            MetricViewTypes metricViewType;
+            if ( hasTraceExperiment )
+                metricViewType = TIMELINE_VIEW;
+            else if ( hasExperimentWithGraphs )
+                metricViewType = TIMELINE_VIEW; // GRAPH_VIEW;
+            else
+                metricViewType = CALLTREE_VIEW;
+
+            emit signalSetDefaultMetricView( metricViewType, true, !s_SAMPLING_EXPERIMENTS.contains(collectorId), hasTraceExperiment | hasExperimentWithGraphs );
 
             QVector< bool > isGpuSampleCounters;
             QVector< QString > sampleCounterNames;
@@ -3639,6 +3656,12 @@ void PerformanceDataManager::ShowTraceDetail(
     // for details view emit signal to create just the model
     emit addMetricView( clusteringCriteriaName, traceViewName, metric, ALL_EVENTS_DETAILS_VIEW, metricDesc );
 
+    // get collector type
+    const QString collectorId( collector.getMetadata().getUniqueId().c_str() );
+
+    // flag indicating emit signals for add trace item or graph item
+    const bool emitTraceItem( s_TRACING_EXPERIMENTS_WITH_GRAPHS.contains( collectorId ) );
+
     SmartPtr< std::map< Function,
                 std::map< Framework::Thread,
                     std::map< Framework::StackTrace, DETAIL_t > > > > raw_items;
@@ -3693,7 +3716,10 @@ void PerformanceDataManager::ShowTraceDetail(
 
                 foreach( const QVariantList& list, traceList ) {
                     if ( list.size() == metricDesc.size() ) {
-                        emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, functionName, list[1].toDouble(), list[2].toDouble(), list[4].toInt() );
+                        //if ( emitTraceItem )
+                            emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, functionName, list[1].toDouble(), list[2].toDouble(), list[4].toInt() );
+                        //else
+                        //    emit addGraphItem( clusteringCriteriaName, clusteringCriteriaName, functionName, list[1].toDouble(), list[7].toDouble(), list[4].toInt() );
                     }
                 }
 

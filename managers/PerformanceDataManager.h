@@ -161,6 +161,13 @@ signals:
                       double endTime,
                       int rankOrThread);
 
+    void addGraphItem(const QString &clusteringCriteriaName,
+                      const QString &clusterName,
+                      const QString &functionName,
+                      double eventTime,
+                      double eventData,
+                      int rankOrThread);
+
     void addCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
 
     void addMetricView(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QStringList& metrics);
@@ -429,6 +436,7 @@ private:
 
     static QStringList s_TRACING_EXPERIMENTS;
     static QStringList s_SAMPLING_EXPERIMENTS;
+    static QStringList s_TRACING_EXPERIMENTS_WITH_GRAPHS;
 
     QVector<double> m_sampleKeys;
     QMap< int, QVector<double> > m_sampleValues;

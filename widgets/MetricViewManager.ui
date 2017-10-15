@@ -13,8 +13,12 @@
   <property name="windowTitle">
    <string>StackedWidget</string>
   </property>
+  <property name="currentIndex">
+   <number>0</number>
+  </property>
   <widget class="ArgoNavis::GUI::PerformanceDataTimelineView" name="widget_MetricTimelineView"/>
   <widget class="ArgoNavis::GUI::CalltreeGraphView" name="widget_CalltreeGraphView"/>
+  <widget class="ArgoNavis::GUI::PerformanceDataGraphView" name="widget_MetricGraphView"/>
  </widget>
  <customwidgets>
   <customwidget>
@@ -27,6 +31,12 @@
    <class>ArgoNavis::GUI::CalltreeGraphView</class>
    <extends>QWidget</extends>
    <header>widgets/CalltreeGraphView.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ArgoNavis::GUI::PerformanceDataGraphView</class>
+   <extends>QWidget</extends>
+   <header>widgets/PerformanceDataGraphView.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
