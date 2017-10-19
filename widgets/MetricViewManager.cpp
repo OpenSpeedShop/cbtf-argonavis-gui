@@ -90,6 +90,7 @@ void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
 void MetricViewManager::unloadExperimentDataFromView(const QString &experimentName)
 {
     ui->widget_MetricTimelineView->unloadExperimentDataFromView( experimentName );
+    ui->widget_MetricGraphView->unloadExperimentDataFromView( experimentName );
     ui->widget_CalltreeGraphView->handleDisplayGraphView( QString() );
 }
 
