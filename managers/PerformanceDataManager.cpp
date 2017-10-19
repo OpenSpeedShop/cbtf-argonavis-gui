@@ -2074,7 +2074,7 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
 
         const bool hasCudaCollector( "cuda" == collectorId );
 
-        const bool hasTraceExperiment = s_TRACING_EXPERIMENTS.contains( collectorId ) && ! s_TRACING_EXPERIMENTS_WITH_GRAPHS.contains( collectorId );
+        const bool hasTraceExperiment = s_TRACING_EXPERIMENTS.contains( collectorId );
 
         const bool hasExperimentWithGraphs = s_TRACING_EXPERIMENTS_WITH_GRAPHS.contains( collectorId );
 
@@ -2143,10 +2143,10 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
         else {
             // set default metric view
             MetricViewTypes metricViewType;
-            if ( hasTraceExperiment )
+            if ( hasExperimentWithGraphs )
+                metricViewType = GRAPH_VIEW;
+            else if ( hasTraceExperiment )
                 metricViewType = TIMELINE_VIEW;
-            else if ( hasExperimentWithGraphs )
-                metricViewType = TIMELINE_VIEW; // GRAPH_VIEW;
             else
                 metricViewType = CALLTREE_VIEW;
 
@@ -3659,8 +3659,8 @@ void PerformanceDataManager::ShowTraceDetail(
     // get collector type
     const QString collectorId( collector.getMetadata().getUniqueId().c_str() );
 
-    // flag indicating emit signals for add trace item or graph item
-    const bool emitTraceItem( s_TRACING_EXPERIMENTS_WITH_GRAPHS.contains( collectorId ) );
+    // flag indicating emit signals for add trace item (=false) or graph item (=true)
+    const bool emitGraphItem( s_TRACING_EXPERIMENTS_WITH_GRAPHS.contains( collectorId ) );
 
     SmartPtr< std::map< Function,
                 std::map< Framework::Thread,
@@ -3716,10 +3716,12 @@ void PerformanceDataManager::ShowTraceDetail(
 
                 foreach( const QVariantList& list, traceList ) {
                     if ( list.size() == metricDesc.size() ) {
-                        //if ( emitTraceItem )
+                        if ( emitGraphItem ) {
+                            emit addGraphItem( clusteringCriteriaName, metric, functionName, list[1].toDouble(), list[7].toDouble(), list[4].toInt() );
+                        }
+                        else {
                             emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, functionName, list[1].toDouble(), list[2].toDouble(), list[4].toInt() );
-                        //else
-                        //    emit addGraphItem( clusteringCriteriaName, clusteringCriteriaName, functionName, list[1].toDouble(), list[7].toDouble(), list[4].toInt() );
+                        }
                     }
                 }
 

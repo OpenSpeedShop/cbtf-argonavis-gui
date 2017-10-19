@@ -1047,7 +1047,7 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
         //emit signalRequestDetailView( m_clusteringCritieriaName, ui->comboBox_ViewSelection->currentText() );
         break;
     case TRACE_MODE:
-        //emit signalRequestTraceView( m_clusteringCritieriaName, s_traceModeName, s_allEventsDetailsName );
+        //emit signalRequestTraceView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
     default:
         emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
