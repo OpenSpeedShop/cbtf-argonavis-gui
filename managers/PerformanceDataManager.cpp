@@ -126,6 +126,23 @@ QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS_WITH_GRAPHS = { "mem" 
 QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS_WITH_GRAPHS = QStringList() << "mem";
 #endif
 
+// define unique graph titles for each experiment type and all applicable metrics
+QMap < QString, QMap< QString, QString > > PerformanceDataManager::s_TRACING_EXPERIMENTS_GRAPH_TITLES = INIT_TRACING_EXPERIMENTS_GRAPH_TITLES();
+
+QMap< QString, QMap< QString, QString > > PerformanceDataManager::INIT_TRACING_EXPERIMENTS_GRAPH_TITLES()
+{
+    QMap< QString, QMap< QString, QString > > outerMap;
+
+    QMap< QString, QString > innerMap;
+
+    innerMap.insert( QStringLiteral("highwater_inclusive_details"), QStringLiteral("Highwater / Time") );
+    innerMap.insert( QStringLiteral("leaked_inclusive_details"), QStringLiteral("Leaks / Time") );
+
+    outerMap.insert( "mem", innerMap );
+
+    return outerMap;
+}
+
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral( "Details" );
 const QString TRACE_EVENT_DETAILS_METRIC = QStringLiteral( "Trace" );
 const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral( "All Events" );
@@ -3717,7 +3734,10 @@ void PerformanceDataManager::ShowTraceDetail(
                 foreach( const QVariantList& list, traceList ) {
                     if ( list.size() == metricDesc.size() ) {
                         if ( emitGraphItem ) {
-                            emit addGraphItem( clusteringCriteriaName, metric, functionName, list[1].toDouble(), list[7].toDouble(), list[4].toInt() );
+                            if ( s_TRACING_EXPERIMENTS_GRAPH_TITLES.contains( collectorId ) && s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ].contains( metric ) ) {
+                                const QString graphTitle = s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ][ metric ];
+                                emit addGraphItem( clusteringCriteriaName, graphTitle, metric, list[1].toDouble(), list[7].toDouble(), list[4].toInt() );
+                            }
                         }
                         else {
                             emit addTraceItem( clusteringCriteriaName, clusteringCriteriaName, functionName, list[1].toDouble(), list[2].toDouble(), list[4].toInt() );

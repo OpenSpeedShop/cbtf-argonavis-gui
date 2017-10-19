@@ -162,8 +162,8 @@ signals:
                       int rankOrThread);
 
     void addGraphItem(const QString &clusteringCriteriaName,
-                      const QString &clusterName,
-                      const QString &functionName,
+                      const QString &metricNameTitle,
+                      const QString &metricName,
                       double eventTime,
                       double eventData,
                       int rankOrThread);
@@ -417,6 +417,8 @@ private:
                        const ArgoNavis::Base::ThreadName& thread,
                        QMap< Base::ThreadName, bool >& flags);
 
+        static QMap< QString, QMap< QString, QString > > INIT_TRACING_EXPERIMENTS_GRAPH_TITLES();
+
 private:
 
     static QAtomicPointer< PerformanceDataManager > s_instance;
@@ -437,6 +439,8 @@ private:
     static QStringList s_TRACING_EXPERIMENTS;
     static QStringList s_SAMPLING_EXPERIMENTS;
     static QStringList s_TRACING_EXPERIMENTS_WITH_GRAPHS;
+
+    static QMap< QString, QMap< QString, QString > > s_TRACING_EXPERIMENTS_GRAPH_TITLES;
 
     QVector<double> m_sampleKeys;
     QMap< int, QVector<double> > m_sampleValues;
