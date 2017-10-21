@@ -3509,8 +3509,8 @@ void PerformanceDataManager::getTraceMetricValues(const QString& functionName, c
         Q_ASSERT( lower >= 0.0 );
 
         metricData.push_back( QVariantList() << functionName << lower << upper << duration
-                                             << QVariant::fromValue<quint64>(detail.dm_id.second)
                                              << detail.dm_id.first
+                                             << QVariant::fromValue<quint64>(detail.dm_id.second)
                                              << QVariant::fromValue<quint64>(allocSize)
                                              << QVariant::fromValue<quint64>(detail.dm_total_allocation) );
     }
@@ -3735,8 +3735,10 @@ void PerformanceDataManager::ShowTraceDetail(
                     if ( list.size() == metricDesc.size() ) {
                         if ( emitGraphItem ) {
                             if ( s_TRACING_EXPERIMENTS_GRAPH_TITLES.contains( collectorId ) && s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ].contains( metric ) ) {
-                                const QString graphTitle = s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ][ metric ];
-                                emit addGraphItem( clusteringCriteriaName, graphTitle, metric, list[1].toDouble(), list[7].toDouble(), list[4].toInt() );
+                                //if ( list[5].toUInt() == 0 ) {
+                                    const QString graphTitle = s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ][ metric ];
+                                    emit addGraphItem( clusteringCriteriaName, graphTitle, metric, list[1].toDouble(), list[7].toDouble(), list[4].toInt() );
+                                //}
                             }
                         }
                         else {
