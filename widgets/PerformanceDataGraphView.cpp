@@ -62,6 +62,10 @@ PerformanceDataGraphView::PerformanceDataGraphView(QWidget *parent)
     // set document mode on tab widget
     ui->graphView->setDocumentMode( true );
 
+#if defined(HAS_QCUSTOMPLOT_V2)
+    connect( ui->graphView, SIGNAL(currentChanged(int)), this, SLOT(handleTabChanged(int)) );
+#endif
+
     // connect performance data manager signals to performance data view slots
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
@@ -122,7 +126,6 @@ void PerformanceDataGraphView::unloadExperimentDataFromView(const QString &exper
  */
 CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName)
 {
-
     CustomPlot* graphView = new CustomPlot( this );
 
     if ( ! graphView )
@@ -139,6 +142,7 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
 #endif
 
     graphView->setNoAntialiasingOnDrag( true );
+    graphView->setAutoAddPlottableToLegend( false );
     graphView->setInteractions( QCP::iRangeDrag | QCP::iRangeZoom  | QCP::iSelectPlottables | QCP::iSelectLegend );
 
     // connect slot that ties some axis selections together (especially opposite axes):
@@ -175,6 +179,9 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
     axisRectGradient.setColorAt( 1, QColor(60, 60, 60) );
     axisRect->setBackground( axisRectGradient );
 
+    // set fixed height on graph
+    setFixedHeight( 400 );
+
     // get x and y axes
     QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
     QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
@@ -183,9 +190,8 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
     if ( xAxis ) {
 #if defined(HAS_QCUSTOMPLOT_V2)
         // create ticker
-        QSharedPointer< QCPAxisTickerFixed > fixedTicker( new QCPAxisTickerFixed );
-        fixedTicker->setScaleStrategy( QCPAxisTickerFixed::ssMultiples );
-        xAxis->setTicker( fixedTicker );
+        QSharedPointer< QCPAxisTickerText > ticker( new QCPAxisTickerText );
+        xAxis->setTicker( ticker );
 #else
         xAxis->setAutoTicks( false );
         xAxis->setAutoTickLabels( false );
@@ -259,14 +265,11 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
         yAxis->setVisible( true );
         yAxis->setPadding( 5 ); // a bit more space to the left border
 
-        setFixedHeight( QWIDGETSIZE_MAX );
-
 #if defined(HAS_QCUSTOMPLOT_V2)
-        yAxis->setTickLabels( false );
-        yAxis->setTicks( false );
+        yAxis->setTickLabels( true );
+        yAxis->setTicks( true );
         // create ticker
         QSharedPointer< QCPAxisTickerText > ticker( new QCPAxisTickerText );
-        ticker->setTickCount( 1 );
         yAxis->setTicker( ticker );
 #else
         yAxis->setAutoTicks( false );
@@ -299,8 +302,19 @@ QCPGraph* PerformanceDataGraphView::initGraph(CustomPlot* plot, int rankOrThread
         graph->setName( QString("Rank %1").arg( rankOrThread ) );
         // set plot colors for new graph
         graph->setPen( QPen( goldenRatioColor(), 2.0 ) );
+#if defined(HAS_QCUSTOMPLOT_V2)
+        graph->setSelectable( QCP::stWhole );
+        QCPSelectionDecorator *decorator = new QCPSelectionDecorator;
+        decorator->setPen( QPen( Qt::red, 2.5 ) );
+        graph->setSelectionDecorator( decorator );
+#else
         // set graph selected color to red
-        graph->setSelectedPen( QPen( Qt::red ) );
+        graph->setSelectedPen( QPen( Qt::red, 2.5 ) );
+#endif
+        // add graph to legend
+        if ( plot->graphCount() < 4 || rankOrThread == 0 ) {
+            graph->addToLegend();
+        }
     }
 
     return graph;
@@ -336,17 +350,55 @@ void PerformanceDataGraphView::handleSelectionChanged()
     if ( ! graphView )
         return;
 
-    // synchronize selection of graphs with selection of corresponding legend items:
-    for ( int i=0; i<graphView->plottableCount(); ++i ) {
+    const QString metricName = graphView->objectName();
+
+    if ( ! m_metricGroup.contains( metricName ) )
+        return;
+
+    MetricGroup& metricGroup = m_metricGroup[ metricName ];
+
+    const int graphCount = graphView->plottableCount();
+
+    // keep the number of additional items added to the legend to be just one, so we just added a legend
+    // item and there was one already added, then remove the previous one added.  Previous will be removed
+    // also if the user cleared selection.
+    if ( metricGroup.legendItemAdded ) {
+        graphView->legend->removeAt( graphView->legend->itemCount()-1 );
+        metricGroup.legendItemAdded = false;
+    }
+
+    // synchronize selection of graphs with selection of corresponding legend items
+    for ( int i=0; i<graphCount; ++i ) {
         QCPAbstractPlottable* graph = graphView->plottable( i );
-        QCPPlottableLegendItem *item = graphView->legend->itemWithPlottable( graph );
-        // if graph selected then set corresponding legend item
-        if ( graph->selected() ) {
-            item->setSelected( true );
-        }
-        // if legend item selected then set corresponding graph
-        else if ( item->selected() ) {
-            graph->setSelected( true );
+        if ( graph ) {
+            QCPPlottableLegendItem *item = graphView->legend->itemWithPlottable( graph );
+            // if graph selected then set corresponding legend item
+            if ( graph->selected() ) {
+                // is selected graph not included in the legend?  if not then add it
+                if ( ! item ) {
+                    metricGroup.legendItemAdded = graph->addToLegend();
+                    if ( metricGroup.legendItemAdded ) {
+                        item = graphView->legend->itemWithPlottable( graph );
+                    }
+                }
+                if ( item ) {
+                    item->setSelected( true );
+                }
+                break; // exit once the one selection was processed
+            }
+            // if legend item selected then set corresponding graph
+            else if ( item && item->selected() ) {
+#if defined(HAS_QCUSTOMPLOT_V2)
+                QCPDataRange range;
+                range.setBegin( 0 );
+                range.setEnd( graphView->axisRect()->axis( QCPAxis::atBottom )->range().upper );
+                QCPDataSelection selection( range );
+                graph->setSelection( selection );
+#else
+                graph->setSelected( true );
+#endif
+                break; // exit once the one selection was processed
+            }
         }
     }
 }
@@ -379,10 +431,6 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
     const QCPRange dataRange = m_metricGroup[ metricName ].xGraphRange;
 
     const QSize size = xAxis->axisRect()->size();
-
-    // return if the size has zero height or width
-    if ( 0 == size.width() || 0 == size.height() )
-        return;
 
     const double minXspread = 2.0;
 
@@ -421,18 +469,6 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
 
     int tickcount = qMax( 0LL, lastStep - firstStep + 1 );
 
-#ifdef HAS_QCUSTOMPLOT_V2
-    // get the ticker shared pointer
-    QSharedPointer< QCPAxisTicker > axisTicker = xAxis->ticker();
-
-    // cast to QCPAxisTickerFixed instance
-    QCPAxisTickerFixed* ticker = dynamic_cast< QCPAxisTickerFixed* >( axisTicker.data() );
-
-    ticker->setTickCount( tickcount );
-    ticker->setTickStep( mTickStep );
-#else
-    xAxis->setSubTickCount( qMax( 1.0, (qreal) qCeil( tickStepMantissa ) ) - 1 );
-
     QVector< double > mTickVector;
     QVector< QString > mTickLabelVector;
 
@@ -448,6 +484,19 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
 #endif
         mTickLabelVector[i] = QString::number( tickLabelValue, 'f', 0 );
     }
+
+#if defined(HAS_QCUSTOMPLOT_V2)
+    // get the ticker shared pointer
+    QSharedPointer< QCPAxisTicker > axisTicker = xAxis->ticker();
+
+    // cast to QCPAxisTickerFixed instance
+    QCPAxisTickerText* ticker = dynamic_cast< QCPAxisTickerText* >( axisTicker.data() );
+
+    if ( ticker ) {
+        ticker->setTicks( mTickVector, mTickLabelVector );
+    }
+#else
+    xAxis->setSubTickCount( qMax( 1.0, (qreal) qCeil( tickStepMantissa ) ) - 1 );
 
     xAxis->setTickVector( mTickVector );
     xAxis->setTickVectorLabels( mTickLabelVector );
@@ -579,8 +628,20 @@ void PerformanceDataGraphView::handleRequestMetricViewComplete(const QString &cl
                 tickLabels << QString::number( value, 'f', 0 );
             }
 
+#if defined(HAS_QCUSTOMPLOT_V2)
+            // get the ticker shared pointer
+            QSharedPointer< QCPAxisTicker > axisTicker = yAxis->ticker();
+
+            // cast to QCPAxisTickerFixed instance
+            QCPAxisTickerText* ticker = dynamic_cast< QCPAxisTickerText* >( axisTicker.data() );
+
+            if ( ticker ) {
+                ticker->setTicks( tickValues, tickLabels );
+            }
+#else
             yAxis->setTickVector( tickValues );
             yAxis->setTickVectorLabels( tickLabels );
+#endif
         }
         // set the x-axis graph range
         QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
@@ -595,6 +656,26 @@ void PerformanceDataGraphView::handleRequestMetricViewComplete(const QString &cl
 #endif
     }
 }
+
+#if defined(HAS_QCUSTOMPLOT_V2)
+/**
+ * @brief PerformanceDataGraphView::handleTabChanged
+ * @param index - new tab index
+ */
+void PerformanceDataGraphView::handleTabChanged(int index)
+{
+    Q_UNUSED( index );
+
+    QCustomPlot* plot = qobject_cast< QCustomPlot* >( ui->graphView->currentWidget() );
+
+    if ( plot ) {
+        const QString metricName = plot->objectName();
+        if ( m_metricGroup.contains( metricName ) ) {
+            m_metricGroup[ metricName ].graph->replot( QCustomPlot::rpImmediateRefresh );
+        }
+    }
+}
+#endif
 
 
 } // GUI

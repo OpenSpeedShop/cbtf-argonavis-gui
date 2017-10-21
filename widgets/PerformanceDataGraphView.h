@@ -77,6 +77,10 @@ private slots:
                                          double lower,
                                          double upper);
 
+#if defined(HAS_QCUSTOMPLOT_V2)
+    void handleTabChanged(int index);
+#endif
+
 private:
 
     CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName);
@@ -94,10 +98,11 @@ private:
         QCPRange yGraphRange;      // time range for metric group
         CustomPlot* graph;         // the QCustomPlot instance
         QMap< int, QCPGraph* > subgraphs;  // QCPGraph instance for rank/process
+        bool legendItemAdded;              // legend item added
         MetricGroup(CustomPlot* plot, const QCPRange& xRange = QCPRange(), const QCPRange& yRange = QCPRange())
-            : xGraphRange( xRange ), yGraphRange( yRange ), graph( plot ) { }
+            : xGraphRange( xRange ), yGraphRange( yRange ), graph( plot ), legendItemAdded( false ) { }
         MetricGroup()
-            : graph( Q_NULLPTR ) { }
+            : graph( Q_NULLPTR ), legendItemAdded( false ) { }
     } MetricGroup;
 
     QMap< QString, MetricGroup > m_metricGroup;
