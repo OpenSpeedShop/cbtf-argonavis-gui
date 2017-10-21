@@ -285,8 +285,8 @@ QCPGraph* PerformanceDataGraphView::initGraph(CustomPlot* plot, int rankOrThread
     static QVector< QColor > GRAPH_BRUSHES = { QColor(10, 100, 50, 70), QColor(10, 100, 50, 70), QColor(10, 100, 50, 70), QColor(100, 100, 50, 70) };
     static QVector< QColor > GRAPH_PENS = { QColor(10, 140, 70, 160), QColor(140, 10, 70, 160), QColor(10, 70, 140, 160), QColor(70, 70, 140, 160) };
 #else
-    static QVector< QColor > GRAPH_BRUSHES = QVector< QColor > << QColor(10, 100, 50, 70);
-    static QVector< QColor > GRAPH_PENS = QVector< QColor > << QColor(10, 140, 70, 160);
+    static QVector< QColor > GRAPH_BRUSHES = QVector< QColor >() << QColor(10, 100, 50, 70) << QColor(10, 100, 50, 70) << QColor(10, 100, 50, 70) << QColor(100, 100, 50, 70);
+    static QVector< QColor > GRAPH_PENS = QVector< QColor >() << QColor(10, 140, 70, 160) << QColor(140, 10, 70, 160) << QColor(10, 70, 140, 160) << QColor(70, 70, 140, 160);
 #endif
 
     const int index = plot->graphCount();
