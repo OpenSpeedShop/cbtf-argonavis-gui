@@ -31,8 +31,19 @@
 
 #include <QVector>
 
+#include <cmath>
+#include <random>
+
 
 namespace ArgoNavis { namespace GUI {
+
+
+// golden ratio conjugate value
+const double GOLDEN_RATIO_CONJUGATE = 0.618033988749895;
+
+// initialize random number generator using uniform distribution
+static std::mt19937 m_mt( 2560000 );  // use constant seed whose initial sequence of values seemed to generate good colors for small rank counts
+static std::uniform_real_distribution<double> m_dis( 0.0, 1.0 );
 
 
 /**
@@ -281,33 +292,35 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
  */
 QCPGraph* PerformanceDataGraphView::initGraph(CustomPlot* plot, int rankOrThread)
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    static QVector< QColor > GRAPH_BRUSHES = { QColor(10, 100, 50, 70), QColor(10, 100, 50, 70), QColor(10, 100, 50, 70), QColor(100, 100, 50, 70) };
-    static QVector< QColor > GRAPH_PENS = { QColor(10, 140, 70, 160), QColor(140, 10, 70, 160), QColor(10, 70, 140, 160), QColor(70, 70, 140, 160) };
-#else
-    static QVector< QColor > GRAPH_BRUSHES = QVector< QColor >() << QColor(10, 100, 50, 70) << QColor(10, 100, 50, 70) << QColor(10, 100, 50, 70) << QColor(100, 100, 50, 70);
-    static QVector< QColor > GRAPH_PENS = QVector< QColor >() << QColor(10, 140, 70, 160) << QColor(140, 10, 70, 160) << QColor(10, 70, 140, 160) << QColor(70, 70, 140, 160);
-#endif
-
-    const int index = plot->graphCount();
-
-    if ( index < 0 || index >= GRAPH_PENS.size() )
-        return Q_NULLPTR;
-
     QCPGraph* graph = plot->addGraph();
 
     if ( graph ) {
         // set graph name to rank #
         graph->setName( QString("Rank %1").arg( rankOrThread ) );
-
         // set plot colors for new graph
-        //graph->setBrush( GRAPH_BRUSHES[ index ] );
-        graph->setPen( QPen( GRAPH_PENS[ index ], 2.0 ) );
+        graph->setPen( QPen( goldenRatioColor(), 2.0 ) );
         // set graph selected color to red
         graph->setSelectedPen( QPen( Qt::red ) );
     }
 
     return graph;
+}
+
+/**
+ * @brief PerformanceDataGraphView::goldenRatioColor
+ * @return - color generated using golden ratio
+ *
+ * Generate color using golden ratio.
+ * Reference: "https://en.wikipedia.org/wiki/Golden_ratio" and
+ * "https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically".
+ */
+QColor PerformanceDataGraphView::goldenRatioColor() const
+{
+    double iptr;  // for integral portion (ignored)
+
+    double h = std::modf( m_dis( m_mt ) + GOLDEN_RATIO_CONJUGATE, &iptr );
+
+    return QColor::fromHsvF( h, 0.3, 0.99 );
 }
 
 /**

@@ -57,7 +57,6 @@ signals:
 
     void graphRangeChanged(const QString& clusteringCriteriaName,const QString& clusterName, double lower, double upper, const QSize& size);
 
-
 private slots:
 
     void handleSelectionChanged();
@@ -82,6 +81,7 @@ private:
 
     CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName);
     QCPGraph* initGraph(CustomPlot* plot, int rankOrThread);
+    QColor goldenRatioColor() const;
 
 private:
 
