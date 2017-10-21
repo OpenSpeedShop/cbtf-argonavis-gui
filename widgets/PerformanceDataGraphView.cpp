@@ -109,7 +109,7 @@ void PerformanceDataGraphView::unloadExperimentDataFromView(const QString &exper
  *
  * Creates a QCustomPlot instance and initializes the desired style properties for the axes of the metric graphs.
  */
-CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, int rankOrThread)
+CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName)
 {
 
     CustomPlot* graphView = new CustomPlot( this );
@@ -466,7 +466,7 @@ void PerformanceDataGraphView::handleAddGraphItem(const QString &clusteringCrite
 
         if ( ! m_metricGroup.contains( metricName ) ) {
 
-            graphView = initPlotView( clusteringCriteriaName, metricNameTitle, metricName, rankOrThread );
+            graphView = initPlotView( clusteringCriteriaName, metricNameTitle, metricName );
 
             m_metricGroup.insert( metricName, MetricGroup( graphView ) );
         }

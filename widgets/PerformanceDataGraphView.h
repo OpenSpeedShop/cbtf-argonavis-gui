@@ -80,7 +80,7 @@ private slots:
 
 private:
 
-    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, int rankOrThread);
+    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName);
     QCPGraph* initGraph(CustomPlot* plot, int rankOrThread);
 
 private:
