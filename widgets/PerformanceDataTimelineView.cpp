@@ -140,12 +140,11 @@ void PerformanceDataTimelineView::unloadExperimentDataFromView(const QString &ex
     if ( m_highlightItem != Q_NULLPTR ) {
         disconnect( this, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
                     m_highlightItem, SLOT(setData(QString,double,double,int)) );
-        delete m_highlightItem;
         m_highlightItem = Q_NULLPTR;
     }
 
     ui->graphView->clearGraphs();
-    ui->graphView->clearItems();
+    ui->graphView->clearItems();  // deletes 'm_highlightItem' as well
     ui->graphView->clearPlottables();
 
     ui->graphView->plotLayout()->clear();
