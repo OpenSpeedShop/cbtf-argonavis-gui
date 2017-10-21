@@ -60,6 +60,8 @@ signals:
 
 private slots:
 
+    void handleSelectionChanged();
+
     void handleAddGraphItem(const QString &clusteringCriteriaName,
                             const QString &metricNameTitle,
                             const QString &metricName,
@@ -78,7 +80,8 @@ private slots:
 
 private:
 
-    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName);
+    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, int rankOrThread);
+    QCPGraph* initGraph(CustomPlot* plot, int rankOrThread);
 
 private:
 
@@ -87,9 +90,10 @@ private:
     QMutex m_mutex;
 
     typedef struct MetricGroup {
-        QCPRange xGraphRange;  // time range for metric group
-        QCPRange yGraphRange;  // time range for metric group
-        CustomPlot* graph;     // the QCustomPlot instance
+        QCPRange xGraphRange;      // time range for metric group
+        QCPRange yGraphRange;      // time range for metric group
+        CustomPlot* graph;         // the QCustomPlot instance
+        QMap< int, QCPGraph* > subgraphs;  // QCPGraph instance for rank/process
         MetricGroup(CustomPlot* plot, const QCPRange& xRange = QCPRange(), const QCPRange& yRange = QCPRange())
             : xGraphRange( xRange ), yGraphRange( yRange ), graph( plot ) { }
         MetricGroup()

@@ -29,6 +29,8 @@
 
 #include <ui_PerformanceDataGraphView.h>
 
+#include <QVector>
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -107,7 +109,7 @@ void PerformanceDataGraphView::unloadExperimentDataFromView(const QString &exper
  *
  * Creates a QCustomPlot instance and initializes the desired style properties for the axes of the metric graphs.
  */
-CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName)
+CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, int rankOrThread)
 {
 
     CustomPlot* graphView = new CustomPlot( this );
@@ -126,16 +128,27 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
 #endif
 
     graphView->setNoAntialiasingOnDrag( true );
-    graphView->setInteractions( QCP::iRangeDrag | QCP::iRangeZoom );
+    graphView->setInteractions( QCP::iRangeDrag | QCP::iRangeZoom  | QCP::iSelectPlottables | QCP::iSelectLegend );
 
-    QCPGraph* graph = graphView->addGraph();
+    // connect slot that ties some axis selections together (especially opposite axes):
+    connect( graphView, SIGNAL(selectionChangedByUser()), this, SLOT(handleSelectionChanged()) );
 
-    if ( ! graph )
+    // initialize legend
+    graphView->legend->setVisible( true );
+    graphView->legend->setFont( QFont( "Helvetica", 8 ) );
+    graphView->legend->setBrush( QColor(180, 180, 180, 180) );
+    graphView->legend->setBorderPen( Qt::NoPen );
+    graphView->legend->setSelectedIconBorderPen( Qt::NoPen );
+    // set selected font to be the same as the regular font
+    graphView->legend->setSelectedFont( graphView->legend->font() );
+    // set selected legend item text color to red
+    graphView->legend->setSelectedTextColor( Qt::red );
+
+    // get axis rect for this metric
+    QCPAxisRect *axisRect = graphView->axisRect();
+
+    if ( ! axisRect )
         return Q_NULLPTR;
-
-    // set plot colors for new graph
-    graphView->graph( 0 )->setBrush( QColor(10, 100, 50, 70) );
-    graphView->graph( 0 )->setPen( QPen(QColor(10, 140, 70, 160)) );
 
     QLinearGradient plotGradient;
     plotGradient.setStart( 0, 0 );
@@ -143,9 +156,6 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
     plotGradient.setColorAt( 0, QColor(100, 100, 100) );
     plotGradient.setColorAt( 1, QColor(80, 80, 80) );
     graphView->setBackground( plotGradient );
-
-    // get axis rect for this metric
-    QCPAxisRect *axisRect = graphView->axisRect();
 
     QLinearGradient axisRectGradient;
     axisRectGradient.setStart( 0, 0 );
@@ -261,7 +271,75 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
 }
 
 /**
- * @brief PerformanceDataTimelineView::PerformanceDataGraphView
+ * @brief PerformanceDataGraphView::initGraph
+ * @param plot - the QCustomPlot instance
+ * @param rankOrThread - the rank or thread id associated with the graph instance to create
+ * @return - the new graph instance (QCPGraph)
+ *
+ * This method create a new graph instance (QCPGraph) for the specified rank or thread id,
+ * sets an unique color for the graph line and returns the graph instance.
+ */
+QCPGraph* PerformanceDataGraphView::initGraph(CustomPlot* plot, int rankOrThread)
+{
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    static QVector< QColor > GRAPH_BRUSHES = { QColor(10, 100, 50, 70), QColor(10, 100, 50, 70), QColor(10, 100, 50, 70), QColor(100, 100, 50, 70) };
+    static QVector< QColor > GRAPH_PENS = { QColor(10, 140, 70, 160), QColor(140, 10, 70, 160), QColor(10, 70, 140, 160), QColor(70, 70, 140, 160) };
+#else
+    static QVector< QColor > GRAPH_BRUSHES = QVector< QColor > << QColor(10, 100, 50, 70);
+    static QVector< QColor > GRAPH_PENS = QVector< QColor > << QColor(10, 140, 70, 160);
+#endif
+
+    const int index = plot->graphCount();
+
+    if ( index < 0 || index >= GRAPH_PENS.size() )
+        return Q_NULLPTR;
+
+    QCPGraph* graph = plot->addGraph();
+
+    if ( graph ) {
+        // set graph name to rank #
+        graph->setName( QString("Rank %1").arg( rankOrThread ) );
+
+        // set plot colors for new graph
+        //graph->setBrush( GRAPH_BRUSHES[ index ] );
+        graph->setPen( QPen( GRAPH_PENS[ index ], 2.0 ) );
+        // set graph selected color to red
+        graph->setSelectedPen( QPen( Qt::red ) );
+    }
+
+    return graph;
+}
+
+/**
+ * @brief PerformanceDataGraphView::handleSelectionChanged
+ *
+ * Process graph item or plottable selection changes.
+ */
+void PerformanceDataGraphView::handleSelectionChanged()
+{
+    // get the sender instance - should be a QCustomPlot instance
+    QCustomPlot* graphView = qobject_cast< QCustomPlot* >( sender() );
+
+    if ( ! graphView )
+        return;
+
+    // synchronize selection of graphs with selection of corresponding legend items:
+    for ( int i=0; i<graphView->plottableCount(); ++i ) {
+        QCPAbstractPlottable* graph = graphView->plottable( i );
+        QCPPlottableLegendItem *item = graphView->legend->itemWithPlottable( graph );
+        // if graph selected then set corresponding legend item
+        if ( graph->selected() ) {
+            item->setSelected( true );
+        }
+        // if legend item selected then set corresponding graph
+        else if ( item->selected() ) {
+            graph->setSelected( true );
+        }
+    }
+}
+
+/**
+ * @brief PerformanceDataGraphView::handleAxisRangeChange
  * @param requestedRange - the range of this axis due to change
  *
  * Handle changes to x axis ranges.  Make sure any range change requests made, mainly from user axis range drag and zoom actions,
@@ -386,9 +464,9 @@ void PerformanceDataGraphView::handleAddGraphItem(const QString &clusteringCrite
     {
         QMutexLocker guard( &m_mutex );
 
-        if ( ! m_metricGroup.contains( metricName ) )
-        {
-            graphView = initPlotView( clusteringCriteriaName, metricNameTitle, metricName );
+        if ( ! m_metricGroup.contains( metricName ) ) {
+
+            graphView = initPlotView( clusteringCriteriaName, metricNameTitle, metricName, rankOrThread );
 
             m_metricGroup.insert( metricName, MetricGroup( graphView ) );
         }
@@ -402,11 +480,21 @@ void PerformanceDataGraphView::handleAddGraphItem(const QString &clusteringCrite
         if ( metricGroup.yGraphRange.upper < eventData ) {
             metricGroup.yGraphRange.upper = eventData;
         }
-    }
 
-    if ( graphView ) {
-        // pass data points to graphs
-        graphView->graph( 0 )->addData( eventTime, eventData );
+        QCPGraph* graph( Q_NULLPTR );
+
+        if ( metricGroup.subgraphs.contains( rankOrThread ) ) {
+            graph = metricGroup.subgraphs[ rankOrThread ];
+        }
+        else {
+            graph = initGraph( graphView, rankOrThread );
+
+            metricGroup.subgraphs.insert( rankOrThread, graph );
+        }
+        if ( graph ) {
+            // pass data points to graphs
+            graph->addData( eventTime, eventData );
+        }
     }
 }
 
