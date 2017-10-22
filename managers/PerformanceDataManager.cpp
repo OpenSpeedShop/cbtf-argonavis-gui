@@ -3742,17 +3742,17 @@ void PerformanceDataManager::ShowTraceDetail(
                     if ( list.size() == metricDesc.size() ) {
                         if ( emitGraphItem ) {
                             if ( s_TRACING_EXPERIMENTS_GRAPH_TITLES.contains( collectorId ) && s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ].contains( metric ) ) {
-                                //if ( list[5].toUInt() == 0 ) {
                                     const QString graphTitle = s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ][ metric ];
                                     int rankOrThread = ( metricData.size() == 1 ) ? 0 : list[4].toInt();
+
                                     emit addGraphItem( clusteringCriteriaName, graphTitle, metric, list[1].toDouble(), list[7].toDouble(), rankOrThread );
+
                                     if ( list[7].toDouble() > metricData[ rankOrThread ] ) {
                                         metricData[ rankOrThread ] = list[7].toDouble();
                                     }
                                     if ( rankOrThread > maxRank ) {
                                         maxRank = rankOrThread;
                                     }
-                                //}
                             }
                         }
                         else {
