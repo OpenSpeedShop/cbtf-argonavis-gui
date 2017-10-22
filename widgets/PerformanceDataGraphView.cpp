@@ -73,6 +73,7 @@ PerformanceDataGraphView::PerformanceDataGraphView(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::addGraphItem, this, &PerformanceDataGraphView::handleAddGraphItem, Qt::QueuedConnection );
         connect( this, &PerformanceDataGraphView::graphRangeChanged, dataMgr, &PerformanceDataManager::graphRangeChanged );
         connect( dataMgr, &PerformanceDataManager::requestMetricViewComplete, this, &PerformanceDataGraphView::handleRequestMetricViewComplete, Qt::QueuedConnection );
+        connect( dataMgr, &PerformanceDataManager::signalGraphMinAvgMaxRanks, this, &PerformanceDataGraphView::handleGraphMinAvgMaxRanks, Qt::QueuedConnection );
 #else
         connect( dataMgr, SIGNAL(addGraphItem(QString,QString,QString,double,double,int)),
                  this, SLOT(handleAddGraphItem(QString,QString,QString,double,double,int)) );
@@ -80,6 +81,8 @@ PerformanceDataGraphView::PerformanceDataGraphView(QWidget *parent)
                  dataMgr, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)) );
         connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,QString,double,double)),
                  this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,QString,double,double)) );
+        connect( dataMgr, SIGNAL(signalGraphMinAvgMaxRanks(QString,int,int,int)),
+                 this, SLOT(handleGraphMinAvgMaxRanks(QString,int,int,int)) );
 #endif
     }
 }
@@ -557,6 +560,65 @@ void PerformanceDataGraphView::handleAddGraphItem(const QString &clusteringCrite
             // pass data points to graphs
             graph->addData( eventTime, eventData );
         }
+    }
+}
+
+/**
+ * @brief PerformanceDataGraphView::handleGraphMinAvgMaxRanks
+ * @param metricName - the metric name
+ * @param rankWithMinValue - rank containing smallest metric value for graph
+ * @param rankClosestToAvgValue - rank closest to averagec metric value for graph
+ * @param rankWithMaxValue - rank containing largest metric value for graph
+ */
+void PerformanceDataGraphView::handleGraphMinAvgMaxRanks(const QString &metricName, int rankWithMinValue, int rankClosestToAvgValue, int rankWithMaxValue)
+{
+    if ( metricName.isEmpty() )
+        return;
+
+    QMutexLocker guard( &m_mutex );
+
+    if ( ! m_metricGroup.contains( metricName ) )
+        return;
+
+    MetricGroup& metricGroup = m_metricGroup[ metricName ];
+
+    QCustomPlot* graphView = metricGroup.graph;
+
+    if ( graphView ) {
+
+        QSet< int > desiredRankSet;
+        desiredRankSet << 0 << rankWithMinValue << rankClosestToAvgValue << rankWithMaxValue;
+
+        for ( int i=graphView->graphCount(); i>=0; --i ) {
+            if ( metricGroup.subgraphs.contains( i ) ) {
+                QCPGraph* graph = metricGroup.subgraphs[ i ];
+                if ( ! desiredRankSet.contains( i ) ) {
+                    graph->removeFromLegend();
+                    graphView->removeGraph( graph );
+                }
+                else {
+                    // change name of graph
+                    if ( i == rankWithMinValue ) {
+                        graph->setName( QString("Rank %1 (Min)").arg( i ) );
+                    }
+                    else if ( i == rankClosestToAvgValue ) {
+                        graph->setName( QString("Rank %1 (Avg)").arg( i ) );
+                    }
+                    else if ( i == rankWithMaxValue ) {
+                        graph->setName( QString("Rank %1 (Max)").arg( i ) );
+                    }
+                    // add legend items only for the desired rank set
+                    graph->addToLegend();
+                }
+            }
+        }
+
+        // force graph replot
+#if defined(HAS_QCUSTOMPLOT_V2)
+        graphView->replot( QCustomPlot::rpQueuedReplot );
+#else
+        graphView->replot();
+#endif
     }
 }
 

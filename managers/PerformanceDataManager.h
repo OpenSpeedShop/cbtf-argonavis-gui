@@ -168,6 +168,11 @@ signals:
                       double eventData,
                       int rankOrThread);
 
+    void signalGraphMinAvgMaxRanks(const QString &metricName,
+                                   int rankWithMinValue,
+                                   int rankClosestToAvgValue,
+                                   int rankWithMaxValue);
+
     void addCudaEventSnapshot(const QString& clusteringCriteriaName, const QString& clusteringName, double lower, double upper, const QImage& image);
 
     void addMetricView(const QString& clusteringCriteriaName, const QString& modeName, const QString& metricName, const QString& viewName, const QStringList& metrics);

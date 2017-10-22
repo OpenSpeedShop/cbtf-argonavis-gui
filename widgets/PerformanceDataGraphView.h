@@ -68,6 +68,8 @@ private slots:
                             double eventData,
                             int rankOrThread);
 
+    void handleGraphMinAvgMaxRanks(const QString &metricName, int rankWithMinValue, int rankClosestToAvgValue, int rankWithMaxValue);
+
     void handleAxisRangeChange(const QCPRange &requestedRange);
 
     void handleRequestMetricViewComplete(const QString &clusteringCriteriaName,

@@ -3692,6 +3692,13 @@ void PerformanceDataManager::ShowTraceDetail(
     // NOTE: functions[0] .. functions[N-10] will be added below
     emit addAssociatedMetricView( clusteringCriteriaName, traceViewName, metric, ALL_EVENTS_DETAILS_VIEW, metricViewName, metricDesc );
 
+    QVector< double > metricData;
+    metricData.fill( 0.0, threadGroup.size() );
+    int maxRank = -1;
+
+    if ( metricData.size() < 1 )
+        return;
+
     for ( typename std::map< Function, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
         const Framework::Function& function( iter->first );
 
@@ -3737,7 +3744,14 @@ void PerformanceDataManager::ShowTraceDetail(
                             if ( s_TRACING_EXPERIMENTS_GRAPH_TITLES.contains( collectorId ) && s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ].contains( metric ) ) {
                                 //if ( list[5].toUInt() == 0 ) {
                                     const QString graphTitle = s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ][ metric ];
-                                    emit addGraphItem( clusteringCriteriaName, graphTitle, metric, list[1].toDouble(), list[7].toDouble(), list[4].toInt() );
+                                    int rankOrThread = ( metricData.size() == 1 ) ? 0 : list[4].toInt();
+                                    emit addGraphItem( clusteringCriteriaName, graphTitle, metric, list[1].toDouble(), list[7].toDouble(), rankOrThread );
+                                    if ( list[7].toDouble() > metricData[ rankOrThread ] ) {
+                                        metricData[ rankOrThread ] = list[7].toDouble();
+                                    }
+                                    if ( rankOrThread > maxRank ) {
+                                        maxRank = rankOrThread;
+                                    }
                                 //}
                             }
                         }
@@ -3753,10 +3767,34 @@ void PerformanceDataManager::ShowTraceDetail(
             }
         }
 
-        emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, metric, ALL_EVENTS_DETAILS_VIEW, lower, upper );
-
         emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, metric, functionName, lower, upper );
     }
+
+    if ( emitGraphItem ) {
+        if ( s_TRACING_EXPERIMENTS_GRAPH_TITLES.contains( collectorId ) && s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ].contains( metric ) ) {
+            auto minmax = std::minmax_element( metricData.begin(), metricData.begin() + maxRank );
+
+            const double average = std::accumulate( metricData.begin(), metricData.begin() + maxRank, 0.0 ) / ( maxRank + 1 );
+
+            QVector< double >::iterator closestIter = metricData.begin();
+
+            if ( metricData.size() > 1 ) {
+                for ( QVector< double >::iterator iter = metricData.begin()+1; iter != metricData.begin() + maxRank; iter++ ) {
+                    if ( std::abs( *iter - average ) < std::abs( *closestIter - average ) ) {
+                        closestIter = iter;
+                    }
+                }
+            }
+
+            const int rankWithMinValue = std::distance( metricData.begin(), minmax.first );
+            const int rankWithMaxValue = std::distance( metricData.begin(), minmax.second );
+            const int rankClosestToAvgValue = std::distance( metricData.begin(), closestIter );
+
+            emit signalGraphMinAvgMaxRanks( metric, rankWithMinValue, rankClosestToAvgValue, rankWithMaxValue );
+        }
+    }
+
+    emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, metric, ALL_EVENTS_DETAILS_VIEW, lower, upper );
 }
 
 /*
