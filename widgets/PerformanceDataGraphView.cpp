@@ -45,6 +45,22 @@ const double GOLDEN_RATIO_CONJUGATE = 0.618033988749895;
 static std::mt19937 m_mt( 2560000 );  // use constant seed whose initial sequence of values seemed to generate good colors for small rank counts
 static std::uniform_real_distribution<double> m_dis( 0.0, 1.0 );
 
+/**
+ * @brief PerformanceDataGraphView::INIT_Y_AXIS_GRAPH_LABELS
+ * @return - initialized map of metric name to y-axis graph label
+ */
+QMap<QString, QString> INIT_Y_AXIS_GRAPH_LABELS()
+{
+   QMap<QString, QString> map;
+
+   map.insert( QStringLiteral("highwater_inclusive_details"), QStringLiteral("Memory Allocation (bytes)") );
+   map.insert( QStringLiteral("leaked_inclusive_details"), QStringLiteral("Memory Allocation (bytes)") );
+
+   return map;
+}
+
+static QMap< QString, QString > s_Y_AXIS_GRAPH_LABELS = INIT_Y_AXIS_GRAPH_LABELS();
+
 
 /**
  * @brief PerformanceDataGraphView::PerformanceDataGraphView
@@ -281,7 +297,10 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
         yAxis->setAutoTickCount( 10 );
 #endif
 
-        yAxis->setLabel( QStringLiteral("Memory Allocation (bytes)") );
+        // set the y-axis label based on the metric specified
+        if ( s_Y_AXIS_GRAPH_LABELS.contains( metricName ) ) {
+            yAxis->setLabel( s_Y_AXIS_GRAPH_LABELS[ metricName ] );
+        }
     }
 
     return graphView;
@@ -312,7 +331,7 @@ QCPGraph* PerformanceDataGraphView::initGraph(CustomPlot* plot, int rankOrThread
         graph->setSelectionDecorator( decorator );
 #else
         // set graph selected color to red
-        graph->setSelectedPen( QPen( Qt::red, 2.5 ) );
+        graph->setSelectedPen( QPen( Qt::red, 4.0 ) );
 #endif
         // add graph to legend
         if ( plot->graphCount() < 4 || rankOrThread == 0 ) {
@@ -343,7 +362,9 @@ QColor PerformanceDataGraphView::goldenRatioColor() const
 /**
  * @brief PerformanceDataGraphView::handleSelectionChanged
  *
- * Process graph item or plottable selection changes.
+ * Process plottable or legend item selection changes.  If a plottable is selected then corresponding
+ * legend is selected.  If the legend isn't present, it is added.  If a legend item is selected.
+ * the corresponding plottable is selected.
  */
 void PerformanceDataGraphView::handleSelectionChanged()
 {
@@ -518,7 +539,7 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
  * @param eventData - the metric data for the event
  * @param rankOrThread - the rank or thread id in which the trace event occurred
  *
- * This method handles adding a trace event to the axis rect for the trace graph.
+ * This method handles adding a graph item to the graph (if it hasn't been created yet) and then adds the data to the graph.
  */
 void PerformanceDataGraphView::handleAddGraphItem(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, double eventTime, double eventData, int rankOrThread)
 {
@@ -569,6 +590,11 @@ void PerformanceDataGraphView::handleAddGraphItem(const QString &clusteringCrite
  * @param rankWithMinValue - rank containing smallest metric value for graph
  * @param rankClosestToAvgValue - rank closest to averagec metric value for graph
  * @param rankWithMaxValue - rank containing largest metric value for graph
+ *
+ * This slot handles the PerformanceDataManager::signalGraphMinAvgMaxRanks signal.  If this signal is emitted only the unique set of ranks
+ * identified by the parameters (rank with minimum value, rank closest to the average value and the rank with maximum value) as well as
+ * rank 0 are shown in the graph.  All other graphs that may have been added for other ranks are removed.  The legend will show all these
+ * ranks.
  */
 void PerformanceDataGraphView::handleGraphMinAvgMaxRanks(const QString &metricName, int rankWithMinValue, int rankClosestToAvgValue, int rankWithMaxValue)
 {
