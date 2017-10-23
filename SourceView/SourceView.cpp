@@ -143,9 +143,9 @@ void SourceView::handleDisplaySourceFileLineNumber(const QString &filename, int 
 
     QFile file( filenameToLoad );
     if ( file.open( QIODevice::ReadOnly | QIODevice::Text ) ) {
-        QTextDocument* document = new QTextDocument( file.readAll() );
-        document->setDocumentLayout( new QPlainTextDocumentLayout( document ) );
-        setDocument( document );
+        QTextDocument* sourceDocument = new QTextDocument( file.readAll(), this );
+        sourceDocument->setDocumentLayout( new QPlainTextDocumentLayout( sourceDocument ) );
+        setDocument( sourceDocument );
         setCurrentLineNumber( lineNumber );
     }
     else {
