@@ -205,6 +205,15 @@ PerformanceDataMetricView::~PerformanceDataMetricView()
 {
     deleteAllModelsViews();
 
+    m_metricViewModel.clear();
+    m_loadBalanceViewModel.clear();
+    m_detailsViewModel.clear();
+    m_calltreeViewModel.clear();
+    m_traceViewModel.clear();
+    m_compareViewModel.clear();
+    m_metricModeMetricModel.clear();
+    m_traceModeMetricModel.clear();
+
     delete ui;
 }
 
