@@ -107,6 +107,7 @@ public:
     static void destroy();
 
     void loadDefaultViews(const QString& filePath);
+    void unloadViews(const QString& clusteringCriteriaName);
     void unloadCudaViews(const QString& clusteringCriteriaName, const QStringList& clusterNames);
 
 #if defined(HAS_OSSCUDA2XML)

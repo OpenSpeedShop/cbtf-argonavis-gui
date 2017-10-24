@@ -66,6 +66,20 @@ CalltreeGraphView::CalltreeGraphView(QWidget *parent)
 }
 
 /**
+ * @brief CalltreeGraphView::~CalltreeGraphView
+ *
+ * Destroys the CalltreeGraphView instance.
+ */
+CalltreeGraphView::~CalltreeGraphView()
+{
+    QGraphicsScene* currentScene = scene();
+
+    if ( currentScene ) {
+        delete currentScene;
+    }
+}
+
+/**
  * @brief CalltreeGraphView::handleDisplayGraphView
  * @param graph - DOT format data representing calltree graph to create
  *

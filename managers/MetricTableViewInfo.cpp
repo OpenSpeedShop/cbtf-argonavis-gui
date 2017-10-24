@@ -191,6 +191,18 @@ QStringList MetricTableViewInfo::getMetricViewList()
     return m_metricViewList;
 }
 
+/**
+ * @brief MetricTableViewInfo::experiment
+ * @return - the experiment instance
+ *
+ * Get experiment instance.
+ */
+const OpenSpeedShop::Framework::Experiment *MetricTableViewInfo::experiment()
+{
+    QMutexLocker guard( &m_mutex );
+    return m_experiment;
+}
+
 
 } // GUI
 } // ArgoNavis

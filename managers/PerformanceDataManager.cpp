@@ -2376,6 +2376,19 @@ void PerformanceDataManager::loadCudaMetricViews(
 }
 
 /**
+ * @brief PerformanceDataManager::unloadViews
+ * @param clusteringCriteriaName - the clustering criteria name
+ */
+void PerformanceDataManager::unloadViews(const QString &clusteringCriteriaName)
+{
+    if ( m_tableViewInfo.contains( clusteringCriteriaName ) ) {
+        const OpenSpeedShop::Framework::Experiment* experiment = m_tableViewInfo[ clusteringCriteriaName ].experiment();
+        delete experiment;
+        m_tableViewInfo.remove( clusteringCriteriaName );
+    }
+}
+
+/**
  * @brief PerformanceDataManager::unloadCudaViews
  * @param clusteringCriteriaName - the clustering criteria name
  * @param clusterNames - the list of associated clusters
@@ -2386,10 +2399,6 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
 {
     if ( m_renderer ) {
         m_renderer->unloadCudaViews( clusteringCriteriaName, clusterNames );
-    }
-
-    if ( m_tableViewInfo.contains( clusteringCriteriaName ) ) {
-        m_tableViewInfo.remove( clusteringCriteriaName );
     }
 
     foreach( const QString& clusterName, clusterNames ) {

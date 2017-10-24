@@ -257,6 +257,11 @@ void PerformanceDataMetricView::deleteAllModelsViews()
         m_proxyModels.clear();
     }
 
+    PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
+    if ( dataMgr ) {
+        dataMgr->unloadViews( m_clusteringCritieriaName );
+    }
+
     // reset the Metric Table View widget
     resetUI();
 
@@ -1189,7 +1194,8 @@ QString PerformanceDataMetricView::getMetricViewName() const
  */
 void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 {
-    Q_UNUSED( text )
+    if ( text.isEmpty() )
+        return;
 
     QTreeView* view( Q_NULLPTR );
 

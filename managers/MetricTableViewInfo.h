@@ -61,6 +61,7 @@ public:
     bool isTracedMemoryFunction(const QString &name);
     void setInterval(const OpenSpeedShop::Framework::Time& lower, const OpenSpeedShop::Framework::Time& upper);
     QStringList getMetricViewList();
+    const OpenSpeedShop::Framework::Experiment* experiment();
 
 private:
 

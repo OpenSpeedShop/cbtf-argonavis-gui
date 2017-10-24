@@ -39,6 +39,7 @@ class CalltreeGraphView : public QGraphicsView
 public:
 
     explicit CalltreeGraphView(QWidget *parent = 0);
+    virtual ~CalltreeGraphView();
 
 public slots:
 
