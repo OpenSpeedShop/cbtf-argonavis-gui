@@ -2035,17 +2035,13 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
     qDebug() << "PerformanceDataManager::loadCudaViews: STARTED";
 #endif
 
-    Experiment* experiment;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     std::string filePathStr = filePath.toStdString();
 #else
     std::string filePathStr = std::string( filePath.toLatin1().data() );
 #endif
-    if ( m_experiments.contains( filePath ) )
-        experiment = m_experiments[ filePath ];
-    else {
-        experiment = new Experiment( filePathStr );
-    }
+
+    Experiment* experiment = new Experiment( filePathStr );
 
     // Determine full time interval extent of this experiment
     Extent extent = experiment->getPerformanceDataExtent();
@@ -2137,9 +2133,6 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
 
             m_selectedClusters[ clusteringCriteriaName ] = selected;
         }
-
-        if ( ! m_experiments.contains( clusteringCriteriaName ) )
-            m_experiments.insert( filePath, experiment );
 
         MetricTableViewInfo info( experiment, interval, metricList );
 
@@ -2397,10 +2390,6 @@ void PerformanceDataManager::unloadCudaViews(const QString &clusteringCriteriaNa
 
     if ( m_tableViewInfo.contains( clusteringCriteriaName ) ) {
         m_tableViewInfo.remove( clusteringCriteriaName );
-    }
-
-    if ( m_experiments.contains( clusteringCriteriaName ) ) {
-        m_experiments.remove( clusteringCriteriaName );
     }
 
     foreach( const QString& clusterName, clusterNames ) {

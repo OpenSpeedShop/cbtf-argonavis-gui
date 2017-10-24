@@ -460,8 +460,6 @@ private:
 
     QMap< QString, MetricTableViewInfo > m_tableViewInfo;
 
-    QMap< QString, OpenSpeedShop::Framework::Experiment* > m_experiments;
-
     UserGraphRangeChangeManager m_userChangeMgr;
 
     struct {
