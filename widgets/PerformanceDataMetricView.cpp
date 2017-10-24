@@ -597,13 +597,6 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
 
     clearExistingModelsAndViews( metricViewName, false );
 
-    const QString type = ( viewName == s_allEventsDetailsName ) ? "*" : viewName;
-
-    ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel( type );
-
-    if ( Q_NULLPTR == proxyModel )
-        return;
-
     QTreeView* view = m_views.value( metricViewName, Q_NULLPTR );
     bool newViewCreated( false );
 
@@ -638,6 +631,13 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
         QStandardItemModel* model = m_models.value( attachedMetricViewName, Q_NULLPTR );
 
         if ( Q_NULLPTR == model )
+            return;
+
+        const QString type = ( viewName == s_allEventsDetailsName ) ? "*" : viewName;
+
+        ViewSortFilterProxyModel* proxyModel = new ViewSortFilterProxyModel( type );
+
+        if ( Q_NULLPTR == proxyModel )
             return;
 
         proxyModel->setSourceModel( model );
@@ -688,14 +688,16 @@ void PerformanceDataMetricView::handleInitModelView(const QString &clusteringCri
 
         // create and insert or append item to appropriate model
 
-        QStandardItem* viewItem = new QStandardItem( viewName );
+        if ( viewModel && viewModel->findItems( viewName ).isEmpty() ) {
+            QStandardItem* viewItem = new QStandardItem( viewName );
 
-        if ( viewModel && viewItem && viewModel->findItems( viewName ).isEmpty() ) {
-            // insert "All Events" selection as first item; otherwise append the item at the end
-            if ( s_allEventsDetailsName == viewName )
-                viewModel->insertRow( 0, viewItem );
-            else
-                viewModel->appendRow( viewItem );
+            if ( viewItem ) {
+                // insert "All Events" selection as first item; otherwise append the item at the end
+                if ( s_allEventsDetailsName == viewName )
+                    viewModel->insertRow( 0, viewItem );
+                else
+                    viewModel->appendRow( viewItem );
+            }
         }
     }
 }

@@ -846,8 +846,10 @@ void PerformanceDataTimelineView::handleAddCluster(const QString &clusteringCrit
         metricGroup = m_metricGroups[ clusteringCriteriaName ];
     }
 
-    if ( ! metricGroup && ! metricGroup->layout )
+    if ( ( Q_NULLPTR == metricGroup ) || ( Q_NULLPTR == metricGroup->layout ) ) {
+        delete axisRect;
         return;
+    }
 
     int idx = metricGroup->axisRects.size();
 
