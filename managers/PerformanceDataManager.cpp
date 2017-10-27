@@ -385,8 +385,9 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
     const QString METRIC_MODE_NAME = PerformanceDataMetricView::getMetricModeName( PerformanceDataMetricView::METRIC_MODE );
     const QString CALLTREE_MODE_NAME = PerformanceDataMetricView::getMetricModeName( PerformanceDataMetricView::CALLTREE_MODE );
     const QString modeName = ( viewName != CALLTREE_MODE_NAME ) ? METRIC_MODE_NAME : CALLTREE_MODE_NAME;
+    const QString metricNameStr = ( viewName != CALLTREE_MODE_NAME ) ? metricName : QStringLiteral("None");
 
-    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricName, viewName );
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricNameStr, viewName );
 
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
@@ -1946,6 +1947,9 @@ void PerformanceDataManager::processCalltreeView(const Collector& collector, con
     else if ( collectorId == "iop" ) {
         ShowCalltreeDetail< Framework::IOPDetail >( collector, threads, interval, functions, "inclusive_detail", metricDesc, clusteringCriteriaName );
     }
+    else if ( collectorId == "mem" ) {
+        ShowCalltreeDetail< std::vector<Framework::MemDetail> >( collector, threads, interval, functions, "unique_inclusive_details", metricDesc, clusteringCriteriaName );
+    }
 }
 
 /**
@@ -3252,6 +3256,27 @@ std::pair< std::uint64_t, double > PerformanceDataManager::getDetailTotals(const
 }
 
 /**
+ * @brief PerformanceDataManager::getDetailTotals
+ * @param detail - the OpenSpeedShop::Framework::IOTDetail instance
+ * @param factor - the time factor
+ * @return - a std::pair formed from the 'factor' parameter and the time from the 'detail' instance scaled by the 'factor'
+ *
+ * This is a template specialization for PerformanceDataManager::getDetailTotal which usually works on a type required to have the two public member variables 'dm_count'
+ * and 'dm_time'.  This template specialization works with the OpenSpeedShop::Framework::MemDetail class which doesn't satisfy this requirement as it doesn't have the
+ * 'dm_count' member variable although it does has a pubic 'dm_time' member variable.  Thus, this template specialization works for the special case
+ * of the OpenSpeedShop::Framework::MemDetail implementation.
+ */
+template <>
+std::pair< std::uint64_t, double > PerformanceDataManager::getDetailTotals(const std::vector<Framework::MemDetail>& detail, const double factor)
+{
+    double sum = std::accumulate( detail.begin(), detail.end(), 0.0, [](double sum, const Framework::MemDetail& d) {
+        return sum + d.dm_count;
+    } );
+
+    return std::make_pair( factor, sum );
+}
+
+/**
  * @brief PerformanceDataManager::ShowCalltreeDetail
  * @param collector - the experiment collector used for the calltree view
  * @param threadGroup - the set of threads applicable to the calltree view
@@ -3273,7 +3298,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
         const QStringList metricDesc,
         const QString &clusteringCriteriaName)
 {
-    // bet view name
+    // get view name
     const QString viewName = getViewName<DETAIL_t>();
 
     emit addMetricView( clusteringCriteriaName, viewName, QStringLiteral("None"), viewName, metricDesc );
@@ -3323,6 +3348,9 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
 
             const double num_calls = ( subExtents.begin() == subExtents.end() ) ? 1.0 : (double) stack_contains_N_calls( stacktrace, subExtents );
 
+            if ( 0 == num_calls )
+                break;
+
             std::size_t index;
             for ( index=0; index<stacktrace.size(); index++ ) {
                 std::pair< bool, Function > result = stacktrace.getFunctionAt( index );
@@ -3337,6 +3365,9 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
                 if ( result.first )
                     caller.insert( result.second );
             }
+
+            if ( 0 == caller.size() )
+                break;
 
             const DETAIL_t& detail( siter->second );
 
@@ -3403,7 +3434,7 @@ void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& coll
 #endif
         oss << func.getName() << " (" << func.getLinkedObject().getPath().getBaseName() << ")";
         metricData << QString::fromStdString( oss.str() );
-        emit addMetricViewData( clusteringCriteriaName, QStringLiteral("None"), viewName, viewName, metricData );
+        emit addMetricViewData( clusteringCriteriaName, viewName, QStringLiteral("None"), viewName, metricData );
     }
 }
 
