@@ -169,6 +169,13 @@ signals:
                       double eventData,
                       int rankOrThread);
 
+    void addGraphItem(const QString &metricName,
+                      const QString &eventName,
+                      const QString &name,
+                      double data);
+
+    void createGraphItems(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, const QStringList& eventNames, const QStringList& items);
+
     void signalGraphMinAvgMaxRanks(const QString &metricName,
                                    int rankWithMinValue,
                                    int rankClosestToAvgValue,

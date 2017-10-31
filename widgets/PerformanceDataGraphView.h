@@ -53,13 +53,11 @@ public:
 
     void unloadExperimentDataFromView(const QString& experimentName);
 
-signals:
-
-    void graphRangeChanged(const QString& clusteringCriteriaName,const QString& clusterName, double lower, double upper, const QSize& size);
-
 private slots:
 
     void handleSelectionChanged();
+
+    void handleInitGraphView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, const QStringList &eventNames, const QStringList& items);
 
     void handleAddGraphItem(const QString &clusteringCriteriaName,
                             const QString &metricNameTitle,
@@ -67,6 +65,11 @@ private slots:
                             double eventTime,
                             double eventData,
                             int rankOrThread);
+
+    void handleAddGraphItem(const QString &metricName,
+                            const QString &eventName,
+                            const QString &name,
+                            double data);
 
     void handleGraphMinAvgMaxRanks(const QString &metricName, int rankWithMinValue, int rankClosestToAvgValue, int rankWithMaxValue);
 
@@ -85,9 +88,10 @@ private slots:
 
 private:
 
-    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName);
+    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, bool handleGraphRangeChanges = true);
     QCPGraph* initGraph(CustomPlot* plot, int rankOrThread);
     QColor goldenRatioColor() const;
+    QString normalizedName(const QString &name, const QCustomPlot* plot) const;
 
 private:
 
@@ -100,6 +104,8 @@ private:
         QCPRange yGraphRange;      // time range for metric group
         CustomPlot* graph;         // the QCustomPlot instance
         QMap< int, QCPGraph* > subgraphs;  // QCPGraph instance for rank/process
+        QMap< QString, QCPBars* > bars;    // QCPBars instance for each event
+        QStringList items;                 // list of individually graphed items along x-axis
         bool legendItemAdded;              // legend item added
         MetricGroup(CustomPlot* plot, const QCPRange& xRange = QCPRange(), const QCPRange& yRange = QCPRange())
             : xGraphRange( xRange ), yGraphRange( yRange ), graph( plot ), legendItemAdded( false ) { }

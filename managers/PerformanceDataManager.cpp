@@ -2161,6 +2161,8 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
                 metricViewType = GRAPH_VIEW;
             else if ( hasTraceExperiment )
                 metricViewType = TIMELINE_VIEW;
+            else if ( s_SAMPLING_EXPERIMENTS.contains(collectorId) )
+                metricViewType = GRAPH_VIEW;
             else
                 metricViewType = CALLTREE_VIEW;
 
@@ -3852,6 +3854,8 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
 {
     const QString METRIC_VIEW_MODE = QStringLiteral("Metric");
 
+    const QString collectorId( collector.getMetadata().getUniqueId().c_str() );
+
     // get name of sample counter
     std::string nameListStr;
     collector.getParameterValue( "event", nameListStr );
@@ -3864,6 +3868,8 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
 
     QStringList sampleCounterNames = nameList.split( ',' );
 
+    const bool emitGraphItem = s_SAMPLING_EXPERIMENTS.contains( collectorId );
+
     const QStringList metricDesc = getMetricsDesc<DETAIL_t>( sampleCounterNames );
 
     // for details view emit signal to create just the model
@@ -3875,6 +3881,16 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
 
     Queries::GetMetricValues( collector, metricName.toStdString(), interval, threadGroup, getThreadSet<TS>( threadGroup ),  // input - metric search criteria
                               raw_items );
+
+    if ( emitGraphItem ) {
+        QStringList items;
+
+        for ( typename std::map< TS, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
+            items << getLocationInfo( iter->first );
+        }
+
+        emit createGraphItems( clusteringCriteriaName, QStringLiteral("HWC Counts"), metricName, sampleCounterNames, items );
+    }
 
     for ( typename std::map< TS, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
 
@@ -3916,6 +3932,12 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
         metricValues << locationName;
 
         emit addMetricViewData( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, metricValues );
+
+        if ( emitGraphItem ) {
+            for ( int index=0; index<sampleCounterNames.size(); index++ ) {
+                emit addGraphItem( metricName, sampleCounterNames[index], locationName, totalSampleCount[index] );
+            }
+        }
     }
 
     emit requestMetricViewComplete( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, lower, upper );
