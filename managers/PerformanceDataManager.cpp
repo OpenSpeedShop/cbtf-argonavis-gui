@@ -1599,8 +1599,6 @@ void PerformanceDataManager::processCompareThreadView(const CollectorGroup& coll
     std::string metricStr = std::string( metric.toLatin1().data() );
 #endif
 
-    const QString metricViewName = metric + QStringLiteral("-") + viewName;
-
     QStringList metricDesc;
     metricDesc << s_functionTitle;
 
