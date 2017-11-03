@@ -452,6 +452,7 @@ private:
     static QStringList s_TRACING_EXPERIMENTS;
     static QStringList s_SAMPLING_EXPERIMENTS;
     static QStringList s_TRACING_EXPERIMENTS_WITH_GRAPHS;
+    static QStringList s_METRIC_GRAPH_VIEWS;
 
     static QMap< QString, QMap< QString, QString > > s_TRACING_EXPERIMENTS_GRAPH_TITLES;
 

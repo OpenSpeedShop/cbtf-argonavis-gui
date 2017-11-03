@@ -51,17 +51,20 @@ const int X_AXIS_LEGEND_ITEM_MAX_LENGTH = 200;
  * @brief PerformanceDataGraphView::INIT_Y_AXIS_GRAPH_LABELS
  * @return - initialized map of metric name to y-axis graph label
  */
-QMap<QString, QString> INIT_Y_AXIS_GRAPH_LABELS()
+QMap< QString, QPair< QString, bool > > INIT_Y_AXIS_GRAPH_LABELS()
 {
-   QMap<QString, QString> map;
+   QMap< QString, QPair< QString, bool > > map;
 
-   map.insert( QStringLiteral("highwater_inclusive_details"), QStringLiteral("Memory Allocation (bytes)") );
-   map.insert( QStringLiteral("leaked_inclusive_details"), QStringLiteral("Memory Allocation (bytes)") );
+   map.insert( QStringLiteral("highwater_inclusive_details"), qMakePair( QStringLiteral("Memory Allocation (bytes)"), true ) );
+   map.insert( QStringLiteral("leaked_inclusive_details"), qMakePair( QStringLiteral("Memory Allocation (bytes)"), true ) );
+   map.insert( QStringLiteral("exclusive_time"), qMakePair( QStringLiteral("Exclusive Time (msec)"), false ) );
+   map.insert( QStringLiteral("inclusive_time"), qMakePair( QStringLiteral("Inclusive Time (msec)"), false ) );
 
    return map;
 }
 
-static QMap< QString, QString > s_Y_AXIS_GRAPH_LABELS = INIT_Y_AXIS_GRAPH_LABELS();
+// map of metric names to QPair where 'first' is the y-axis label and 'second' is a flag in which 'true' indicates a line graph (otherwise bar graph)
+static QMap< QString, QPair< QString, bool > > s_Y_AXIS_GRAPH_LABELS = INIT_Y_AXIS_GRAPH_LABELS();
 
 
 /**
@@ -312,7 +315,7 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
 
         // set the y-axis label based on the metric specified
         if ( s_Y_AXIS_GRAPH_LABELS.contains( metricName ) ) {
-            yAxis->setLabel( s_Y_AXIS_GRAPH_LABELS[ metricName ] );
+            yAxis->setLabel( s_Y_AXIS_GRAPH_LABELS[ metricName ].first );
         }
     }
 
@@ -506,7 +509,7 @@ void PerformanceDataGraphView::handleInitGraphView(const QString &clusteringCrit
 
 #if defined(HAS_QCUSTOMPLOT_V2)
     // get the ticker shared pointer
-    QSharedPointer< QCPAxisTicker > axisTicker = graphView->yAxis->ticker();
+    QSharedPointer< QCPAxisTicker > axisTicker = graphView->xAxis->ticker();
 
     // cast to QCPAxisTickerFixed instance
     QCPAxisTickerText* ticker = dynamic_cast< QCPAxisTickerText* >( axisTicker.data() );
@@ -583,8 +586,10 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
 
     const double minXspread = 2.0;
 
+    const bool isLineGraph = s_Y_AXIS_GRAPH_LABELS.contains( metricName ) && s_Y_AXIS_GRAPH_LABELS[ metricName ].second;
+
     // only maintain x-axis lower/upper range spread for line graphs
-    if ( s_Y_AXIS_GRAPH_LABELS.contains( metricName ) ) {
+    if ( isLineGraph ) {
         // but may need to adjust lower or upper bound to maintain minimum graph range
         if ( upper - lower < minXspread ) {
             if ( upper - minXspread > dataRange.lower )
@@ -600,7 +605,7 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
     xAxis->setRange( lower, upper );
 
     // only regenerate ticks for line graphs
-    if ( s_Y_AXIS_GRAPH_LABELS.contains( metricName ) ) {
+    if ( isLineGraph ) {
         QCPRange newRange = xAxis->range();
 
         // Generate tick positions according to linear scaling:
@@ -844,7 +849,7 @@ void PerformanceDataGraphView::handleRequestMetricViewComplete(const QString &cl
         graphView = metricGroup.graph;
 
         // only update xGraphRange here if the x-axis is the experiment time such as in the line graphs
-        if ( s_Y_AXIS_GRAPH_LABELS.contains( metricName ) ) {
+        if ( s_Y_AXIS_GRAPH_LABELS.contains( metricName ) && s_Y_AXIS_GRAPH_LABELS[ metricName ].second ) {
             metricGroup.xGraphRange = range;
         }
     }
@@ -900,7 +905,7 @@ void PerformanceDataGraphView::handleRequestMetricViewComplete(const QString &cl
             QVector<QString> tickLabels;
 
             for (int i=0; i<=10; ++i) {
-                const double value( i * qRound( MAX_YAXIS_VALUE / 10.0 ) );
+                const double value( i * std::round( MAX_YAXIS_VALUE / 10.0 ) );
                 tickValues << value;
                 tickLabels << QString::number( value, 'f', 0 );
             }

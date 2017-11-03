@@ -126,6 +126,13 @@ QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS_WITH_GRAPHS = { "mem" 
 QStringList PerformanceDataManager::s_TRACING_EXPERIMENTS_WITH_GRAPHS = QStringList() << "mem";
 #endif
 
+// define list of experiments with graph views from metric views
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+QStringList PerformanceDataManager::s_METRIC_GRAPH_VIEWS = { "hwc", "usertime", "pcsamp" };
+#else
+QStringList PerformanceDataManager::s_METRIC_GRAPH_VIEWS = QStringList() << "hwc" << "usertime" << "pcsamp";
+#endif
+
 // define unique graph titles for each experiment type and all applicable metrics
 QMap < QString, QMap< QString, QString > > PerformanceDataManager::s_TRACING_EXPERIMENTS_GRAPH_TITLES = INIT_TRACING_EXPERIMENTS_GRAPH_TITLES();
 
@@ -133,12 +140,29 @@ QMap< QString, QMap< QString, QString > > PerformanceDataManager::INIT_TRACING_E
 {
     QMap< QString, QMap< QString, QString > > outerMap;
 
-    QMap< QString, QString > innerMap;
+    QMap< QString, QString > memInnerMap;
+    memInnerMap.insert( QStringLiteral("highwater_inclusive_details"), QStringLiteral("Highwater / Time") );
+    memInnerMap.insert( QStringLiteral("leaked_inclusive_details"), QStringLiteral("Leaks / Time") );
+    outerMap.insert( "mem", memInnerMap );
 
-    innerMap.insert( QStringLiteral("highwater_inclusive_details"), QStringLiteral("Highwater / Time") );
-    innerMap.insert( QStringLiteral("leaked_inclusive_details"), QStringLiteral("Leaks / Time") );
+    QMap< QString, QString > exclusiveInclusiveTimeInnerMap;
+    exclusiveInclusiveTimeInnerMap.insert( QStringLiteral("exclusive_time"), QStringLiteral("Exclusive Time") );
+    exclusiveInclusiveTimeInnerMap.insert( QStringLiteral("inclusive_time"), QStringLiteral("Inclusive Time") );
+    outerMap.insert( "usertime", exclusiveInclusiveTimeInnerMap );
 
-    outerMap.insert( "mem", innerMap );
+    QMap< QString, QString > exclusiveInclusiveDetailsInnerMap;
+    exclusiveInclusiveDetailsInnerMap.insert( QStringLiteral("exclusive_detail"), QStringLiteral("Exclusive Counts") );
+    exclusiveInclusiveDetailsInnerMap.insert( QStringLiteral("inclusive_detail"), QStringLiteral("Inclusive Counts") );
+    outerMap.insert( "hwctime", exclusiveInclusiveDetailsInnerMap );
+    outerMap.insert( "hwcsamp", exclusiveInclusiveDetailsInnerMap );
+
+    QMap< QString, QString > timeInnerMap;
+    timeInnerMap.insert( QStringLiteral("time"), QStringLiteral("Time") );
+    outerMap.insert( "pcsamp", timeInnerMap );
+
+    QMap< QString, QString > hwcInnerMap;
+    hwcInnerMap.insert( QStringLiteral("overflows"), QStringLiteral("Counts") );
+    outerMap.insert( "hwc", hwcInnerMap );
 
     return outerMap;
 }
@@ -1767,11 +1791,37 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
 
     emit addMetricView( clusteringCriteriaName, METRIC_MODE_VIEW, metric, viewName, metricDesc );
 
+    // get collector type
+    const QString collectorId( collector.getMetadata().getUniqueId().c_str() );
+
+    // flag indicating emit signals for add trace item (=false) or graph item (=true)
+    const bool emitGraphItem( s_METRIC_GRAPH_VIEWS.contains( collectorId ) );
+
+    if ( emitGraphItem ) {
+        QStringList items;
+
+        for ( typename std::multimap<TM, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
+            items << getLocationInfo<TS>( i->second );
+        }
+
+        QString graphTitle;
+
+        if ( s_TRACING_EXPERIMENTS_GRAPH_TITLES.contains( collectorId ) && s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ].contains( metric ) ) {
+            graphTitle = s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ][ metric ];
+        }
+
+        emit createGraphItems( clusteringCriteriaName, graphTitle, metric, QStringList() << metricDesc[0], items );
+    }
+
     for ( typename std::multimap<TM, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
 
         QVariantList metricData = getMetricValues( getLocationInfo<TS>( i->second ), i->first, total, dataMin->at(i->second), dataMax->at(i->second), dataMean->at(i->second) );
 
         emit addMetricViewData( clusteringCriteriaName, METRIC_MODE_VIEW, metric, viewName, metricData );
+
+        if ( emitGraphItem && metricData.size() == metricDesc.size() && metricData.size() > 2 ) {
+            emit addGraphItem( metric, metricDesc[0], metricData[2].toString(), metricData[0].toDouble() );
+        }
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -2160,6 +2210,8 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             else if ( hasTraceExperiment )
                 metricViewType = TIMELINE_VIEW;
             else if ( s_SAMPLING_EXPERIMENTS.contains(collectorId) )
+                metricViewType = GRAPH_VIEW;
+            else if ( s_METRIC_GRAPH_VIEWS.contains(collectorId) )
                 metricViewType = GRAPH_VIEW;
             else
                 metricViewType = CALLTREE_VIEW;
@@ -3887,7 +3939,13 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
             items << getLocationInfo( iter->first );
         }
 
-        emit createGraphItems( clusteringCriteriaName, QStringLiteral("HWC Counts"), metricName, sampleCounterNames, items );
+        QString graphTitle;
+
+        if ( s_TRACING_EXPERIMENTS_GRAPH_TITLES.contains( collectorId ) && s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ].contains( metricName ) ) {
+            graphTitle = s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ][ metricName ];
+        }
+
+        emit createGraphItems( clusteringCriteriaName, graphTitle, metricName, sampleCounterNames, items );
     }
 
     for ( typename std::map< TS, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
