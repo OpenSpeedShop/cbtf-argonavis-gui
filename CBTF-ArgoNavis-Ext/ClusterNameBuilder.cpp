@@ -27,7 +27,7 @@
 
 namespace ArgoNavis { namespace CUDA {
 
-QMap< uint64_t, uint16_t> m_tidmap;
+QMap< boost::uint64_t, QMap< boost::uint64_t, boost::uint16_t > > m_tidmap;
 
 const QString getUniqueClusterName(const Base::ThreadName& thread)
 {
@@ -52,15 +52,16 @@ const QString getUniqueClusterName(const Base::ThreadName& thread)
         clusterName += ( "-r" + QString::number(mpiRank.get()) );
     }
 
-    boost::optional<boost::uint64_t> tidval = thread.tid();
+    boost::optional<boost::uint32_t> tidval = thread.omp_rank();
     if ( tidval ) {
+        QMap< boost::uint64_t, boost::uint16_t >& tidmap = m_tidmap[ pid ]; // adds new element if 'pid' not in map already
         uint64_t tid = tidval.get();
         uint16_t val;
-        if ( m_tidmap.contains( tid ) ) {
-            val = m_tidmap[tid];
+        if ( tidmap.contains( tid ) ) {
+            val = tidmap[tid];
         }
         else {
-            val = m_tidmap[tid] = m_tidmap.size();
+            val = tidmap[tid] = tidmap.size();
         }
         clusterName += ( "-t" + QString::number(val) );
     }
@@ -91,15 +92,16 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread& threa
         clusterName += ( "-r" + QString::number(mpiRank.second) );
     }
 
-    std::pair< bool, pthread_t> tidval = thread.getPosixThreadId();
+    std::pair< bool, pthread_t> tidval = thread.getOpenMPThreadId();
     if ( tidval.first ) {
+        QMap< boost::uint64_t, boost::uint16_t >& tidmap = m_tidmap[ pid ]; // adds new element if 'pid' not in map already
         uint64_t tid = tidval.second;
         uint16_t val;
-        if ( m_tidmap.contains( tid ) ) {
-            val = m_tidmap[tid];
+        if ( tidmap.contains( tid ) ) {
+            val = tidmap[tid];
         }
         else {
-            val = m_tidmap[tid] = m_tidmap.size();
+            val = tidmap[tid] = tidmap.size();
         }
         clusterName += ( "-t" + QString::number(val) );
     }
