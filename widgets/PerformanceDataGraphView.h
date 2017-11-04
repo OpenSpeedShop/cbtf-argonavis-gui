@@ -28,6 +28,8 @@
 
 #include <QMutex>
 
+#include <random>
+
 #include "qcustomplot.h"
 
 #include "common/openss-gui-config.h"
@@ -90,7 +92,7 @@ private:
 
     CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, bool handleGraphRangeChanges = true);
     QCPGraph* initGraph(CustomPlot* plot, int rankOrThread);
-    QColor goldenRatioColor() const;
+    QColor goldenRatioColor(std::mt19937 &mt) const;
     QString normalizedName(const QString &name, const QCustomPlot* plot) const;
 
 private:
@@ -107,10 +109,11 @@ private:
         QMap< QString, QCPBars* > bars;    // QCPBars instance for each event
         QStringList items;                 // list of individually graphed items along x-axis
         bool legendItemAdded;              // legend item added
+        std::mt19937 mt;                   // use constant seed whose initial sequence of values seemed to generate good colors for small
         MetricGroup(CustomPlot* plot, const QCPRange& xRange = QCPRange(), const QCPRange& yRange = QCPRange())
-            : xGraphRange( xRange ), yGraphRange( yRange ), graph( plot ), legendItemAdded( false ) { }
+            : xGraphRange( xRange ), yGraphRange( yRange ), graph( plot ), legendItemAdded( false ), mt( 2560000 ) { }
         MetricGroup()
-            : graph( Q_NULLPTR ), legendItemAdded( false ) { }
+            : graph( Q_NULLPTR ), legendItemAdded( false ), mt( 2560000 ) { }
     } MetricGroup;
 
     QMap< QString, MetricGroup > m_metricGroup;

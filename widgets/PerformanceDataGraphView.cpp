@@ -32,7 +32,6 @@
 #include <QVector>
 
 #include <cmath>
-#include <random>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -42,7 +41,6 @@ namespace ArgoNavis { namespace GUI {
 const double GOLDEN_RATIO_CONJUGATE = 0.618033988749895;
 
 // initialize random number generator using uniform distribution
-static std::mt19937 m_mt( 2560000 );  // use constant seed whose initial sequence of values seemed to generate good colors for small rank counts
 static std::uniform_real_distribution<double> m_dis( 0.0, 1.0 );
 
 const int X_AXIS_LEGEND_ITEM_MAX_LENGTH = 200;
@@ -338,8 +336,6 @@ QCPGraph* PerformanceDataGraphView::initGraph(CustomPlot* plot, int rankOrThread
     if ( graph ) {
         // set graph name to rank #
         graph->setName( QString("Rank %1").arg( rankOrThread ) );
-        // set plot colors for new graph
-        graph->setPen( QPen( goldenRatioColor(), 2.0 ) );
 #if defined(HAS_QCUSTOMPLOT_V2)
         graph->setSelectable( QCP::stWhole );
         QCPSelectionDecorator *decorator = new QCPSelectionDecorator;
@@ -360,17 +356,18 @@ QCPGraph* PerformanceDataGraphView::initGraph(CustomPlot* plot, int rankOrThread
 
 /**
  * @brief PerformanceDataGraphView::goldenRatioColor
+ * @param mt - a Mersenne Twister pseudo-random generator instance
  * @return - color generated using golden ratio
  *
  * Generate color using golden ratio.
  * Reference: "https://en.wikipedia.org/wiki/Golden_ratio" and
  *            "https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically".
  */
-QColor PerformanceDataGraphView::goldenRatioColor() const
+QColor PerformanceDataGraphView::goldenRatioColor(std::mt19937& mt) const
 {
     double iptr;  // for integral portion (ignored)
 
-    double h = std::modf( m_dis( m_mt ) + GOLDEN_RATIO_CONJUGATE, &iptr );
+    double h = std::modf( m_dis( mt ) + GOLDEN_RATIO_CONJUGATE, &iptr );
 
     return QColor::fromHsvF( h, 0.3, 0.99 );
 }
@@ -494,8 +491,10 @@ void PerformanceDataGraphView::handleInitGraphView(const QString &clusteringCrit
 
 #ifdef HAS_STACKED_BAR_GRAPHS
     const double FACTOR = 1.0;
+    const double BAR_WIDTH = FACTOR / 2.0;
 #else
     const double FACTOR = 10.0;
+    const double BAR_WIDTH = FACTOR / eventNames.size();
 #endif
 
     for ( int i=0; i<metricGroup.items.size(); ++i ) {
@@ -536,10 +535,10 @@ void PerformanceDataGraphView::handleInitGraphView(const QString &clusteringCrit
             bar->setAntialiased( false );
             // set names and colors
             bar->setName( eventName );
-            const QColor color = goldenRatioColor();
+            const QColor color = goldenRatioColor( metricGroup.mt );
             bar->setPen( QPen( color ) );
             bar->setBrush( color );
-            bar->setWidth( 1.0 );
+            bar->setWidth( BAR_WIDTH );
 #ifdef HAS_STACKED_BAR_GRAPHS
             if ( lastBar ) {
                 bar->moveBelow( lastBar );
@@ -704,6 +703,9 @@ void PerformanceDataGraphView::handleAddGraphItem(const QString &clusteringCrite
         }
         else {
             graph = initGraph( graphView, rankOrThread );
+
+            // set plot colors for new graph
+            graph->setPen( QPen( goldenRatioColor( metricGroup.mt ), 2.0 ) );
 
             metricGroup.subgraphs.insert( rankOrThread, graph );
         }
