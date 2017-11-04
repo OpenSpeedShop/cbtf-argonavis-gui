@@ -430,7 +430,7 @@ private:
                        const ArgoNavis::Base::ThreadName& thread,
                        QMap< Base::ThreadName, bool >& flags);
 
-        static QMap< QString, QMap< QString, QString > > INIT_TRACING_EXPERIMENTS_GRAPH_TITLES();
+    static QMap< QString, QMap< QString, QString > > INIT_TRACING_EXPERIMENTS_GRAPH_TITLES();
 
 private:
 
