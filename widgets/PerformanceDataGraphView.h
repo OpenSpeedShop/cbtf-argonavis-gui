@@ -59,7 +59,12 @@ private slots:
 
     void handleSelectionChanged();
 
-    void handleInitGraphView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, const QStringList &eventNames, const QStringList& items);
+    void handleInitGraphView(const QString &clusteringCriteriaName,
+                             const QString &metricNameTitle,
+                             const QString &metricName,
+                             const QString &viewName,
+                             const QStringList &eventNames,
+                             const QStringList &items);
 
     void handleAddGraphItem(const QString &clusteringCriteriaName,
                             const QString &metricNameTitle,
@@ -69,11 +74,15 @@ private slots:
                             int rankOrThread);
 
     void handleAddGraphItem(const QString &metricName,
+                            const QString &viewName,
                             const QString &eventName,
                             const QString &name,
                             double data);
 
-    void handleGraphMinAvgMaxRanks(const QString &metricName, int rankWithMinValue, int rankClosestToAvgValue, int rankWithMaxValue);
+    void handleGraphMinAvgMaxRanks(const QString &metricName,
+                                   int rankWithMinValue,
+                                   int rankClosestToAvgValue,
+                                   int rankWithMaxValue);
 
     void handleAxisRangeChange(const QCPRange &requestedRange);
 
@@ -90,10 +99,10 @@ private slots:
 
 private:
 
-    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, bool handleGraphRangeChanges = true);
+    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, const QString &viewName = QString(), bool handleGraphRangeChanges = true);
     QCPGraph* initGraph(CustomPlot* plot, int rankOrThread);
     QColor goldenRatioColor(std::mt19937 &mt) const;
-    QString normalizedName(const QString &name, const QCustomPlot* plot) const;
+    QString normalizedName(const QString &name, const QCustomPlot* plot, bool isFilePath) const;
 
 private:
 
@@ -107,7 +116,7 @@ private:
         CustomPlot* graph;         // the QCustomPlot instance
         QMap< int, QCPGraph* > subgraphs;  // QCPGraph instance for rank/process
         QMap< QString, QCPBars* > bars;    // QCPBars instance for each event
-        QStringList items;                 // list of individually graphed items along x-axis
+        QMap< QString, QString > items;    // list of individually graphed items along x-axis: key=full name, value=elided name
         bool legendItemAdded;              // legend item added
         std::mt19937 mt;                   // use constant seed whose initial sequence of values seemed to generate good colors for small
         MetricGroup(CustomPlot* plot, const QCPRange& xRange = QCPRange(), const QCPRange& yRange = QCPRange())

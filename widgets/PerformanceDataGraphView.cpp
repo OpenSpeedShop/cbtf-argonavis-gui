@@ -89,8 +89,8 @@ PerformanceDataGraphView::PerformanceDataGraphView(QWidget *parent)
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-        connect( dataMgr, static_cast<void(PerformanceDataManager::*)(const QString &metricName, const QString &eventName, const QString &name, double data)>(&PerformanceDataManager::addGraphItem),
-                 this, static_cast<void(PerformanceDataGraphView::*)(const QString &metricName, const QString &eventName, const QString &name, double data)>(&PerformanceDataGraphView::handleAddGraphItem) );
+        connect( dataMgr, static_cast<void(PerformanceDataManager::*)(const QString &metricName, const QString &viewName, const QString &eventName, const QString &name, double data)>(&PerformanceDataManager::addGraphItem),
+                 this, static_cast<void(PerformanceDataGraphView::*)(const QString &metricName, const QString &viewName, const QString &eventName, const QString &name, double data)>(&PerformanceDataGraphView::handleAddGraphItem) );
         connect( dataMgr, static_cast<void(PerformanceDataManager::*)(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, double eventTime, double eventData, int rankOrThread)>(&PerformanceDataManager::addGraphItem),
                  this, static_cast<void(PerformanceDataGraphView::*)(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, double eventTime, double eventData, int rankOrThread)>(&PerformanceDataGraphView::handleAddGraphItem) );
         connect( dataMgr, &PerformanceDataManager::createGraphItems, this, &PerformanceDataGraphView::handleInitGraphView );
@@ -102,11 +102,11 @@ PerformanceDataGraphView::PerformanceDataGraphView(QWidget *parent)
         connect( dataMgr, SIGNAL(addGraphItem(QString,QString,QString,double)),
                  this, SLOT(handleAddGraphItem(QString,QString,QString,double)) );
         connect( dataMgr, SIGNAL(createGraphItems(QString,QString,QString,QStringList,QStringList)),
-                 this, SLOT(handleInitGraphView(QString,QString,QString,QStringList,QStringList)) );
+                 this, SLOT(handleInitGraphView(QString,QString,QString,QString,QStringList,QStringList)) );
         connect( dataMgr, SIGNAL(requestMetricViewComplete(QString,QString,QString,QString,double,double)),
                  this, SLOT(handleRequestMetricViewComplete(QString,QString,QString,QString,double,double)) );
-        connect( dataMgr, SIGNAL(signalGraphMinAvgMaxRanks(QString,int,int,int)),
-                 this, SLOT(handleGraphMinAvgMaxRanks(QString,int,int,int)) );
+        connect( dataMgr, SIGNAL(signalGraphMinAvgMaxRanks(QString,QString,int,int,int)),
+                 this, SLOT(handleGraphMinAvgMaxRanks(QString,QString,int,int,int)) );
 #endif
     }
 }
@@ -147,12 +147,13 @@ void PerformanceDataGraphView::unloadExperimentDataFromView(const QString &exper
  * @param clusteringCriteriaName - the name of the metric group
  * @param metricNameTitle - the displayed metric name (for graph title on tab widget)
  * @param metricName - the metric name
+ * @param viewName - the view name
  * @param handleGraphRangeChanges - flag indicating whether x-axis graph ranges changes should be handled
  * @return - the new QCustomPlot instance
  *
  * Creates a QCustomPlot instance and initializes the desired style properties for the axes of the metric graphs.
  */
-CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, bool handleGraphRangeChanges)
+CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, const QString &viewName, bool handleGraphRangeChanges)
 {
     CustomPlot* graphView = new CustomPlot( this );
 
@@ -162,7 +163,9 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
     // add QCustomPlot instance to tab widget
     ui->graphView->addTab( graphView, metricNameTitle );
 
-    graphView->setObjectName( metricName );
+    const QString metricViewName = ( viewName.isEmpty() ? metricName : metricName + "-" + viewName );
+
+    graphView->setObjectName( metricViewName );
 
 #ifdef QCUSTOMPLOT_USE_OPENGL
     graphView->setOpenGl( true );
@@ -251,10 +254,8 @@ CustomPlot *PerformanceDataGraphView::initPlotView(const QString &clusteringCrit
         xAxis->grid()->setSubGridVisible( true );
         xAxis->grid()->setZeroLinePen( Qt::NoPen );
 
-        // set associated metric group property
-        xAxis->setProperty( "associatedMetricGroup", clusteringCriteriaName );
         // set associated cluster name property
-        xAxis->setProperty( "associatedClusterName", metricNameTitle );
+        xAxis->setProperty( "metricViewName", metricViewName );
         // set metric name property
         xAxis->setProperty( "metricName", metricName );
 
@@ -380,10 +381,10 @@ QColor PerformanceDataGraphView::goldenRatioColor(std::mt19937& mt) const
  *
  * This function generates a shortened name from the full defined location name.
  */
-QString PerformanceDataGraphView::normalizedName(const QString& name, const QCustomPlot *plot) const
+QString PerformanceDataGraphView::normalizedName(const QString& name, const QCustomPlot *plot, bool isFilePath) const
 {
-    const int pindex = name.indexOf( QRegExp("[<(]") );
-    const int sindex = name.lastIndexOf( ' ', pindex-2 ) + 1;
+    const int pindex = ( isFilePath ) ? name.length()-1 : name.indexOf( QRegExp("[<(]") );
+    const int sindex = ( isFilePath ) ? name.lastIndexOf( '/' ) + 1 : name.lastIndexOf( ' ', pindex-2 ) + 1;
 
     const QString functionName = name.mid( sindex, pindex );
 
@@ -465,25 +466,32 @@ void PerformanceDataGraphView::handleSelectionChanged()
  * @param clusteringCriteriaName - the name of the metric group
  * @param metricNameTitle - the displayed metric name (for graph title on tab widget)
  * @param metricName - the metric name
+ * @param viewName - the view name
  * @param eventNames - the list of event names (ie PAPI event names)
  * @param items - the list of items (ie function names)
  *
  * This function initializes the metric group information applicable to graph views with bar graphs.
  */
-void PerformanceDataGraphView::handleInitGraphView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, const QStringList &eventNames, const QStringList &items)
+void PerformanceDataGraphView::handleInitGraphView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, const QString& viewName, const QStringList &eventNames, const QStringList &items)
 {
-    CustomPlot* graphView = initPlotView( clusteringCriteriaName, metricNameTitle, metricName, false );
+    const QString graphTitle = QString("%1 (%2)").arg( metricNameTitle).arg(viewName);
+
+    const QString metricViewName = metricName + "-" + viewName;
+
+    CustomPlot* graphView = initPlotView( clusteringCriteriaName, graphTitle, metricName, viewName, false );
 
     if ( ! graphView )
         return;
 
-    if ( m_metricGroup.insert( metricName, MetricGroup( graphView ) ) == m_metricGroup.end() )
+    if ( m_metricGroup.insert( metricViewName, MetricGroup( graphView ) ) == m_metricGroup.end() )
         return;
 
-    MetricGroup& metricGroup = m_metricGroup[ metricName ];
+    MetricGroup& metricGroup = m_metricGroup[ metricViewName ];
+
+    const bool isFilePath = ( viewName != QStringLiteral("Functions") );
 
     foreach ( const QString& item, items ) {
-        metricGroup.items << normalizedName( item, graphView );
+        metricGroup.items.insert( item, normalizedName( item, graphView, isFilePath ) );
     }
 
     QVector< double > mTickVector( metricGroup.items.size() );
@@ -499,7 +507,7 @@ void PerformanceDataGraphView::handleInitGraphView(const QString &clusteringCrit
 
     for ( int i=0; i<metricGroup.items.size(); ++i ) {
         mTickVector[i] = i * FACTOR;
-        mTickLabelVector[i] = metricGroup.items[ i ];
+        mTickLabelVector[i] = *( metricGroup.items.begin() + i );
     }
 
     graphView->xAxis->setRangeUpper( FACTOR * metricGroup.items.size() + 1 );
@@ -570,14 +578,14 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
         return;
 
     // get data range of the metric group
-    const QString metricName = xAxis->property( "metricName" ).toString();
+    const QString metricViewName = xAxis->property( "metricViewName" ).toString();
 
     QMutexLocker guard( &m_mutex );
 
-    if ( ! m_metricGroup.contains( metricName ) )
+    if ( ! m_metricGroup.contains( metricViewName ) )
         return;
 
-    const QCPRange dataRange = m_metricGroup[ metricName ].xGraphRange;
+    const QCPRange dataRange = m_metricGroup[ metricViewName ].xGraphRange;
 
     // clamp requested range to dataRange.lower .. dataRange.upper
     double lower = qMax( requestedRange.lower, dataRange.lower );
@@ -585,7 +593,7 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
 
     const double minXspread = 2.0;
 
-    const bool isLineGraph = s_Y_AXIS_GRAPH_LABELS.contains( metricName ) && s_Y_AXIS_GRAPH_LABELS[ metricName ].second;
+    const bool isLineGraph = s_Y_AXIS_GRAPH_LABELS.contains( metricViewName ) && s_Y_AXIS_GRAPH_LABELS[ metricViewName ].second;
 
     // only maintain x-axis lower/upper range spread for line graphs
     if ( isLineGraph ) {
@@ -719,37 +727,38 @@ void PerformanceDataGraphView::handleAddGraphItem(const QString &clusteringCrite
 /**
  * @brief PerformanceDataGraphView::handleAddGraphItem
  * @param metricName - the metric name
+ * @param viewName - the view name
  * @param eventName - the name of the event
  * @param name - the name of the individually graphed item along x-axis
  * @param data - the item's data for the event
  *
  * This method handles adding the graph data for the specified event and item.
  */
-void PerformanceDataGraphView::handleAddGraphItem(const QString &metricName, const QString &eventName, const QString &name, double data)
+void PerformanceDataGraphView::handleAddGraphItem(const QString &metricName, const QString &viewName, const QString &eventName, const QString &name, double data)
 {
     QMutexLocker guard( &m_mutex );
 
-    if ( ! m_metricGroup.contains( metricName ) )
+    const QString metricViewName = metricName + "-" + viewName;
+
+    if ( ! m_metricGroup.contains( metricViewName ) )
         return;
 
-    MetricGroup& metricGroup = m_metricGroup[ metricName ];
+    MetricGroup& metricGroup = m_metricGroup[ metricViewName ];
 
     if ( metricGroup.yGraphRange.upper < data ) {
         metricGroup.yGraphRange.upper = data;
     }
 
-    const QString elidedName = normalizedName( name, metricGroup.graph );
-
-    if ( ! metricGroup.bars.contains( eventName ) || ! metricGroup.items.contains( elidedName ) )
+    if ( ! metricGroup.bars.contains( eventName ) || ! metricGroup.items.contains( name ) )
         return;
 
     QCPBars* bar = metricGroup.bars[ eventName ];
 
     if ( bar ) {
 #ifdef HAS_STACKED_BAR_GRAPHS
-        const double key = (double) metricGroup.items.indexOf( elidedName );
+        const double key = (double) std::distance( metricGroup.items.cbegin(), metricGroup.items.constFind( name ) );
 #else
-        const double key = (double) metricGroup.items.indexOf( elidedName ) * 10;
+        const double key = std::distance( metricGroup.items.cbegin(), metricGroup.items.constFind( name ) ) * 10.0;
 #endif
 
         bar->addData( key, data );
@@ -836,111 +845,119 @@ void PerformanceDataGraphView::handleRequestMetricViewComplete(const QString &cl
     if ( clusteringCriteriaName.isEmpty() || modeName.isEmpty() || viewName.isEmpty() )
         return;
 
-    const QCPRange range( lower, upper );
-
     CustomPlot* graphView( Q_NULLPTR );
 
+    // x-axis graph range
+    const QCPRange range( lower, upper );
+
+    // determine the largest y-axis value
+    double largestYAxisValue;
+
     {
+        QString metricViewName = metricName + "-" + viewName;
+
         QMutexLocker guard( &m_mutex );
 
-        if ( ! m_metricGroup.contains( metricName ) )
-            return;
+        if ( ! m_metricGroup.contains( metricViewName ) ) {
+            if ( ! m_metricGroup.contains( metricName ) )
+                return;
 
-        MetricGroup& metricGroup = m_metricGroup[ metricName ];
+            metricViewName = metricName;
+        }
 
-        graphView = metricGroup.graph;
+        MetricGroup& metricGroup = m_metricGroup[ metricViewName ];
 
         // only update xGraphRange here if the x-axis is the experiment time such as in the line graphs
         if ( s_Y_AXIS_GRAPH_LABELS.contains( metricName ) && s_Y_AXIS_GRAPH_LABELS[ metricName ].second ) {
             metricGroup.xGraphRange = range;
         }
-    }
 
-    if ( ! graphView )
-        return;
+        graphView = metricGroup.graph;
+
+        if ( ! graphView )
+            return;
+
+#ifdef HAS_STACKED_BAR_GRAPHS
+        if ( metricGroup.bars.size() == 0 ) {
+            // for line graphs, the maximum has been maintained in the 'yGraphRange' variable
+            largestYAxisValue = metricGroup.yGraphRange.upper;
+        }
+        else if ( metricGroup.bars.begin().value()->data()->size() > 0 ) {
+            // for bar graphs, compute the total value for all stacked bars
+            std::vector< double > totals( metricGroup.bars.begin().value()->data()->size(), 0.0 );
+            for ( QMap< QString, QCPBars* >::iterator biter = metricGroup.bars.begin(); biter != metricGroup.bars.end(); biter++ ) {
+                QCPBars* map( biter.value() );
+                for ( QCPBarDataMap::iterator iter=map->data()->begin(); iter != map->data()->end(); iter++ ) {
+                    QCPBarData barData( *iter );
+                    totals[ (int) barData.key ] += barData.value;
+                }
+            }
+
+            // the largest y-axis value is the largest value of all stacked bars
+            largestYAxisValue = *( std::max_element( totals.begin(), totals.end() ) );
+        }
+#else
+        // for line graphs, the maximum has been maintained in the 'yGraphRange' variable
+        largestYAxisValue = metricGroup.yGraphRange.upper;
+#endif
+    }
 
     // create axis rect for this metric
     QCPAxisRect *axisRect = graphView->axisRect();
 
-    if ( axisRect ) {
-        // set the y-axis graph range
-        QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
-        if ( yAxis ) {
-            QMutexLocker guard( &m_mutex );
+    if ( ! axisRect )
+        return;
 
-            MetricGroup& metricGroup = m_metricGroup[ metricName ];
+    // set the y-axis graph range
+    QCPAxis* yAxis = axisRect->axis( QCPAxis::atLeft );
 
-            // determine the largest y-axis value
-            double largestYAxisValue;
+    if ( ! yAxis )
+        return;
 
-#ifdef HAS_STACKED_BAR_GRAPHS
-            if ( metricGroup.bars.size() == 0 ) {
-                // for line graphs, the maximum has been maintained in the 'yGraphRange' variable
-                largestYAxisValue = metricGroup.yGraphRange.upper;
-            }
-            else if ( metricGroup.bars.begin().value()->data()->size() > 0 ) {
-                // for bar graphs, compute the total value for all stacked bars
-                std::vector< double > totals( metricGroup.bars.begin().value()->data()->size(), 0.0 );
-                for ( QMap< QString, QCPBars* >::iterator biter = metricGroup.bars.begin(); biter != metricGroup.bars.end(); biter++ ) {
-                    QCPBars* map( biter.value() );
-                    for ( QCPBarDataMap::iterator iter=map->data()->begin(); iter != map->data()->end(); iter++ ) {
-                        QCPBarData barData( *iter );
-                        totals[ (int) barData.key ] += barData.value;
-                    }
-                }
+    const int NUM_SIGNIFICANT_DIGITS = qCeil( std::log10( largestYAxisValue ) );
+    const double MAX_YAXIS_VALUE = qCeil( largestYAxisValue / qPow( 10.0, NUM_SIGNIFICANT_DIGITS - 1 ) ) * qPow( 10.0, NUM_SIGNIFICANT_DIGITS - 1 );
 
-                // the largest y-axis value is the largest value of all stacked bars
-                largestYAxisValue = *( std::max_element( totals.begin(), totals.end() ) );
-            }
-#else
-            // for line graphs, the maximum has been maintained in the 'yGraphRange' variable
-            largestYAxisValue = metricGroup.yGraphRange.upper;
-#endif
+    yAxis->setRange( QCPRange( 0.0, MAX_YAXIS_VALUE ) );
+    yAxis->setTicks( true );
 
-            const int NUM_SIGNIFICANT_DIGITS = qCeil( std::log10( largestYAxisValue ) );
-            const double MAX_YAXIS_VALUE = qCeil( largestYAxisValue / qPow( 10.0, NUM_SIGNIFICANT_DIGITS - 1 ) ) * qPow( 10.0, NUM_SIGNIFICANT_DIGITS - 1 );
+    QVector<double> tickValues;
+    QVector<QString> tickLabels;
 
-            yAxis->setRange( QCPRange( 0.0, MAX_YAXIS_VALUE ) );
-            yAxis->setTicks( true );
-
-            QVector<double> tickValues;
-            QVector<QString> tickLabels;
-
-            for (int i=0; i<=10; ++i) {
-                const double value( i * std::round( MAX_YAXIS_VALUE / 10.0 ) );
-                tickValues << value;
-                tickLabels << QString::number( value, 'f', 0 );
-            }
-
-#if defined(HAS_QCUSTOMPLOT_V2)
-            // get the ticker shared pointer
-            QSharedPointer< QCPAxisTicker > axisTicker = yAxis->ticker();
-
-            // cast to QCPAxisTickerFixed instance
-            QCPAxisTickerText* ticker = dynamic_cast< QCPAxisTickerText* >( axisTicker.data() );
-
-            if ( ticker ) {
-                ticker->setTicks( tickValues, tickLabels );
-            }
-#else
-            yAxis->setTickVector( tickValues );
-            yAxis->setTickVectorLabels( tickLabels );
-#endif
-        }
-        if ( QStringLiteral("Trace") == modeName && QStringLiteral("All Events") == viewName ) {
-            // set the x-axis graph range
-            QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
-            if ( xAxis ) {
-                xAxis->setRange( range );
-            }
-        }
-        // force graph replot
-#if defined(HAS_QCUSTOMPLOT_V2)
-        graphView->replot( QCustomPlot::rpQueuedReplot );
-#else
-        graphView->replot();
-#endif
+    for (int i=0; i<=10; ++i) {
+        const double value( i * std::round( MAX_YAXIS_VALUE / 10.0 ) );
+        tickValues << value;
+        tickLabels << QString::number( value, 'f', 0 );
     }
+
+#if defined(HAS_QCUSTOMPLOT_V2)
+    // get the ticker shared pointer
+    QSharedPointer< QCPAxisTicker > axisTicker = yAxis->ticker();
+
+    // cast to QCPAxisTickerFixed instance
+    QCPAxisTickerText* ticker = dynamic_cast< QCPAxisTickerText* >( axisTicker.data() );
+
+    if ( ticker ) {
+        ticker->setTicks( tickValues, tickLabels );
+    }
+#else
+    yAxis->setTickVector( tickValues );
+    yAxis->setTickVectorLabels( tickLabels );
+#endif
+
+    if ( QStringLiteral("Trace") == modeName && QStringLiteral("All Events") == viewName ) {
+        // set the x-axis graph range
+        QCPAxis* xAxis = axisRect->axis( QCPAxis::atBottom );
+        if ( xAxis ) {
+            xAxis->setRange( range );
+        }
+    }
+
+    // force graph replot
+#if defined(HAS_QCUSTOMPLOT_V2)
+    graphView->replot( QCustomPlot::rpQueuedReplot );
+#else
+    graphView->replot();
+#endif
 }
 
 #if defined(HAS_QCUSTOMPLOT_V2)

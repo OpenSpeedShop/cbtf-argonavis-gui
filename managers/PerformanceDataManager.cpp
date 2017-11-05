@@ -1810,7 +1810,7 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
             graphTitle = s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ][ metric ];
         }
 
-        emit createGraphItems( clusteringCriteriaName, graphTitle, metric, QStringList() << metricDesc[0], items );
+        emit createGraphItems( clusteringCriteriaName, graphTitle, metric, viewName, QStringList() << metricDesc[0], items );
     }
 
     for ( typename std::multimap<TM, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
@@ -1820,7 +1820,7 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
         emit addMetricViewData( clusteringCriteriaName, METRIC_MODE_VIEW, metric, viewName, metricData );
 
         if ( emitGraphItem && metricData.size() == metricDesc.size() && metricData.size() > 2 ) {
-            emit addGraphItem( metric, metricDesc[0], metricData[2].toString(), metricData[0].toDouble() );
+            emit addGraphItem( metric, viewName, metricDesc[0], metricData[2].toString(), metricData[0].toDouble() );
         }
     }
 
@@ -3945,7 +3945,7 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
             graphTitle = s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ][ metricName ];
         }
 
-        emit createGraphItems( clusteringCriteriaName, graphTitle, metricName, sampleCounterNames, items );
+        emit createGraphItems( clusteringCriteriaName, graphTitle, metricName, viewName, sampleCounterNames, items );
     }
 
     for ( typename std::map< TS, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
@@ -3991,7 +3991,7 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
 
         if ( emitGraphItem ) {
             for ( int index=0; index<sampleCounterNames.size(); index++ ) {
-                emit addGraphItem( metricName, sampleCounterNames[index], locationName, totalSampleCount[index] );
+                emit addGraphItem( metricName, viewName, sampleCounterNames[index], locationName, totalSampleCount[index] );
             }
         }
     }
