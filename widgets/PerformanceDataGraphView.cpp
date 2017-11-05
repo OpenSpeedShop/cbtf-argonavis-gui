@@ -611,10 +611,10 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
 
     xAxis->setRange( lower, upper );
 
+    QCPRange newRange = xAxis->range();
+
     // only regenerate ticks for line graphs
     if ( isLineGraph ) {
-        QCPRange newRange = xAxis->range();
-
         // Generate tick positions according to linear scaling:
         double mTickStep = newRange.size() / (double)( 10.0 + 1e-10 ); // mAutoTickCount ticks on average,
         double magnitudeFactor = qPow( 10.0, qFloor( qLn(mTickStep) / qLn(10.0) ) ); // get magnitude fact
@@ -661,6 +661,18 @@ void PerformanceDataGraphView::handleAxisRangeChange(const QCPRange &requestedRa
         xAxis->setTickVector( mTickVector );
         xAxis->setTickVectorLabels( mTickLabelVector );
 #endif
+    }
+    else {
+#ifdef HAS_STACKED_BAR_GRAPHS
+        const double FACTOR = 1.0;
+#else
+        const double FACTOR = 10.0;
+#endif
+        const QFontMetrics fontMetrics( xAxis->tickLabelFont() );
+        const int WIDTH = xAxis->axisRect()->width() / fontMetrics.height();
+        const bool isVisible( newRange.size() / FACTOR <= WIDTH );
+
+        xAxis->setVisible( isVisible );
     }
 
     // unblock signals for X Axis
