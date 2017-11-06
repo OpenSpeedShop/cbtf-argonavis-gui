@@ -34,7 +34,7 @@
 CustomPlot::CustomPlot(QWidget *parent)
     : QCustomPlot( parent )
 {
-
+    connect( this, SIGNAL(mousePress(QMouseEvent*)), this, SLOT(handleMousePress(QMouseEvent*)) );
 }
 
 /**
@@ -51,4 +51,21 @@ void CustomPlot::resizeEvent(QResizeEvent *event)
     // invoke QCustomPlot::resizeEvent method only if width and height not zero
     if ( newSize.width() > 0 && newSize.height() > 0 )
         QCustomPlot::resizeEvent( event );
+}
+
+void CustomPlot::handleMousePress(QMouseEvent *event)
+{
+    QCPAxisRect* axisrect( axisRect() );
+
+    if ( ! axisrect || event->pos().y() < axisrect->bottom() )
+        return;
+
+    QCPAxis* xAxis = axisrect->axis( QCPAxis::atBottom );
+    if ( xAxis ) {
+        int index = qRound( xAxis->pixelToCoord( event->pos().x() ) );
+        QVector<QString> tickLabelVector( xAxis->tickVectorLabels() );
+        if ( index >= 0 && index < tickLabelVector.size() ) {
+            emit signalXAxisTickLabelSelected( tickLabelVector.at( index ) );
+        }
+    }
 }

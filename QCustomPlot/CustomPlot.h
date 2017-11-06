@@ -26,6 +26,8 @@
 
 #include "qcustomplot.h"
 
+#include "common/openss-gui-config.h"
+
 
 class CustomPlot : public QCustomPlot
 {
@@ -35,9 +37,17 @@ public:
 
     explicit CustomPlot(QWidget *parent = 0);
 
+signals:
+
+    void signalXAxisTickLabelSelected(const QString& label);
+
 protected:
 
-    virtual void resizeEvent(QResizeEvent *event);
+    virtual void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
+
+private slots:
+
+    void handleMousePress(QMouseEvent *event);
 
 };
 
