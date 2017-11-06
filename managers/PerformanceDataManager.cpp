@@ -2536,7 +2536,7 @@ void PerformanceDataManager::getRankSetFromSelectedClusters(const QString &clust
     if ( m_selectedClusters.contains( clusteringCriteriaName ) ) {
         const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
         foreach( const QString& name, selected ) {
-            const QString section = name.section( '-', 2, 2 );
+            const QString section = name.section( '+', 2, 2 );
             if ( section.startsWith('r') ) {
                 ranks.insert( section.mid(1).toInt() );
             }
@@ -2558,7 +2558,7 @@ void PerformanceDataManager::getHostSetFromSelectedClusters(const QString &clust
     if ( m_selectedClusters.contains( clusteringCriteriaName ) ) {
         const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
         foreach( const QString& name, selected ) {
-            hosts.insert( name.section( '-', 0, 0 ) );
+            hosts.insert( name.section( '+', 0, 0 ) );
         }
     }
 }
@@ -2577,7 +2577,7 @@ void PerformanceDataManager::getProcessIdSetFromSelectedClusters(const QString &
     if ( m_selectedClusters.contains( clusteringCriteriaName ) ) {
         const QSet< QString >& selected = m_selectedClusters[ clusteringCriteriaName ];
         foreach( const QString& name, selected ) {
-            const QString section = name.section( '-', 1, 1 );
+            const QString section = name.section( '+', 1, 1 );
             if ( section.startsWith('p') ) {
                 pids.insert( section.mid(1).toInt() );
             }
@@ -2621,6 +2621,7 @@ void PerformanceDataManager::getListOfThreadGroupsFromSelectedClusters(const QSt
                     tempGroup.insert( thread );  // insert match into the temporary ThreadGroup object
                 }
             }
+            Q_ASSERT( tempGroup.size() > 0 );
             // insert temporary ThreadGroup object into the return list
             threadGroupList.append( tempGroup );
         }
@@ -2648,6 +2649,7 @@ void PerformanceDataManager::getListOfThreadGroupsFromSelectedClusters(const QSt
                     tempGroup.insert( thread );  // insert match into the temporary ThreadGroup object
                 }
             }
+            Q_ASSERT( tempGroup.size() > 0 );
             // insert temporary ThreadGroup object into the return list
             threadGroupList.append( tempGroup );
         }
@@ -2666,6 +2668,7 @@ void PerformanceDataManager::getListOfThreadGroupsFromSelectedClusters(const QSt
                     tempGroup.insert( thread );  // insert match into the temporary ThreadGroup object
                 }
             }
+            Q_ASSERT( tempGroup.size() > 0 );
             // insert temporary ThreadGroup object into the return list
             threadGroupList.append( tempGroup );
         }

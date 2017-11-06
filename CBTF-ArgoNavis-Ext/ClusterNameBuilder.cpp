@@ -44,12 +44,12 @@ const QString getUniqueClusterName(const Base::ThreadName& thread)
 #endif
 
     const boost::uint64_t pid = thread.pid();
-    clusterName += ( "-p" + QString::number(pid) );
+    clusterName += ( "+p" + QString::number(pid) );
 
     // append MPI rank (if any)
     const boost::optional<boost::uint32_t> mpiRank = thread.mpi_rank();
     if ( mpiRank ) {
-        clusterName += ( "-r" + QString::number(mpiRank.get()) );
+        clusterName += ( "+r" + QString::number(mpiRank.get()) );
     }
 
     const boost::optional<boost::uint64_t> tidval = thread.tid();
@@ -63,7 +63,7 @@ const QString getUniqueClusterName(const Base::ThreadName& thread)
         else {
             val = tidmap[tid] = tidmap.size();
         }
-        clusterName += ( "-t" + QString::number(val) );
+        clusterName += ( "+t" + QString::number(val) );
     }
 
     return clusterName;
@@ -84,12 +84,12 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread& threa
 #endif
 
     const pid_t pid = thread.getProcessId();
-    clusterName += ( "-p" + QString::number(pid) );
+    clusterName += ( "+p" + QString::number(pid) );
 
     // append MPI rank (if any)
     const std::pair<bool, int> mpiRank = thread.getMPIRank();
     if ( mpiRank.first ) {
-        clusterName += ( "-r" + QString::number(mpiRank.second) );
+        clusterName += ( "+r" + QString::number(mpiRank.second) );
     }
 
     const std::pair< bool, pthread_t> tidval = thread.getPosixThreadId();
@@ -103,7 +103,7 @@ const QString getUniqueClusterName(const OpenSpeedShop::Framework::Thread& threa
         else {
             val = tidmap[tid] = tidmap.size();
         }
-        clusterName += ( "-t" + QString::number(val) );
+        clusterName += ( "+t" + QString::number(val) );
     }
 
     return clusterName;
