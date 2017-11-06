@@ -885,6 +885,9 @@ void PerformanceDataGraphView::handleRequestMetricViewComplete(const QString &cl
 
         MetricGroup& metricGroup = m_metricGroup[ metricViewName ];
 
+        if ( metricGroup.completed )
+            return;
+
         // only update xGraphRange here if the x-axis is the experiment time such as in the line graphs
         if ( s_Y_AXIS_GRAPH_LABELS.contains( metricName ) && s_Y_AXIS_GRAPH_LABELS[ metricName ].second ) {
             metricGroup.xGraphRange = QCPRange( lower, upper );
@@ -920,6 +923,8 @@ void PerformanceDataGraphView::handleRequestMetricViewComplete(const QString &cl
         // for line graphs, the maximum has been maintained in the 'yGraphRange' variable
         largestYAxisValue = metricGroup.yGraphRange.upper;
 #endif
+
+        metricGroup.completed = true;
     }
 
     // create axis rect for this metric

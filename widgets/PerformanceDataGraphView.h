@@ -119,10 +119,11 @@ private:
         QVector< QPair< QString, QString > > items;    // list of individually graphed items along x-axis: value=[full name, elided name]
         bool legendItemAdded;              // legend item added
         std::mt19937 mt;                   // use constant seed whose initial sequence of values seemed to generate good colors for small
+        bool completed;                    // flag indicating whether signal 'requestMetricViewComplete' has been handled
         MetricGroup(CustomPlot* plot, const QCPRange& xRange = QCPRange(), const QCPRange& yRange = QCPRange())
-            : xGraphRange( xRange ), yGraphRange( yRange ), graph( plot ), legendItemAdded( false ), mt( 2560000 ) { }
+            : xGraphRange( xRange ), yGraphRange( yRange ), graph( plot ), legendItemAdded( false ), mt( 2560000 ), completed( false ) { }
         MetricGroup()
-            : graph( Q_NULLPTR ), legendItemAdded( false ), mt( 2560000 ) { }
+            : graph( Q_NULLPTR ), legendItemAdded( false ), mt( 2560000 ), completed( false ) { }
     } MetricGroup;
 
     QMap< QString, MetricGroup > m_metricGroup;
