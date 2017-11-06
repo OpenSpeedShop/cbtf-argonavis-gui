@@ -172,7 +172,7 @@ signals:
     void addGraphItem(const QString &metricName,
                       const QString &viewName,
                       const QString &eventName,
-                      const QString &name,
+                      int itemIndex,
                       double data);
 
     void createGraphItems(const QString &clusteringCriteriaName,

@@ -1813,6 +1813,8 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
         emit createGraphItems( clusteringCriteriaName, graphTitle, metric, viewName, QStringList() << metricDesc[0], items );
     }
 
+    int index( 0 );
+
     for ( typename std::multimap<TM, TS>::reverse_iterator i = sorted.rbegin(); i != sorted.rend(); ++i ) {
 
         QVariantList metricData = getMetricValues( getLocationInfo<TS>( i->second ), i->first, total, dataMin->at(i->second), dataMax->at(i->second), dataMean->at(i->second) );
@@ -1820,7 +1822,7 @@ void PerformanceDataManager::processMetricView(const CollectorGroup &collectors,
         emit addMetricViewData( clusteringCriteriaName, METRIC_MODE_VIEW, metric, viewName, metricData );
 
         if ( emitGraphItem && metricData.size() == metricDesc.size() && metricData.size() > 2 ) {
-            emit addGraphItem( metric, viewName, metricDesc[0], metricData[2].toString(), metricData[0].toDouble() );
+            emit addGraphItem( metric, viewName, metricDesc[0], index++, metricData[0].toDouble() );
         }
     }
 
@@ -3991,7 +3993,7 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
 
         if ( emitGraphItem ) {
             for ( int index=0; index<sampleCounterNames.size(); index++ ) {
-                emit addGraphItem( metricName, viewName, sampleCounterNames[index], locationName, totalSampleCount[index] );
+                emit addGraphItem( metricName, viewName, sampleCounterNames[index], std::distance( raw_items->begin(), iter ), totalSampleCount[index] );
             }
         }
     }

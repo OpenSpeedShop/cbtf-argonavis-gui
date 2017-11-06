@@ -76,7 +76,7 @@ private slots:
     void handleAddGraphItem(const QString &metricName,
                             const QString &viewName,
                             const QString &eventName,
-                            const QString &name,
+                            int itemIndex,
                             double data);
 
     void handleGraphMinAvgMaxRanks(const QString &metricName,
@@ -99,7 +99,7 @@ private slots:
 
 private:
 
-    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, const QString &viewName = QString(), bool handleGraphRangeChanges = true);
+    CustomPlot* initPlotView(const QString &clusteringCriteriaName, const QString &metricNameTitle, const QString &metricName, bool hasBarGraphs, const QString &viewName = QString());
     QCPGraph* initGraph(CustomPlot* plot, int rankOrThread);
     QColor goldenRatioColor(std::mt19937 &mt) const;
     QString normalizedName(const QString &name, const QCustomPlot* plot, bool isFilePath) const;
@@ -116,7 +116,7 @@ private:
         CustomPlot* graph;         // the QCustomPlot instance
         QMap< int, QCPGraph* > subgraphs;  // QCPGraph instance for rank/process
         QMap< QString, QCPBars* > bars;    // QCPBars instance for each event
-        QMap< QString, QString > items;    // list of individually graphed items along x-axis: key=full name, value=elided name
+        QVector< QPair< QString, QString > > items;    // list of individually graphed items along x-axis: value=[full name, elided name]
         bool legendItemAdded;              // legend item added
         std::mt19937 mt;                   // use constant seed whose initial sequence of values seemed to generate good colors for small
         MetricGroup(CustomPlot* plot, const QCPRange& xRange = QCPRange(), const QCPRange& yRange = QCPRange())
