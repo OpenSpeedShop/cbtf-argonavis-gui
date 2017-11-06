@@ -2621,9 +2621,13 @@ void PerformanceDataManager::getListOfThreadGroupsFromSelectedClusters(const QSt
                     tempGroup.insert( thread );  // insert match into the temporary ThreadGroup object
                 }
             }
+            // during development testing what to know if this condition ever happens
             Q_ASSERT( tempGroup.size() > 0 );
-            // insert temporary ThreadGroup object into the return list
-            threadGroupList.append( tempGroup );
+            // don't insert an empty ThreadGroup
+            if ( tempGroup.size() > 0 ) {
+                // insert temporary ThreadGroup object into the return list
+                threadGroupList.append( tempGroup );
+            }
         }
     }
     else if ( compareMode == QStringLiteral("Compare By Host") ) {
@@ -2649,9 +2653,13 @@ void PerformanceDataManager::getListOfThreadGroupsFromSelectedClusters(const QSt
                     tempGroup.insert( thread );  // insert match into the temporary ThreadGroup object
                 }
             }
+            // during development testing what to know if this condition ever happens
             Q_ASSERT( tempGroup.size() > 0 );
-            // insert temporary ThreadGroup object into the return list
-            threadGroupList.append( tempGroup );
+            // don't insert an empty ThreadGroup
+            if ( tempGroup.size() > 0 ) {
+                // insert temporary ThreadGroup object into the return list
+                threadGroupList.append( tempGroup );
+            }
         }
     }
     else if ( compareMode == QStringLiteral("Compare By Process") ) {
@@ -2668,9 +2676,13 @@ void PerformanceDataManager::getListOfThreadGroupsFromSelectedClusters(const QSt
                     tempGroup.insert( thread );  // insert match into the temporary ThreadGroup object
                 }
             }
+            // during development testing what to know if this condition ever happens
             Q_ASSERT( tempGroup.size() > 0 );
-            // insert temporary ThreadGroup object into the return list
-            threadGroupList.append( tempGroup );
+            // don't insert an empty ThreadGroup
+            if ( tempGroup.size() > 0 ) {
+                // insert temporary ThreadGroup object into the return list
+                threadGroupList.append( tempGroup );
+            }
         }
     }
 }
