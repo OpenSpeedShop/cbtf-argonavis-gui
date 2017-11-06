@@ -53,6 +53,12 @@ void CustomPlot::resizeEvent(QResizeEvent *event)
         QCustomPlot::resizeEvent( event );
 }
 
+/**
+ * @brief CustomPlot::handleMousePress
+ * @param event - the mouse event that occurred
+ *
+ * Handle QCustomPlot::mousePress signals.
+ */
 void CustomPlot::handleMousePress(QMouseEvent *event)
 {
     QCPAxisRect* axisrect( axisRect() );
