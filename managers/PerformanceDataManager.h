@@ -248,20 +248,13 @@ private:
                       const OpenSpeedShop::Framework::Collector& collector,
                       const OpenSpeedShop::Framework::ThreadGroup& all_threads);
 
-    void loadCudaMetricViews(QFutureSynchronizer<void>& synchronizer,
-                             QMap< QString, QFuture<void> >& futures,
+    void loadCudaMetricViews(QVector<QFuture<void> > &futures,
                              const QString &clusteringCriteriaName,
                              const QStringList& metricList,
-                             const QStringList& viewList,
-                             const OpenSpeedShop::Framework::CollectorGroup& collectors,
-                             const OpenSpeedShop::Framework::ThreadGroup& all_threads,
-                             const OpenSpeedShop::Framework::TimeInterval& interval);
+                             const QStringList& viewList);
 
     template <typename TM, typename TS>
-    void processMetricView(const OpenSpeedShop::Framework::CollectorGroup &collectors,
-                           const OpenSpeedShop::Framework::ThreadGroup& all_threads,
-                           const OpenSpeedShop::Framework::TimeInterval &interval,
-                           const QString &clusteringCriteriaName,
+    void processMetricView(const QString clusteringCriteriaName,
                            QString metric);
 
     template<typename TS, typename TM, typename DT>
@@ -387,9 +380,7 @@ private:
                                   const QString metricName,
                                   const QString viewName);
 
-    void processCalltreeView(const OpenSpeedShop::Framework::Collector &collector,
-                             const OpenSpeedShop::Framework::ThreadGroup& threads,
-                             const OpenSpeedShop::Framework::TimeInterval& interval, const QString &clusteringCriteriaName);
+    void processCalltreeView(const QString clusteringCriteriaName);
 
     bool processDataTransferEvent(const ArgoNavis::Base::Time& time_origin,
                                   const ArgoNavis::CUDA::DataTransfer& details,
@@ -435,6 +426,8 @@ private:
                        const QSet< int >& gpuCounterIndexes,
                        const ArgoNavis::Base::ThreadName& thread,
                        QMap< Base::ThreadName, bool >& flags);
+
+    void monitorMetricViewComplete(QVector<QFuture<void> > *futures, const QString &clusteringCriteriaName, const QString modeName, const QString metricName, const QString viewName, double lower, double upper);
 
     static QMap< QString, QMap< QString, QString > > INIT_TRACING_EXPERIMENTS_GRAPH_TITLES();
 
@@ -491,7 +484,7 @@ private:
     QMap< QString, QSet< QString > > m_selectedClusters;
     QMutex m_mutex;
 
-};
+ };
 
 
 } // GUI
