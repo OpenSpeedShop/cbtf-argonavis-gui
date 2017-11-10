@@ -1215,6 +1215,8 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
         proxyModel->setFilterCriteria( QList< QPair<QString, QString> >() );
     }
 
+    emit signalMetricViewChanged( metricViewName );
+
     // if the request view has not been generated yet, then show blank view and request view update
     if ( Q_NULLPTR == view ) {
         // show blank view
@@ -1231,8 +1233,6 @@ void PerformanceDataMetricView::handleMetricViewChanged(const QString &text)
 
     // button is enabled when the filter list is not empty; otherwise it is disabled
     ui->pushButton_ApplyClearFilters->setDisabled( m_currentFilter.isEmpty() );
-
-    emit signalMetricViewChanged( metricViewName );
 }
 
 /**

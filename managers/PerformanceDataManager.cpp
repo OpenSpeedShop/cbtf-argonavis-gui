@@ -133,6 +133,14 @@ QStringList PerformanceDataManager::s_METRIC_GRAPH_VIEWS = { "hwc", "usertime", 
 QStringList PerformanceDataManager::s_METRIC_GRAPH_VIEWS = QStringList() << "hwc" << "usertime" << "pcsamp";
 #endif
 
+// define list of experiments with calltree view support
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+QStringList PerformanceDataManager::s_EXPERIMENTS_WITH_CALLTREES = { "usertime", "pthreads", "mem", "omptp", "mpi", "mpit", "mpip", "io", "iot", "iop" };
+#else
+QStringList PerformanceDataManager::s_EXPERIMENTS_WITH_CALLTREES = QStringList() << "usertime" << "pthreads" << "mem" << "omptp"
+                                                                                 << "mpi" << "mpit" << "mpip" << "io" << "iot" << "iop";
+#endif
+
 // define unique graph titles for each experiment type and all applicable metrics
 QMap < QString, QMap< QString, QString > > PerformanceDataManager::s_TRACING_EXPERIMENTS_GRAPH_TITLES = INIT_TRACING_EXPERIMENTS_GRAPH_TITLES();
 
@@ -2145,6 +2153,8 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
 
         const bool hasExperimentWithGraphs = s_TRACING_EXPERIMENTS_WITH_GRAPHS.contains( collectorId );
 
+        const bool hasCallTreeViews = s_EXPERIMENTS_WITH_CALLTREES.contains( collectorId );
+
         QFutureSynchronizer<void> synchronizer;
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -2218,7 +2228,7 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             else
                 metricViewType = CALLTREE_VIEW;
 
-            emit signalSetDefaultMetricView( metricViewType, true, !s_SAMPLING_EXPERIMENTS.contains(collectorId), hasTraceExperiment | hasExperimentWithGraphs );
+            emit signalSetDefaultMetricView( metricViewType, true, !s_SAMPLING_EXPERIMENTS.contains(collectorId), hasTraceExperiment | hasExperimentWithGraphs, hasCallTreeViews );
 
             QVector< bool > isGpuSampleCounters;
             QVector< QString > sampleCounterNames;
@@ -2758,10 +2768,16 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
     CUDA::PerformanceData data;
     QMap< Base::ThreadName, Thread> threads;
 
-    bool hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
+    const bool hasCudaCollector = getPerformanceData( collector, all_threads, flags, threads, data );
+
+    if ( ! hasCudaCollector )
+        return;
+
+    // determine whether calltree support for cuda experiments is supported and activated
+    const bool hasCallTreeViews = s_EXPERIMENTS_WITH_CALLTREES.contains( "cuda" );
 
     // set default metric view
-    emit signalSetDefaultMetricView( hasCudaCollector ? TIMELINE_VIEW : CALLTREE_VIEW, true, true, false );
+    emit signalSetDefaultMetricView( TIMELINE_VIEW, true, true, false, hasCallTreeViews );
 
     // reset all thread flags to false
     QMutableMapIterator< Base::ThreadName, bool > mapiter( flags );

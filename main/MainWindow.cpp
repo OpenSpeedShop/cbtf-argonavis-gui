@@ -109,6 +109,8 @@ MainWindow::MainWindow(QWidget *parent)
         connect( dataMgr, &PerformanceDataManager::signalRequestMetricTableViewUpdate, ui->widget_MetricTableView, &PerformanceDataMetricView::handleRequestViewUpdate );
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalTraceItemSelected,
                  ui->widget_MetricViewManager, &MetricViewManager::signalTraceItemSelected );
+        connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalMetricViewChanged,
+                 ui->widget_MetricViewManager, &MetricViewManager::handleMetricViewChanged );
 #else
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)),
@@ -137,12 +139,16 @@ MainWindow::MainWindow(QWidget *parent)
                  ui->widget_SourceCodeViewer, SIGNAL(addMetricViewData(QString,QString,QString,QString,QVariantList,QStringList)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalMetricViewChanged(QString)),
                  ui->widget_SourceCodeViewer, SLOT(handleMetricViewChanged(QString)) );
-        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool)), ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );
-        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool)), this, SLOT(handleSetDefaultMetricView(MetricViewTypes,bool,bool,bool)) );
+        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool,bool)),
+                 ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );
+        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool,bool)),
+                 this, SLOT(handleSetDefaultMetricView(MetricViewTypes,bool,bool,bool,bool)) );
         connect( dataMgr, SIGNAL(addDevice(quint32,quint32,NameValueList,NameValueList)), ui->widget_MetricTableView, SIGNAL(signalAddDevice(quint32,quint32,NameValueList,NameValueList)) );
         connect( dataMgr, SIGNAL(signalRequestMetricTableViewUpdate(bool)), ui->widget_MetricTableView, SLOT(handleRequestViewUpdate(bool)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalTraceItemSelected(QString,double,double,int)),
                  ui->widget_MetricViewManager, SIGNAL(signalTraceItemSelected(QString,double,double,int)) );
+        connect( ui->widget_MetricTableView, SIGNAL(signalMetricViewChanged(QString)),
+                 ui->widget_MetricViewManager, SLOT(handleMetricViewChanged(QString)) );
 #endif
     }
 
@@ -382,10 +388,11 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
  * @param hasCompareViews - specifies whether to activate compare views
  * @param hasLoadBalanceViews - specifies whether to activate load balance views
  * @param hasTraceViews - specifies whether to activate trace views
+ * @param hasCallTreeViews - specifies whether to activate calltree views
  *
  * The choice of default view is used to determine which modes the user can choose from in the Metric Table View.
  */
-void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews)
+void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews, bool hasCallTreeViews)
 {
     // define views always present
     PerformanceDataMetricView::ModeTypes modes( PerformanceDataMetricView::METRIC_MODE );
@@ -413,7 +420,7 @@ void MainWindow::handleSetDefaultMetricView(const MetricViewTypes &view, bool ha
         modes |= PerformanceDataMetricView::DETAILS_MODE;
     }
 
-    if ( CALLTREE_VIEW == view ) {
+    if ( hasCallTreeViews || CALLTREE_VIEW == view ) {
         // activate calltree view
         modes |= PerformanceDataMetricView::CALLTREE_MODE;
     }

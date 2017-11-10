@@ -68,7 +68,7 @@ private slots:
     void addUnloadOpenSsExperimentMenuItem(const QString& filePath);
     void handleAdjustPlotViewScrollArea(const QString& clusteringCriteriaName, const QString& clusterName);
     void handleRemoveCluster(const QString& clusteringCriteriaName, const QString& clusterName);
-    void handleSetDefaultMetricView(const MetricViewTypes& view, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews);
+    void handleSetDefaultMetricView(const MetricViewTypes& view, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews, bool hasCallTreeViews);
     void shutdownApplication();
     void handleViewQuickStartGuide();
     void handleViewReferenceGuide();

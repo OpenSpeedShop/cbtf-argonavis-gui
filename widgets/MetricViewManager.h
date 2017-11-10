@@ -55,6 +55,7 @@ public:
 public slots:
 
     void handleSwitchView(const MetricViewTypes viewType);
+    void handleMetricViewChanged(const QString &metricView);
 
 signals:
 
@@ -63,6 +64,8 @@ signals:
 private:
 
     Ui::MetricViewManager *ui;
+
+    MetricViewTypes m_defaultView;
 
 };
 

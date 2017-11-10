@@ -127,7 +127,7 @@ public slots:
 
 signals:
 
-    void signalSetDefaultMetricView(const MetricViewTypes viewType, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews);
+    void signalSetDefaultMetricView(const MetricViewTypes viewType, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews, bool hasCallTreeViews);
 
     void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper);
 
@@ -459,6 +459,7 @@ private:
     static QStringList s_SAMPLING_EXPERIMENTS;
     static QStringList s_TRACING_EXPERIMENTS_WITH_GRAPHS;
     static QStringList s_METRIC_GRAPH_VIEWS;
+    static QStringList s_EXPERIMENTS_WITH_CALLTREES;
 
     static QMap< QString, QMap< QString, QString > > s_TRACING_EXPERIMENTS_GRAPH_TITLES;
 

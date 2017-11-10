@@ -42,6 +42,7 @@ namespace ArgoNavis { namespace GUI {
 MetricViewManager::MetricViewManager(QWidget *parent)
     : QStackedWidget( parent )
     , ui( new Ui::MetricViewManager )
+    , m_defaultView( TIMELINE_VIEW )
 {
     ui->setupUi( this );
 
@@ -65,7 +66,7 @@ MetricViewManager::~MetricViewManager()
  * @brief MetricViewManager::handleSwitchView
  * @param viewType - the view type
  *
- * This method set the current widget of the stack widget in accordance with the view type.
+ * This method sets the default view type.
  */
 void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
 {
@@ -73,12 +74,33 @@ void MetricViewManager::handleSwitchView(const MetricViewTypes viewType)
 
     qDebug() << "MetricViewManager::handleSwitchView: viewType=" << VIEW_TYPES[ viewType ];
 
-    if ( TIMELINE_VIEW == viewType )
-        setCurrentWidget( ui->widget_MetricTimelineView );
-    else if ( CALLTREE_VIEW == viewType )
+    m_defaultView = viewType;
+}
+
+/**
+ * @brief MetricViewManager::handleMetricViewChanged
+ * @param metricView - currently selected metric table view
+ *
+ * This handler causes the metric plot view to change to match the currently selected metric table view.
+ */
+void MetricViewManager::handleMetricViewChanged(const QString &metricView)
+{
+    const QString modeName = metricView.section( QChar('-'), 0, 0 );
+
+    if ( modeName == QStringLiteral("CallTree") ) {
         setCurrentWidget( ui->widget_CalltreeGraphView );
-    else if ( GRAPH_VIEW == viewType )
-        setCurrentWidget( ui->widget_MetricGraphView );
+    }
+    else {
+        // if not calltree mode active then switch to default view
+        if ( TIMELINE_VIEW == m_defaultView && currentWidget() != ui->widget_MetricTimelineView )
+            setCurrentWidget( ui->widget_MetricTimelineView );
+        else if ( CALLTREE_VIEW == m_defaultView && currentWidget() != ui->widget_CalltreeGraphView )
+            setCurrentWidget( ui->widget_CalltreeGraphView );
+        else if ( GRAPH_VIEW == m_defaultView && currentWidget() != ui->widget_MetricGraphView )
+            setCurrentWidget( ui->widget_MetricGraphView );
+    }
+
+    qDebug() << "MetricViewManager::handleMetricViewChanged: currentWidget->objectName()=" << currentWidget()->objectName();
 }
 
 /**
