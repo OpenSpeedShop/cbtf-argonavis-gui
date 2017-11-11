@@ -136,9 +136,9 @@ QStringList PerformanceDataManager::s_METRIC_GRAPH_VIEWS = QStringList() << "hwc
 
 // define list of experiments with calltree view support
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
-QStringList PerformanceDataManager::s_EXPERIMENTS_WITH_CALLTREES = { "usertime", "pthreads", "mem", "omptp", "mpi", "mpit", "mpip", "io", "iot", "iop" };
+QStringList PerformanceDataManager::s_EXPERIMENTS_WITH_CALLTREES = { "usertime", "pthreads", "omptp", "mpi", "mpit", "mpip", "io", "iot", "iop" };
 #else
-QStringList PerformanceDataManager::s_EXPERIMENTS_WITH_CALLTREES = QStringList() << "usertime" << "pthreads" << "mem" << "omptp"
+QStringList PerformanceDataManager::s_EXPERIMENTS_WITH_CALLTREES = QStringList() << "usertime" << "pthreads" << "omptp"
                                                                                  << "mpi" << "mpit" << "mpip" << "io" << "iot" << "iop";
 #endif
 
