@@ -427,7 +427,9 @@ private:
                        const ArgoNavis::Base::ThreadName& thread,
                        QMap< Base::ThreadName, bool >& flags);
 
-    void monitorMetricViewComplete(QVector<QFuture<void> > *futures, const QString &clusteringCriteriaName, const QString modeName, const QString metricName, const QString viewName, double lower, double upper);
+    void monitorMetricViewComplete(const QVector<QFuture<void> > *futures, const QString &clusteringCriteriaName, const QString modeName, const QString metricName, const QString viewName, double lower, double upper);
+
+    QVector< QFuture<void> >* allocateFutureVector(const QString &clusteringCriteriaName, const QString& metricViewName);
 
     static QMap< QString, QMap< QString, QString > > INIT_TRACING_EXPERIMENTS_GRAPH_TITLES();
 
@@ -483,6 +485,11 @@ private:
 
     QMap< QString, QSet< QString > > m_selectedClusters;
     QMutex m_mutex;
+
+    // outer map: key=clustering criteria name  value: inner map of future vectors for each metric view
+    // inner map: key=metric view name  value: vector of futures providing work for generating the metric view
+    QMap< QString, QMap< QString, QVector< QFuture<void> >* > > m_futureMap;
+    QMutex m_futureMapMutex;
 
  };
 

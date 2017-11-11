@@ -431,7 +431,11 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
         }
 
         info.addMetricView( metricViewName );
-        QVector< QFuture<void> >* futures = new QVector< QFuture<void> >();
+
+        QVector< QFuture<void> >* futures = allocateFutureVector( clusteringCriteriaName, metricViewName );
+
+        if ( ! futures )
+            return;
 
         const Collector& collector( *collectors.begin() );
         const QString collectorId( collector.getMetadata().getUniqueId().c_str() );
@@ -478,7 +482,7 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
  * Upon completion the signal 'requestMetricViewComplete' is emitted and the cursor manager is called to indicate the operation has finished.
  * The vector of futures is destroyed.
  */
-void PerformanceDataManager::monitorMetricViewComplete(QVector< QFuture<void> >* futures, const QString& clusteringCriteriaName, const QString modeName, const QString metricName, const QString viewName, double lower, double upper)
+void PerformanceDataManager::monitorMetricViewComplete(const QVector< QFuture<void> >* futures, const QString& clusteringCriteriaName, const QString modeName, const QString metricName, const QString viewName, double lower, double upper)
 {
     // initialize a future synchronizer with the set of futures required for the specified metric view
     QFutureSynchronizer<void> synchronizer;
@@ -490,24 +494,62 @@ void PerformanceDataManager::monitorMetricViewComplete(QVector< QFuture<void> >*
     // wait for the set of futures to complete
     synchronizer.waitForFinished();
 
+    // if the user has exitted the application and cancellation of the futures caused the QFutureSynchronizer::waitForFinished() to complete,
+    // then let's return from this method based on the state of the QApplication::closingDown() method.
+    if ( qApp->closingDown() )
+        return;
+
     // indicate that the processing for the metric view has completed
     emit requestMetricViewComplete( clusteringCriteriaName, modeName, metricName, viewName, lower, upper );
+
+    const QString CALLTREE_MODE_NAME = PerformanceDataMetricView::getMetricModeName( PerformanceDataMetricView::CALLTREE_MODE );
+    const QString metricNameStr = ( viewName != CALLTREE_MODE_NAME ) ? metricName : QStringLiteral("None");
+    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricNameStr, viewName );
 
     // indicate that the work associated with the generation of the metric view can be removed from monitoring by the application cursor manager
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
-        const QString CALLTREE_MODE_NAME = PerformanceDataMetricView::getMetricModeName( PerformanceDataMetricView::CALLTREE_MODE );
-        const QString metricNameStr = ( viewName != CALLTREE_MODE_NAME ) ? metricName : QStringLiteral("None");
-        const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricNameStr, viewName );
 
         cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
     }
 
-    // cleanup the futures
-    synchronizer.clearFutures();
-
     // delete the vector of futures instance since this method takes ownership
+    QMutexLocker guard( &m_futureMapMutex );
+
     delete futures;
+
+    if ( m_futureMap.contains( clusteringCriteriaName ) ) {
+        m_futureMap[ clusteringCriteriaName ].remove( metricViewName );
+    }
+}
+
+/**
+ * @brief PerformanceDataManager::allocateFutureVector
+ * @param clusteringCriteriaName
+ * @param metricViewName
+ * @return
+ */
+QVector< QFuture<void> > *PerformanceDataManager::allocateFutureVector(const QString &clusteringCriteriaName, const QString &metricViewName)
+{
+    QMutexLocker guard( &m_futureMapMutex );
+
+    // if clusteringCriterianName not currently in map an entry will automatically be created
+    QMap< QString, QVector< QFuture<void> >* >& futureMap = m_futureMap[ clusteringCriteriaName ];
+
+    // make sure the metric view isn't already in the map
+    if ( futureMap.contains( metricViewName ) ) {
+        qDebug() << Q_FUNC_INFO << "ERROR ENTRY EXISTS IN FUTURE MAP FOR metricViewName=" << metricViewName;
+        return Q_NULLPTR;
+    }
+
+    // create the vector of futures for this metric view
+    QVector< QFuture<void> >* futures = new QVector< QFuture<void> >();
+
+    // insert into the map
+    futureMap.insert( metricViewName, futures );
+
+    // return the vector
+    return futures;
 }
 
 /**
@@ -2483,6 +2525,8 @@ void PerformanceDataManager::loadCudaMetricViews(
 /**
  * @brief PerformanceDataManager::unloadViews
  * @param clusteringCriteriaName - the clustering criteria name
+ *
+ * Cleanup class state maintained for the specified clustering criteria name.
  */
 void PerformanceDataManager::unloadViews(const QString &clusteringCriteriaName)
 {
@@ -2490,6 +2534,20 @@ void PerformanceDataManager::unloadViews(const QString &clusteringCriteriaName)
         const OpenSpeedShop::Framework::Experiment* experiment = m_tableViewInfo[ clusteringCriteriaName ].experiment();
         delete experiment;
         m_tableViewInfo.remove( clusteringCriteriaName );
+    }
+
+    QMutexLocker guard( &m_futureMapMutex );
+
+    if ( m_futureMap.contains( clusteringCriteriaName ) ) {
+        QMap< QString, QVector< QFuture<void> >* > futureMap = m_futureMap.take( clusteringCriteriaName );
+        // cancel all futures maintained for the clustering criteria name
+        for ( QMap< QString, QVector< QFuture<void> >* >::iterator iter = futureMap.begin(); iter != futureMap.end(); iter++ ) {
+            QVector< QFuture<void> >*& futures( iter.value() );
+            while ( ! futures->empty() ) {
+                futures->takeFirst().cancel();
+            }
+        }
+        qDeleteAll( futureMap );
     }
 }
 
@@ -3412,7 +3470,8 @@ std::pair< std::uint64_t, double > PerformanceDataManager::getDetailTotals(const
  * set of threads, set of functions, time interval and the metric name.
  */
 template <typename DETAIL_t>
-void PerformanceDataManager::ShowCalltreeDetail(const Framework::Collector& collector,
+void PerformanceDataManager::ShowCalltreeDetail(
+        const Framework::Collector& collector,
         const Framework::ThreadGroup& threadGroup,
         const Framework::TimeInterval& interval,
         const std::set<Function> functions,
