@@ -499,27 +499,24 @@ void PerformanceDataManager::monitorMetricViewComplete(const QVector< QFuture<vo
     if ( qApp->closingDown() )
         return;
 
-    // indicate that the processing for the metric view has completed
-    emit requestMetricViewComplete( clusteringCriteriaName, modeName, metricName, viewName, lower, upper );
-
     const QString CALLTREE_MODE_NAME = PerformanceDataMetricView::getMetricModeName( PerformanceDataMetricView::CALLTREE_MODE );
     const QString metricNameStr = ( viewName != CALLTREE_MODE_NAME ) ? metricName : QStringLiteral("None");
     const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricNameStr, viewName );
 
-    // indicate that the work associated with the generation of the metric view can be removed from monitoring by the application cursor manager
-    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
-    if ( cursorManager ) {
-
-        cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
-    }
-
     // delete the vector of futures instance since this method takes ownership
     QMutexLocker guard( &m_futureMapMutex );
 
-    delete futures;
-
     if ( m_futureMap.contains( clusteringCriteriaName ) ) {
-        m_futureMap[ clusteringCriteriaName ].remove( metricViewName );
+        delete m_futureMap[ clusteringCriteriaName ].take( metricViewName );
+
+        // indicate that the processing for the metric view has completed
+        emit requestMetricViewComplete( clusteringCriteriaName, modeName, metricNameStr, viewName, lower, upper );
+    }
+
+    // indicate that the work associated with the generation of the metric view can be removed from monitoring by the application cursor manager
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
     }
 }
 
