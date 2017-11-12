@@ -114,6 +114,9 @@ void MetricViewManager::unloadExperimentDataFromView(const QString &experimentNa
     ui->widget_MetricTimelineView->unloadExperimentDataFromView( experimentName );
     ui->widget_MetricGraphView->unloadExperimentDataFromView( experimentName );
     ui->widget_CalltreeGraphView->handleDisplayGraphView( QString() );
+
+    // switch back to default view
+    handleMetricViewChanged( QString() );
 }
 
 
