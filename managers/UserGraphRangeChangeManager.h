@@ -50,7 +50,7 @@ public:
     explicit UserGraphRangeChangeManager(QObject *parent = 0);
     virtual ~UserGraphRangeChangeManager();
 
-    void create(const QString &group, const QString &item, double lower, double upper, const QSize& size = QSize() );
+    void create(const QString &group, const QString &item, double lower, double upper, const QSize& size );
 
     void cancel(const QString& item);
 
