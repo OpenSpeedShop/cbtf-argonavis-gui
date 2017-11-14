@@ -210,7 +210,12 @@ void BackgroundGraphRenderer::handleGraphRangeChangedTimeout(const QString& clus
                     plot->setProperty( "imageWidth", size.width() );
                     plot->setProperty( "imageHeight", size.height() );
                     xAxis->setRange( lower, upper );
+                    // force graph replot
+            #if defined(HAS_QCUSTOMPLOT_V2)
+                    plot->replot( QCustomPlot::rpQueuedReplot );
+            #else
                     plot->replot();
+            #endif
                 }
             }
         }
