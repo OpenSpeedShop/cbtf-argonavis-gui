@@ -378,7 +378,13 @@ void MainWindow::handleRemoveCluster(const QString &clusteringCriteriaName, cons
     m_plotsMap.remove( key );
 
     if ( clusteringCriteriaName != clusterName ) {
-        ui->widget_MetricViewManager->setFixedHeight( m_plotsMap.size() * 150 );
+        const int height( m_plotsMap.size() * 150 );
+        if ( height > 0 ) {
+            ui->widget_MetricViewManager->setFixedHeight( height );
+        }
+        else {
+            ui->widget_MetricViewManager->setFixedHeight( QWIDGETSIZE_MAX );
+        }
     }
 }
 
