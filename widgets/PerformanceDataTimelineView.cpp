@@ -749,7 +749,7 @@ void PerformanceDataTimelineView::addLegend(QCPAxisRect* axisRect)
     ui->graphView->addItem( dataTransferLegendItem );
 #endif
 
-    textLabel = new QCPItemText( ui->graphView );;
+    textLabel = new QCPItemText( ui->graphView );
     textLabel->setClipAxisRect( axisRect );
     textLabel->setPadding( QMargins(0,-2,0,0) );
     textLabel->setPositionAlignment( Qt::AlignTop|Qt::AlignLeft );
