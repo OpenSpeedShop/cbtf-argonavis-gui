@@ -2513,7 +2513,12 @@ void PerformanceDataManager::unloadViews(const QString &clusteringCriteriaName)
         for ( QMap< QString, QVector< QFuture<void> >* >::iterator iter = futureMap.begin(); iter != futureMap.end(); iter++ ) {
             QVector< QFuture<void> >*& futures( iter.value() );
             while ( ! futures->empty() ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
                 futures->takeFirst().cancel();
+#else
+                futures->first().cancel();
+                futures->pop_front();
+#endif
             }
         }
         qDeleteAll( futureMap );
