@@ -329,14 +329,12 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( this, &PerformanceDataManager::loadComplete, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
     connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
-    connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
     connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
     connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeoutGroup, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
     connect( this, &PerformanceDataManager::signalSelectedClustersChanged, this, &PerformanceDataManager::handleSelectedClustersChanged );
 #else
     connect( this, SIGNAL(loadComplete()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
     connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), m_renderer, SLOT(handleGraphRangeChanged(QString,QString,double,double,QSize)) );
-    connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViews(QString,QString,double,double)) );
     connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)), this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
     connect( &m_userChangeMgr, SIGNAL(timeoutGroup(QString,double,double,QSize)), this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
     connect( this, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)), this, SLOT(handleSelectedClustersChanged(QString,QSet<QString>)) );
@@ -2355,32 +2353,6 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
 #endif
 
     emit loadComplete();
-}
-
-/**
- * @brief PerformanceDataManager::handleLoadCudaMetricViews
- * @param clusteringCriteriaName - the name of the clustering criteria
- * @param clusterName - the cluster name
- * @param lower - the lower value of the interval to process
- * @param upper - the upper value of the interval to process
- *
- * Handles graph range change - initiates a timed monitor to actually process the graph range change if user hasn't
- * continued to update the graph range within a threshold period.
- */
-void PerformanceDataManager::handleLoadCudaMetricViews(const QString& clusteringCriteriaName, const QString& clusterName, double lower, double upper)
-{
-#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
-    qDebug() << "PerformanceDataManager::handleLoadCudaMetricViews: clusteringCriteriaName=" << clusteringCriteriaName << "lower=" << lower << "upper=" << upper;
-#endif
-
-    if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) || lower >= upper )
-        return;
-
-    // cancel any active processing for this cluster
-    m_userChangeMgr.cancel( clusterName );
-
-    // initiate a new timed monitor for this cluster
-    m_userChangeMgr.create( clusteringCriteriaName, clusterName, lower, upper );
 }
 
 /**
