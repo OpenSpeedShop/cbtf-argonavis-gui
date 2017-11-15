@@ -542,8 +542,8 @@ void PerformanceDataGraphView::handleInitGraphView(const QString &clusteringCrit
 #else
     graphView->xAxis->setTickVector( mTickVector );
     graphView->xAxis->setTickVectorLabels( mTickLabelVector );
-    graphView->xAxis->setTickLabelRotation( 60 );
 #endif
+    graphView->xAxis->setTickLabelRotation( 60 );
 
 #ifdef HAS_STACKED_BAR_GRAPHS
     QCPBars* lastBar( Q_NULLPTR );
@@ -910,8 +910,13 @@ void PerformanceDataGraphView::handleRequestMetricViewComplete(const QString &cl
             std::vector< double > totals( metricGroup.bars.begin().value()->data()->size(), 0.0 );
             for ( QMap< QString, QCPBars* >::iterator biter = metricGroup.bars.begin(); biter != metricGroup.bars.end(); biter++ ) {
                 QCPBars* map( biter.value() );
+#if defined(HAS_QCUSTOMPLOT_V2)
+                for ( QCPDataContainer<QCPBarsData>::iterator iter=map->data()->begin(); iter != map->data()->end(); iter++ ) {
+                    QCPBarsData barData( *iter );
+#else
                 for ( QCPBarDataMap::iterator iter=map->data()->begin(); iter != map->data()->end(); iter++ ) {
                     QCPBarData barData( *iter );
+#endif
                     totals[ (int) barData.key ] += barData.value;
                 }
             }
