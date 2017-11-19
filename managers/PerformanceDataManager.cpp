@@ -886,7 +886,9 @@ void PerformanceDataManager::handleProcessDetailViews(const QString &clusteringC
  */
 void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName)
 {
-    if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) || metricName.isEmpty() || viewName.isEmpty() )
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+
+    if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) || metricName.isEmpty() || viewName.isEmpty() || ! cursorManager )
         return;
 
     MetricTableViewInfo& info = m_tableViewInfo[ clusteringCriteriaName ];
@@ -903,18 +905,6 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
 
     if ( ! s_TRACING_EXPERIMENTS.contains( collectorId ) )
         return;
-
-    const QString metricViewName = PerformanceDataMetricView::getMetricViewName( TRACE_EVENT_DETAILS_METRIC, metricName, viewName );
-
-    QVector< QFuture<void> >* futures = allocateFutureVector( clusteringCriteriaName, metricViewName );
-
-    if ( ! futures )
-        return;
-
-    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
-    if ( cursorManager ) {
-        cursorManager->startWaitingOperation( QString("generate-%1").arg(metricViewName) );
-    }
 
     QStringList metricList;
 
@@ -966,6 +956,16 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
     QString clusteringCriteriaNameStr = clusteringCriteriaName;
 
     foreach ( const QString metric, metricList ) {
+
+        const QString metricViewName = PerformanceDataMetricView::getMetricViewName( TRACE_EVENT_DETAILS_METRIC, metric, viewName );
+
+        QVector< QFuture<void> >* futures = allocateFutureVector( clusteringCriteriaName, metricViewName );
+
+        if ( ! futures )
+            return;
+
+        cursorManager->startWaitingOperation( QString("generate-%1").arg(metricViewName) );
+
         if ( collectorId == "mpit" ) {
             futures->append( QtConcurrent::run( std::bind( &PerformanceDataManager::ShowTraceDetail< std::vector<Framework::MPITDetail> >, this,
                                                 clusteringCriteriaNameStr, collector, threadGroup, time_origin, lower, upper, interval, functions, metric ) ) );
@@ -978,10 +978,10 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
             futures->append( QtConcurrent::run( std::bind( &PerformanceDataManager::ShowTraceDetail< std::vector<Framework::IOTDetail> >, this,
                                                 clusteringCriteriaNameStr, collector, threadGroup, time_origin, lower, upper, interval, functions, metric ) ) );
         }
-    }
 
-    QtConcurrent::run( boost::bind( &PerformanceDataManager::monitorMetricViewComplete, this,
-                                    futures, clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, metricName, viewName, lower, upper ) );
+        QtConcurrent::run( boost::bind( &PerformanceDataManager::monitorMetricViewComplete, this,
+                                        futures, clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, metric, viewName, lower, upper ) );
+    }
 }
 
 /**
@@ -2350,15 +2350,6 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             clusterNames << clusterName;
         }
 
-        if ( hasTraceExperiment ) {
-            emit addCluster( clusteringCriteriaName, clusteringCriteriaName, lower, upper, true, -1.0, rankCount );
-
-            foreach( const QString& clusterName, selected ) {
-                emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
-            }
-            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper );
-        }
-
         if ( hasCudaCollector ) {
             QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment->getThreads() );
             synchronizer.addFuture( future1 );
@@ -2388,7 +2379,10 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, isGpuSampleCounters, sampleCounterNames );
 
             if ( hasTraceExperiment ) {
+                emit addCluster( clusteringCriteriaName, clusteringCriteriaName, lower, upper, true, -1.0, rankCount );
+
                 m_numberLoadWorkUnitsInProgress.ref();
+
                 handleRequestTraceView( clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW );
             }
         }
@@ -2401,6 +2395,13 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
         }
 
         synchronizer.waitForFinished();
+
+        if ( hasTraceExperiment ) {
+            foreach( const QString& clusterName, selected ) {
+                emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
+            }
+            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper );
+        }
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
