@@ -314,6 +314,8 @@ struct ltST {
 PerformanceDataManager::PerformanceDataManager(QObject *parent)
     : QObject( parent )
     , m_renderer( new BackgroundGraphRenderer )
+    , m_numberLoadWorkUnitsInProgress( 0 )
+    , m_loadInProgress( 0 )
 {
     qRegisterMetaType< Base::Time >("Base::Time");
     qRegisterMetaType< CUDA::DataTransfer >("CUDA::DataTransfer");
@@ -327,22 +329,18 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 #endif
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( this, &PerformanceDataManager::loadComplete, this, &PerformanceDataManager::handleLoadComplete );
     connect( this, &PerformanceDataManager::loadComplete, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
-    connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
-    connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
     connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
     connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeoutGroup, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
     connect( this, &PerformanceDataManager::signalSelectedClustersChanged, this, &PerformanceDataManager::handleSelectedClustersChanged );
 #else
+    connect( this, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
     connect( this, SIGNAL(loadComplete()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
-    connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)),
-             m_renderer, SLOT(handleGraphRangeChanged(QString,QString,double,double,QSize)) );
-    connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)),
-             this, SLOT(handleLoadCudaMetricViews(QString,QString,double,double)) );
     connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)),
              this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
     connect( &m_userChangeMgr, SIGNAL(timeoutGroup(QString,double,double,QSize)),
-             this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double,QSize)) );
+             this, SLOT(handleLoadCudaMetricViewsTimeout(QString,double,double)) );
     connect( this, SIGNAL(signalSelectedClustersChanged(QString,QSet<QString>)),
              this, SLOT(handleSelectedClustersChanged(QString,QSet<QString>)) );
 #endif
@@ -508,20 +506,30 @@ void PerformanceDataManager::monitorMetricViewComplete(const QVector< QFuture<vo
     const QString metricNameStr = ( viewName != CALLTREE_MODE_NAME ) ? metricName : QStringLiteral("None");
     const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricNameStr, viewName );
 
-    // delete the vector of futures instance since this method takes ownership
-    QMutexLocker guard( &m_futureMapMutex );
+    {
+        // delete the vector of futures instance since this method takes ownership
+        QMutexLocker guard( &m_futureMapMutex );
 
-    if ( m_futureMap.contains( clusteringCriteriaName ) ) {
-        delete m_futureMap[ clusteringCriteriaName ].take( metricViewName );
+        if ( m_futureMap.contains( clusteringCriteriaName ) ) {
+            delete m_futureMap[ clusteringCriteriaName ].take( metricViewName );
 
-        // indicate that the processing for the metric view has completed
-        emit requestMetricViewComplete( clusteringCriteriaName, modeName, metricNameStr, viewName, lower, upper );
+            // indicate that the processing for the metric view has completed
+            emit requestMetricViewComplete( clusteringCriteriaName, modeName, metricNameStr, viewName, lower, upper );
+        }
     }
 
     // indicate that the work associated with the generation of the metric view can be removed from monitoring by the application cursor manager
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
         cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
+    }
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    if ( m_loadInProgress.load() && ! m_numberLoadWorkUnitsInProgress.deref() ) {
+#else
+    if ( m_loadInProgress != 0 && ! m_numberLoadWorkUnitsInProgress.deref() ) {
+#endif
+        emit loadComplete();
     }
 }
 
@@ -898,6 +906,11 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
 
     const QString metricViewName = PerformanceDataMetricView::getMetricViewName( TRACE_EVENT_DETAILS_METRIC, metricName, viewName );
 
+    QVector< QFuture<void> >* futures = allocateFutureVector( clusteringCriteriaName, metricViewName );
+
+    if ( ! futures )
+        return;
+
     ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
     if ( cursorManager ) {
         cursorManager->startWaitingOperation( QString("generate-%1").arg(metricViewName) );
@@ -948,22 +961,27 @@ void PerformanceDataManager::handleRequestTraceView(const QString &clusteringCri
     const double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
     const double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
     const Framework::Time::value_type time_origin = experimentInterval.begin();
+    const ThreadGroup threadGroup( info.getThreads() );
 
-    foreach ( const QString& metric, metricList ) {
+    QString clusteringCriteriaNameStr = clusteringCriteriaName;
+
+    foreach ( const QString metric, metricList ) {
         if ( collectorId == "mpit" ) {
-            ShowTraceDetail< std::vector<Framework::MPITDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, metric );
+            futures->append( QtConcurrent::run( std::bind( &PerformanceDataManager::ShowTraceDetail< std::vector<Framework::MPITDetail> >, this,
+                                                clusteringCriteriaNameStr, collector, threadGroup, time_origin, lower, upper, interval, functions, metric ) ) );
         }
         else if ( collectorId == "mem" ) {
-            ShowTraceDetail< std::vector<Framework::MemDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, metric );
+            futures->append( QtConcurrent::run( std::bind( &PerformanceDataManager::ShowTraceDetail< std::vector<Framework::MemDetail> >, this,
+                                                clusteringCriteriaNameStr, collector, threadGroup, time_origin, lower, upper, interval, functions, metric ) ) );
         }
         else if ( collectorId == "iot" ) {
-            ShowTraceDetail< std::vector<Framework::IOTDetail> >( clusteringCriteriaName, collector, info.getThreads(), time_origin, lower, upper, interval, functions, metric );
+            futures->append( QtConcurrent::run( std::bind( &PerformanceDataManager::ShowTraceDetail< std::vector<Framework::IOTDetail> >, this,
+                                                clusteringCriteriaNameStr, collector, threadGroup, time_origin, lower, upper, interval, functions, metric ) ) );
         }
     }
 
-    if ( cursorManager ) {
-        cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
-    }
+    QtConcurrent::run( boost::bind( &PerformanceDataManager::monitorMetricViewComplete, this,
+                                    futures, clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, metricName, viewName, lower, upper ) );
 }
 
 /**
@@ -2220,6 +2238,8 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
     qDebug() << "PerformanceDataManager::loadCudaViews: STARTED";
 #endif
 
+    m_loadInProgress.ref();
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     std::string filePathStr = filePath.toStdString();
 #else
@@ -2330,6 +2350,15 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             clusterNames << clusterName;
         }
 
+        if ( hasTraceExperiment ) {
+            emit addCluster( clusteringCriteriaName, clusteringCriteriaName, lower, upper, true, -1.0, rankCount );
+
+            foreach( const QString& clusterName, selected ) {
+                emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
+            }
+            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper );
+        }
+
         if ( hasCudaCollector ) {
             QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment->getThreads() );
             synchronizer.addFuture( future1 );
@@ -2359,34 +2388,24 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, isGpuSampleCounters, sampleCounterNames );
 
             if ( hasTraceExperiment ) {
-                emit addCluster( clusteringCriteriaName, clusteringCriteriaName, lower, upper, true, -1.0, rankCount );
-
-                QFuture<void> future = QtConcurrent::run( this, &PerformanceDataManager::handleRequestTraceView, clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW );
-                synchronizer.addFuture( future );
+                m_numberLoadWorkUnitsInProgress.ref();
+                handleRequestTraceView( clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW );
             }
         }
 
         const QString functionView = QStringLiteral("Functions");
 
         foreach ( const QString& metricName, metricList ) {
+            m_numberLoadWorkUnitsInProgress.ref();
             handleRequestMetricView( clusteringCriteriaName, metricName, functionView );
         }
 
         synchronizer.waitForFinished();
-
-        if ( hasTraceExperiment ) {
-            foreach( const QString& clusterName, selected ) {
-                emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
-            }
-            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper );
-        }
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
     qDebug() << "PerformanceDataManager::loadCudaViews: ENDED";
 #endif
-
-    emit loadComplete();
 }
 
 /**
@@ -2455,6 +2474,30 @@ void PerformanceDataManager::handleSelectedClustersChanged(const QString &criter
     }
 
     emit signalRequestMetricTableViewUpdate( true );
+}
+
+/**
+ * @brief PerformanceDataManager::handleLoadComplete
+ *
+ * This is a 'loadComplete' signal handler.  It makes connections to the 'graphRangeChanged' signal.
+ * The 'load in progress' indicator is dereferenced atomically to indicate the loading of the experiment
+ * has completed and graph range changes should now be handled.
+ */
+void PerformanceDataManager::handleLoadComplete()
+{
+    // dereference the 'load in progress' indicator (subtract one)
+    Q_ASSERT( ! m_loadInProgress.deref() );
+
+    // make connections to the 'graphRangeChanged' signal
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
+    connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
+#else
+    connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)),
+             m_renderer, SLOT(handleGraphRangeChanged(QString,QString,double,double,QSize)) );
+    connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)),
+             this, SLOT(handleLoadCudaMetricViews(QString,QString,double,double,QSize)) );
+#endif
 }
 
 /**
@@ -2556,6 +2599,20 @@ void PerformanceDataManager::unloadViews(const QString &clusteringCriteriaName)
             }
         }
         qDeleteAll( futureMap );
+    }
+
+    Q_ASSERT( m_tableViewInfo.size() == m_futureMap.size() );
+
+    if ( 0 == m_tableViewInfo.size() ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
+        disconnect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
+        disconnect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
+#else
+        disconnect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)),
+                    m_renderer, SLOT(handleGraphRangeChanged(QString,QString,double,double,QSize)) );
+        disconnect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)),
+                    this, SLOT(handleLoadCudaMetricViews(QString,QString,double,double,QSize)) );
+#endif
     }
 }
 
@@ -3873,13 +3930,13 @@ QStringList PerformanceDataManager::getMetricsDesc<std::uint64_t>(const QStringL
  */
 template <typename DETAIL_t>
 void PerformanceDataManager::ShowTraceDetail(
-        const QString& clusteringCriteriaName,
-        const Framework::Collector& collector,
-        const Framework::ThreadGroup& threadGroup,
+        const QString clusteringCriteriaName,
+        const Framework::Collector collector,
+        const Framework::ThreadGroup threadGroup,
         const Framework::Time::value_type time_origin,
         const double lower,
         const double upper,
-        const Framework::TimeInterval& interval,
+        const Framework::TimeInterval interval,
         const std::set<Function> functions,
         const QString metric)
 {

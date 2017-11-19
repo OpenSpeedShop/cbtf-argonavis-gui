@@ -219,6 +219,8 @@ private slots:
 
     void handleSelectedClustersChanged(const QString& criteriaName, const QSet<QString> &selected);
 
+    void handleLoadComplete();
+
 private:
 
     explicit PerformanceDataManager(QObject* parent = 0);
@@ -360,13 +362,13 @@ private:
                             const QString& clusteringCriteriaName);
 
     template <typename DETAIL_t>
-    void ShowTraceDetail(const QString& clusteringCriteriaName,
-                         const OpenSpeedShop::Framework::Collector &collector,
-                         const OpenSpeedShop::Framework::ThreadGroup &threadGroup,
+    void ShowTraceDetail(const QString clusteringCriteriaName,
+                         const OpenSpeedShop::Framework::Collector collector,
+                         const OpenSpeedShop::Framework::ThreadGroup threadGroup,
                          const OpenSpeedShop::Framework::Time::value_type time_origin,
                          const double lower,
                          const double upper,
-                         const OpenSpeedShop::Framework::TimeInterval &interval,
+                         const OpenSpeedShop::Framework::TimeInterval interval,
                          const std::set<OpenSpeedShop::Framework::Function> functions,
                          const QString metric);
 
@@ -490,6 +492,9 @@ private:
     // inner map: key=metric view name  value: vector of futures providing work for generating the metric view
     QMap< QString, QMap< QString, QVector< QFuture<void> >* > > m_futureMap;
     QMutex m_futureMapMutex;
+
+    QAtomicInt m_numberLoadWorkUnitsInProgress;
+    QAtomicInt m_loadInProgress;
 
  };
 

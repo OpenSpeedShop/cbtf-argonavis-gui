@@ -1169,7 +1169,7 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
  */
 QString PerformanceDataMetricView::getMetricViewName(const QString& modeName, const QString& metricName, const QString& viewName)
 {
-    if ( modeName == s_detailsModeName || modeName == s_calltreeModeName || modeName == s_traceModeName )
+    if ( modeName == s_detailsModeName || modeName == s_calltreeModeName )
         return modeName + "-" + QStringLiteral("None") + "-" + viewName;
     else
         return modeName + "-" + metricName + "-" + viewName;
