@@ -105,6 +105,10 @@ QString PerformanceDataManager::s_maximumThreadTitle( tr("Maximum (name)") );
 QString PerformanceDataManager::s_meanTitle( tr("Average (msec)") );
 QString PerformanceDataManager::s_meanCountsTitle( tr("Average Counts") );
 QString PerformanceDataManager::s_meanThreadTitle( tr("Thread Nearest Avg (name)") );
+QString PerformanceDataManager::s_functionsView( tr("Functions") );
+QString PerformanceDataManager::s_statementsView( tr("Statements") );
+QString PerformanceDataManager::s_linkedObjectsView( tr("LinkedObjects") );
+QString PerformanceDataManager::s_loopsView( tr("Loops") );
 
 // define list of supported trace experiment types
 #if (QT_VERSION >= QT_VERSION_CHECK(5,0,0))
@@ -595,36 +599,36 @@ void PerformanceDataManager::handleRequestLoadBalanceView(const QString &cluster
     const TimeInterval interval( info.getInterval() );
 
     if ( metricName == QStringLiteral("overflows") ) {
-        if ( viewName == QStringLiteral("Functions") ) {
+        if ( viewName == s_functionsView ) {
             processLoadBalanceView<Function, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
 
-        else if ( viewName == QStringLiteral("Statements") ) {
+        else if ( viewName == s_statementsView ) {
             processLoadBalanceView<Statement, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
 
-        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+        else if ( viewName == s_linkedObjectsView ) {
             processLoadBalanceView<LinkedObject, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
 
-        else if ( viewName == QStringLiteral("Loops") ) {
+        else if ( viewName == s_loopsView ) {
             processLoadBalanceView<Loop, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
     }
     else {
-        if ( viewName == QStringLiteral("Functions") ) {
+        if ( viewName == s_functionsView ) {
             processLoadBalanceView<Function, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
 
-        else if ( viewName == QStringLiteral("Statements") ) {
+        else if ( viewName == s_statementsView ) {
             processLoadBalanceView<Statement, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
 
-        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+        else if ( viewName == s_linkedObjectsView ) {
             processLoadBalanceView<LinkedObject, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
 
-        else if ( viewName == QStringLiteral("Loops") ) {
+        else if ( viewName == s_loopsView ) {
             processLoadBalanceView<Loop, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName );
         }
     }
@@ -680,70 +684,70 @@ void PerformanceDataManager::handleRequestCompareView(const QString &clusteringC
     const QString collectorId( collector.getMetadata().getUniqueId().c_str() );
 
     if ( collectorId == "hwctime" ) {
-        if ( viewName == QStringLiteral("Functions") ) {
+        if ( viewName == s_functionsView ) {
             processCompareThreadView<Function, std::map<OpenSpeedShop::Framework::StackTrace, OpenSpeedShop::Framework::HWTimeDetail>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
 
-        else if ( viewName == QStringLiteral("Statements") ) {
+        else if ( viewName == s_statementsView ) {
             processCompareThreadView<Statement, std::map<OpenSpeedShop::Framework::StackTrace, OpenSpeedShop::Framework::HWTimeDetail>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
 
-        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+        else if ( viewName == s_linkedObjectsView ) {
             processCompareThreadView<LinkedObject, std::map<OpenSpeedShop::Framework::StackTrace, OpenSpeedShop::Framework::HWTimeDetail>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
 
-        else if ( viewName == QStringLiteral("Loops") ) {
+        else if ( viewName == s_loopsView ) {
             processCompareThreadView<Loop, std::map<OpenSpeedShop::Framework::StackTrace, OpenSpeedShop::Framework::HWTimeDetail>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
     }
     else if ( collectorId == "hwcsamp" ) {
-        if ( viewName == QStringLiteral("Functions") ) {
+        if ( viewName == s_functionsView ) {
             processCompareThreadView<Function, std::map<OpenSpeedShop::Framework::StackTrace, std::vector<OpenSpeedShop::Framework::HWCSampDetail>>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
 
-        else if ( viewName == QStringLiteral("Statements") ) {
+        else if ( viewName == s_statementsView ) {
             processCompareThreadView<Statement, std::map<OpenSpeedShop::Framework::StackTrace, std::vector<OpenSpeedShop::Framework::HWCSampDetail>>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
 
-        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+        else if ( viewName == s_linkedObjectsView ) {
             processCompareThreadView<LinkedObject, std::map<OpenSpeedShop::Framework::StackTrace, std::vector<OpenSpeedShop::Framework::HWCSampDetail>>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
 
-        else if ( viewName == QStringLiteral("Loops") ) {
+        else if ( viewName == s_loopsView ) {
             processCompareThreadView<Loop, std::map<OpenSpeedShop::Framework::StackTrace, std::vector<OpenSpeedShop::Framework::HWCSampDetail>>, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, COUNTER_COUNT );
         }
     }
     else if ( collectorId == "hwc" ) {
-        if ( viewName == QStringLiteral("Functions") ) {
+        if ( viewName == s_functionsView ) {
             processCompareThreadView<Function, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
 
-        else if ( viewName == QStringLiteral("Statements") ) {
+        else if ( viewName == s_statementsView ) {
             processCompareThreadView<Statement, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
 
-        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+        else if ( viewName == s_linkedObjectsView ) {
             processCompareThreadView<LinkedObject, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
 
-        else if ( viewName == QStringLiteral("Loops") ) {
+        else if ( viewName == s_loopsView ) {
             processCompareThreadView<Loop, std::uint64_t, qulonglong>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
     }
     else {
-        if ( viewName == QStringLiteral("Functions") ) {
+        if ( viewName == s_functionsView ) {
             processCompareThreadView<Function, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
 
-        else if ( viewName == QStringLiteral("Statements") ) {
+        else if ( viewName == s_statementsView ) {
             processCompareThreadView<Statement, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
 
-        else if ( viewName == QStringLiteral("LinkedObjects") ) {
+        else if ( viewName == s_linkedObjectsView ) {
             processCompareThreadView<LinkedObject, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
 
-        else if ( viewName == QStringLiteral("Loops") ) {
+        else if ( viewName == s_loopsView ) {
             processCompareThreadView<Loop, double, double>( info.getCollectors(), info.getThreads(), interval, clusteringCriteriaName, metricName, compareMode, TIME_UNIT_MSEC );
         }
     }
@@ -1029,23 +1033,23 @@ void PerformanceDataManager::handleRequestSampleCountersView(const QString &clus
     const double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
 
     if ( collectorId == "hwctime" ) {
-        if ( viewName == QStringLiteral("Functions") )
+        if ( viewName == s_functionsView )
             ShowSampleCountersDetail< Framework::Function, Framework::HWTimeDetail >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
-        else if ( viewName == QStringLiteral("Statements") )
+        else if ( viewName == s_statementsView )
             ShowSampleCountersDetail< Framework::Statement, Framework::HWTimeDetail >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
-        else if ( viewName == QStringLiteral("LinkedObjects") )
+        else if ( viewName == s_linkedObjectsView )
             ShowSampleCountersDetail< Framework::LinkedObject, Framework::HWTimeDetail >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
-        else if ( viewName == QStringLiteral("Loops") )
+        else if ( viewName == s_loopsView )
             ShowSampleCountersDetail< Framework::Loop, Framework::HWTimeDetail >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
     }
     else if ( collectorId == "hwcsamp" ) {
-        if ( viewName == QStringLiteral("Functions") )
+        if ( viewName == s_functionsView )
             ShowSampleCountersDetail< Framework::Function, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
-        else if ( viewName == QStringLiteral("Statements") )
+        else if ( viewName == s_statementsView )
             ShowSampleCountersDetail< Framework::Statement, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
-        else if ( viewName == QStringLiteral("LinkedObjects") )
+        else if ( viewName == s_linkedObjectsView )
             ShowSampleCountersDetail< Framework::LinkedObject, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
-        else if ( viewName == QStringLiteral("Loops") )
+        else if ( viewName == s_loopsView )
             ShowSampleCountersDetail< Framework::Loop, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
     }
 
@@ -1517,7 +1521,7 @@ QString PerformanceDataManager::getLocationInfo(const Loop& metric)
 template <>
 QString PerformanceDataManager::getViewName<Function>() const
 {
-    return QStringLiteral("Functions");
+    return s_functionsView;
 }
 
 /**
@@ -1530,7 +1534,7 @@ QString PerformanceDataManager::getViewName<Function>() const
 template <>
 QString PerformanceDataManager::getViewName<Statement>() const
 {
-    return QStringLiteral("Statements");
+    return s_statementsView;
 }
 
 /**
@@ -1543,7 +1547,7 @@ QString PerformanceDataManager::getViewName<Statement>() const
 template <>
 QString PerformanceDataManager::getViewName<LinkedObject>() const
 {
-    return QStringLiteral("LinkedObjects");
+    return s_linkedObjectsView;
 }
 
 /**
@@ -1556,7 +1560,7 @@ QString PerformanceDataManager::getViewName<LinkedObject>() const
 template <>
 QString PerformanceDataManager::getViewName<Loop>() const
 {
-    return QStringLiteral("Loops");
+    return s_loopsView;
 }
 
 /**
@@ -2298,8 +2302,6 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
 
         const bool hasCallTreeViews = s_EXPERIMENTS_WITH_CALLTREES.contains( collectorId );
 
-        QFutureSynchronizer<void> synchronizer;
-
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         QString experimentFilename = QString::fromStdString( experiment->getName() );
 #else
@@ -2350,12 +2352,16 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             clusterNames << clusterName;
         }
 
-        if ( hasCudaCollector ) {
-            QFuture<void> future1 = QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment->getThreads() );
-            synchronizer.addFuture( future1 );
+        foreach ( const QString& metricName, metricList ) {
+            m_numberLoadWorkUnitsInProgress.ref();
 
-            QFuture<void> future2 = QtConcurrent::run( this, &PerformanceDataManager::handleProcessDetailViews, clusteringCriteriaName );
-            synchronizer.addFuture( future2 );
+            handleRequestMetricView( clusteringCriteriaName, metricName, s_functionsView );
+        }
+
+        if ( hasCudaCollector ) {
+            QtConcurrent::run( this, &PerformanceDataManager::loadCudaView, experimentName, clusteringCriteriaName, collector.get(), experiment->getThreads() );
+
+            QtConcurrent::run( this, &PerformanceDataManager::handleProcessDetailViews, clusteringCriteriaName );
         }
         else {
             // set default metric view
@@ -2387,21 +2393,13 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             }
         }
 
-        const QString functionView = QStringLiteral("Functions");
-
-        foreach ( const QString& metricName, metricList ) {
-            m_numberLoadWorkUnitsInProgress.ref();
-            handleRequestMetricView( clusteringCriteriaName, metricName, functionView );
-        }
-
-        synchronizer.waitForFinished();
-
-        if ( hasTraceExperiment ) {
+        if ( hasTraceExperiment || hasCudaCollector ) {
             foreach( const QString& clusterName, selected ) {
                 emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
             }
             emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper );
         }
+
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -2518,7 +2516,7 @@ void PerformanceDataManager::loadCudaMetricViews(
 {
     foreach ( QString metricName, metricList ) {
         foreach ( QString viewName, viewList ) {
-            if ( viewName == QStringLiteral("Functions") ) {
+            if ( viewName == s_functionsView ) {
                 if ( metricName == QStringLiteral("overflows") )
                     futures << QtConcurrent::run(
                                 boost::bind( &PerformanceDataManager::processMetricView<std::uint64_t, Function>, this,
@@ -2529,7 +2527,7 @@ void PerformanceDataManager::loadCudaMetricViews(
                                              clusteringCriteriaName, metricName ) );
             }
 
-            else if ( viewName == QStringLiteral("Statements") ) {
+            else if ( viewName == s_statementsView ) {
                 if ( metricName == QStringLiteral("overflows") )
                     futures << QtConcurrent::run(
                                 boost::bind( &PerformanceDataManager::processMetricView<std::uint64_t, Statement>, this,
@@ -2540,7 +2538,7 @@ void PerformanceDataManager::loadCudaMetricViews(
                                              clusteringCriteriaName, metricName ) );
             }
 
-            else if ( viewName == QStringLiteral("LinkedObjects") ) {
+            else if ( viewName == s_linkedObjectsView ) {
                 if ( metricName == QStringLiteral("overflows") )
                     futures << QtConcurrent::run(
                                 boost::bind( &PerformanceDataManager::processMetricView<std::uint64_t, LinkedObject>, this,
@@ -2551,7 +2549,7 @@ void PerformanceDataManager::loadCudaMetricViews(
                                              clusteringCriteriaName, metricName ) );
             }
 
-            else if ( viewName == QStringLiteral("Loops") ) {
+            else if ( viewName == s_loopsView ) {
                 if ( metricName == QStringLiteral("overflows") )
                     futures << QtConcurrent::run(
                                 boost::bind( &PerformanceDataManager::processMetricView<std::uint64_t, Loop>, this,

@@ -451,6 +451,10 @@ private:
     static QString s_meanTitle;
     static QString s_meanCountsTitle;
     static QString s_meanThreadTitle;
+    static QString s_functionsView;
+    static QString s_statementsView;
+    static QString s_linkedObjectsView;
+    static QString s_loopsView;
 
     static QStringList s_TRACING_EXPERIMENTS;
     static QStringList s_SAMPLING_EXPERIMENTS;
