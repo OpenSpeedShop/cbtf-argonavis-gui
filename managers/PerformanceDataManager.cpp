@@ -333,13 +333,11 @@ PerformanceDataManager::PerformanceDataManager(QObject *parent)
 #endif
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    connect( this, &PerformanceDataManager::loadComplete, this, &PerformanceDataManager::handleLoadComplete );
     connect( this, &PerformanceDataManager::loadComplete, m_renderer, &BackgroundGraphRenderer::signalProcessCudaEventView );
     connect( m_renderer, &BackgroundGraphRenderer::signalCudaEventSnapshot, this, &PerformanceDataManager::addCudaEventSnapshot );
     connect( &m_userChangeMgr, &UserGraphRangeChangeManager::timeoutGroup, this, &PerformanceDataManager::handleLoadCudaMetricViewsTimeout );
     connect( this, &PerformanceDataManager::signalSelectedClustersChanged, this, &PerformanceDataManager::handleSelectedClustersChanged );
 #else
-    connect( this, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
     connect( this, SIGNAL(loadComplete()), m_renderer, SIGNAL(signalProcessCudaEventView()) );
     connect( m_renderer, SIGNAL(signalCudaEventSnapshot(QString,QString,double,double,QImage)),
              this, SIGNAL(addCudaEventSnapshot(QString,QString,double,double,QImage)) );
@@ -533,6 +531,9 @@ void PerformanceDataManager::monitorMetricViewComplete(const QVector< QFuture<vo
 #else
     if ( m_loadInProgress != 0 && ! m_numberLoadWorkUnitsInProgress.deref() ) {
 #endif
+        // dereference the 'load in progress' indicator (subtract one)
+        Q_ASSERT( ! m_loadInProgress.deref() );
+
         emit loadComplete();
     }
 }
@@ -2242,6 +2243,7 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
     qDebug() << "PerformanceDataManager::loadCudaViews: STARTED";
 #endif
 
+    // set initial state of 'load in progress' variable
     m_loadInProgress.ref();
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -2352,6 +2354,14 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             clusterNames << clusterName;
         }
 
+        if ( ! hasCudaCollector ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+            connect( this, &PerformanceDataManager::loadComplete, this, &PerformanceDataManager::handleLoadComplete );
+#else
+            connect( this, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
+#endif
+        }
+
         foreach ( const QString& metricName, metricList ) {
             m_numberLoadWorkUnitsInProgress.ref();
 
@@ -2390,16 +2400,10 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
                 m_numberLoadWorkUnitsInProgress.ref();
 
                 handleRequestTraceView( clusteringCriteriaName, TRACE_EVENT_DETAILS_METRIC, ALL_EVENTS_DETAILS_VIEW );
+
+                emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper );
             }
         }
-
-        if ( hasTraceExperiment || hasCudaCollector ) {
-            foreach( const QString& clusterName, selected ) {
-                emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
-            }
-            emit setMetricDuration( clusteringCriteriaName, clusteringCriteriaName, lower, upper );
-        }
-
     }
 
 #if defined(HAS_PARALLEL_PROCESS_METRIC_VIEW_DEBUG)
@@ -2484,8 +2488,11 @@ void PerformanceDataManager::handleSelectedClustersChanged(const QString &criter
  */
 void PerformanceDataManager::handleLoadComplete()
 {
-    // dereference the 'load in progress' indicator (subtract one)
-    Q_ASSERT( ! m_loadInProgress.deref() );
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    disconnect( this, &PerformanceDataManager::loadComplete, this, &PerformanceDataManager::handleLoadComplete );
+#else
+    disconnect( this, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
+#endif
 
     // make connections to the 'graphRangeChanged' signal
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
@@ -3040,90 +3047,99 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
 
     emit addExperiment( experimentName, clusteringCriteriaName, clusterNames, isGpuSampleCounters, sampleCounterNames );
 
-    if ( hasCudaCollector ) {
-        m_renderer->setPerformanceData( clusteringCriteriaName, clusterNames, data );
+    m_renderer->setPerformanceData( clusteringCriteriaName, clusterNames, data );
 
-        foreach( const QString& clusterName, clusterNames ) {
-            bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
-            emit addCluster( clusteringCriteriaName, clusterName, lower, upper, false, 0.0, hasGpuPercentageCounter ? 100.0 : -1.0 );
-        }
+    foreach( const QString& clusterName, clusterNames ) {
+        bool hasGpuPercentageCounter( isGpuSampleCounterPercentage.contains(clusterName) && isGpuSampleCounterPercentage[clusterName] );
+        emit addCluster( clusteringCriteriaName, clusterName, lower, upper, false, 0.0, hasGpuPercentageCounter ? 100.0 : -1.0 );
+    }
 
-        data.visitThreads( boost::bind(
-                               &PerformanceDataManager::processPerformanceData, instance(),
-                               boost::cref(data), _1, boost::cref(gpuCounterIndexes), boost::cref(clusteringCriteriaName) ) );
+    data.visitThreads( boost::bind(
+                           &PerformanceDataManager::processPerformanceData, instance(),
+                           boost::cref(data), _1, boost::cref(gpuCounterIndexes), boost::cref(clusteringCriteriaName) ) );
 
-        foreach( const QString& clusterName, clusterNames ) {
-            emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
-        }
+    // make connections to the 'graphRangeChanged' signal
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( this, &PerformanceDataManager::graphRangeChanged, m_renderer, &BackgroundGraphRenderer::handleGraphRangeChanged );
+    connect( this, &PerformanceDataManager::graphRangeChanged, this, &PerformanceDataManager::handleLoadCudaMetricViews );
+#else
+    connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)),
+             m_renderer, SLOT(handleGraphRangeChanged(QString,QString,double,double,QSize)) );
+    connect( this, SIGNAL(graphRangeChanged(QString,QString,double,double,QSize)),
+             this, SLOT(handleLoadCudaMetricViews(QString,QString,double,double,QSize)) );
+#endif
 
-        std::vector<CUDA::Device> devices;
+    foreach( const QString& clusterName, clusterNames ) {
+        emit setMetricDuration( clusteringCriteriaName, clusterName, lower, upper );
+    }
 
-        for ( std::vector<CUDA::Device>::size_type i = 0; i < data.devices().size(); ++i ) {
-            const CUDA::Device& device = data.devices()[i];
+    std::vector<CUDA::Device> devices;
 
-            int definedDevice = -1;
+    for ( std::vector<CUDA::Device>::size_type i = 0; i < data.devices().size(); ++i ) {
+        const CUDA::Device& device = data.devices()[i];
 
-            for (std::size_t d=0; d<devices.size(); d++ ) {
-                if ( devices[d] == device ) {
-                    definedDevice = d;
-                    break;
-                }
+        int definedDevice = -1;
+
+        for (std::size_t d=0; d<devices.size(); d++ ) {
+            if ( devices[d] == device ) {
+                definedDevice = d;
+                break;
             }
-
-            NameValueList attributes;
-            NameValueList maximumLimits;
-
-            if ( definedDevice == -1 ) {
-                definedDevice = devices.size();
-                devices.push_back( device );
-
-                // build attribute name/values list
-                attributes << qMakePair( QStringLiteral("Name"), QString(device.name.c_str()) );
-                attributes << qMakePair( QStringLiteral("ComputeCapability"),
-                                         QString("%1.%2").arg(device.compute_capability.get<0>())
-                                         .arg(device.compute_capability.get<1>()) );
-                attributes << qMakePair( QStringLiteral("Global Memory Bandwidth"),
-                                         QString("%1/sec").arg(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(1024ULL * device.global_memory_bandwidth).c_str()) );
-                attributes << qMakePair( QStringLiteral("Global Memory Size"),
-                                         QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(device.global_memory_size).c_str()) );
-                attributes << qMakePair( QStringLiteral("Constant Memory Size"),
-                                         QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(device.constant_memory_size).c_str()) );
-                attributes << qMakePair( QStringLiteral("L2 Cache Size"),
-                                         QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(device.l2_cache_size).c_str()) );
-                attributes << qMakePair( QStringLiteral("Threads Per Warp"),
-                                         QString(ArgoNavis::CUDA::stringify<>(device.threads_per_warp).c_str()) );
-                attributes << qMakePair( QStringLiteral("Core Clock Rate"),
-                                         QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ClockRate>(024ULL * device.core_clock_rate).c_str()) );
-                attributes << qMakePair( QStringLiteral("Number of Async Engines"),
-                                         QString(ArgoNavis::CUDA::stringify<>(device.memcpy_engines).c_str()) );
-                attributes << qMakePair( QStringLiteral("Number of Multiprocessors"),
-                                         QString(ArgoNavis::CUDA::stringify<>(device.multiprocessors).c_str()) );
-
-                // build maximum limits name/values list
-                maximumLimits << qMakePair( QStringLiteral("Max Grid Dimensions"),
-                                            QString("%1x%2x%3").arg(device.max_grid.get<0>())
-                                            .arg(device.max_grid.get<1>())
-                                            .arg(device.max_grid.get<2>()) );
-                maximumLimits << qMakePair( QStringLiteral("Max Block Dimensions"),
-                                            QString("%1, %2, %3").arg(device.max_block.get<0>())
-                                            .arg(device.max_block.get<1>())
-                                            .arg(device.max_block.get<2>()) );
-                maximumLimits << qMakePair( QStringLiteral("Max IPC"),
-                                            QString(ArgoNavis::CUDA::stringify<>(device.max_ipc).c_str()) );
-                maximumLimits << qMakePair( QStringLiteral("Max Warps Per Multiprocessor"),
-                                            QString(ArgoNavis::CUDA::stringify<>(device.max_warps_per_multiprocessor).c_str()) );
-                maximumLimits << qMakePair( QStringLiteral("Max Blocks Per Multiprocessor"),
-                                            QString(ArgoNavis::CUDA::stringify<>(device.max_blocks_per_multiprocessor).c_str()) );
-                maximumLimits << qMakePair( QStringLiteral("Max Registers Per Block"),
-                                            QString(ArgoNavis::CUDA::stringify<>(device.max_registers_per_block).c_str()) );
-                maximumLimits << qMakePair( QStringLiteral("Max Shared Memory Per Block"),
-                                            QString(ArgoNavis::CUDA::stringify<>(device.max_shared_memory_per_block).c_str()) );
-                maximumLimits << qMakePair( QStringLiteral("Max Threads Per Block"),
-                                            QString(ArgoNavis::CUDA::stringify<>(device.max_threads_per_block).c_str()) );
-            }
-
-            emit addDevice( i, definedDevice, attributes, maximumLimits );
         }
+
+        NameValueList attributes;
+        NameValueList maximumLimits;
+
+        if ( definedDevice == -1 ) {
+            definedDevice = devices.size();
+            devices.push_back( device );
+
+            // build attribute name/values list
+            attributes << qMakePair( QStringLiteral("Name"), QString(device.name.c_str()) );
+            attributes << qMakePair( QStringLiteral("ComputeCapability"),
+                                     QString("%1.%2").arg(device.compute_capability.get<0>())
+                                     .arg(device.compute_capability.get<1>()) );
+            attributes << qMakePair( QStringLiteral("Global Memory Bandwidth"),
+                                     QString("%1/sec").arg(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(1024ULL * device.global_memory_bandwidth).c_str()) );
+            attributes << qMakePair( QStringLiteral("Global Memory Size"),
+                                     QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(device.global_memory_size).c_str()) );
+            attributes << qMakePair( QStringLiteral("Constant Memory Size"),
+                                     QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(device.constant_memory_size).c_str()) );
+            attributes << qMakePair( QStringLiteral("L2 Cache Size"),
+                                     QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ByteCount>(device.l2_cache_size).c_str()) );
+            attributes << qMakePair( QStringLiteral("Threads Per Warp"),
+                                     QString(ArgoNavis::CUDA::stringify<>(device.threads_per_warp).c_str()) );
+            attributes << qMakePair( QStringLiteral("Core Clock Rate"),
+                                     QString(ArgoNavis::CUDA::stringify<ArgoNavis::CUDA::ClockRate>(024ULL * device.core_clock_rate).c_str()) );
+            attributes << qMakePair( QStringLiteral("Number of Async Engines"),
+                                     QString(ArgoNavis::CUDA::stringify<>(device.memcpy_engines).c_str()) );
+            attributes << qMakePair( QStringLiteral("Number of Multiprocessors"),
+                                     QString(ArgoNavis::CUDA::stringify<>(device.multiprocessors).c_str()) );
+
+            // build maximum limits name/values list
+            maximumLimits << qMakePair( QStringLiteral("Max Grid Dimensions"),
+                                        QString("%1x%2x%3").arg(device.max_grid.get<0>())
+                                        .arg(device.max_grid.get<1>())
+                                        .arg(device.max_grid.get<2>()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Block Dimensions"),
+                                        QString("%1, %2, %3").arg(device.max_block.get<0>())
+                                        .arg(device.max_block.get<1>())
+                                        .arg(device.max_block.get<2>()) );
+            maximumLimits << qMakePair( QStringLiteral("Max IPC"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_ipc).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Warps Per Multiprocessor"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_warps_per_multiprocessor).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Blocks Per Multiprocessor"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_blocks_per_multiprocessor).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Registers Per Block"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_registers_per_block).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Shared Memory Per Block"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_shared_memory_per_block).c_str()) );
+            maximumLimits << qMakePair( QStringLiteral("Max Threads Per Block"),
+                                        QString(ArgoNavis::CUDA::stringify<>(device.max_threads_per_block).c_str()) );
+        }
+
+        emit addDevice( i, definedDevice, attributes, maximumLimits );
 
         // clear temporary data structures used during thread visitation
         m_sampleKeys.clear();
