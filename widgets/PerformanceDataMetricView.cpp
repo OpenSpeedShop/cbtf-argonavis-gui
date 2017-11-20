@@ -1306,8 +1306,6 @@ void PerformanceDataMetricView::handleRequestMetricViewComplete(const QString &c
 
             return;
         }
-
-        qDebug() << Q_FUNC_INFO << metricViewName;
     }
 
     // if this point is reached then show blank view
