@@ -72,6 +72,7 @@ private slots:
     void shutdownApplication();
     void handleViewQuickStartGuide();
     void handleViewReferenceGuide();
+    void handleShowWarningDialog(const QString &title, const QString &message);
     void handleAbout();
 
 private:

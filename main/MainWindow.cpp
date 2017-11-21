@@ -36,6 +36,7 @@
 #include <QMetaMethod>
 #include <QMessageBox>
 #include <QThread>
+#include <QTimer>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -86,6 +87,7 @@ MainWindow::MainWindow(QWidget *parent)
     PerformanceDataManager* dataMgr = PerformanceDataManager::instance();
     if ( dataMgr ) {
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        connect( dataMgr, &PerformanceDataManager::signalShowWarningMessage, this, &MainWindow::handleShowWarningDialog );
         connect( dataMgr, &PerformanceDataManager::loadComplete, this, &MainWindow::handleLoadComplete );
         connect( dataMgr, &PerformanceDataManager::addExperiment, ui->widget_ExperimentPanel, &ExperimentPanel::handleAddExperiment );
         connect( ui->widget_ExperimentPanel, &ExperimentPanel::signalSelectedClustersChanged, dataMgr, &PerformanceDataManager::signalSelectedClustersChanged );
@@ -112,6 +114,7 @@ MainWindow::MainWindow(QWidget *parent)
         connect( ui->widget_MetricTableView, &PerformanceDataMetricView::signalMetricViewChanged,
                  ui->widget_MetricViewManager, &MetricViewManager::handleMetricViewChanged );
 #else
+        connect( dataMgr, SIGNAL(signalShowWarningMessage(QString,QString)), this, SLOT(handleShowWarningDialog(QString,QString)) );
         connect( dataMgr, SIGNAL(loadComplete()), this, SLOT(handleLoadComplete()) );
         connect( dataMgr, SIGNAL(addExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)),
                  ui->widget_ExperimentPanel, SLOT(handleAddExperiment(QString,QString,QVector<QString>,QVector<bool>,QVector<QString>)) );
@@ -464,6 +467,33 @@ void MainWindow::handleViewQuickStartGuide()
 void MainWindow::handleViewReferenceGuide()
 {
     QDesktopServices::openUrl( QUrl("file://" + OSS_REFERENCE_GUIDE_FILEPATH ) );
+}
+
+/**
+ * @brief MainWindow::handleShowWarningDialog
+ * @param title - title of the warning dialog
+ * @param message - the message to be displayed
+ *
+ * This method will display a warning QMessageDialog with the indicated dialog title and message.  A timer is setup
+ * to automatically close the dialog after 10 seconds if the user hadn't.
+ */
+void MainWindow::handleShowWarningDialog(const QString& title, const QString& message)
+{
+    QMessageBox* dialog = new QMessageBox( Q_NULLPTR );
+    dialog->setWindowTitle( QStringLiteral("Warning!") );
+    dialog->setIcon( QMessageBox::Warning );
+    dialog->setText( QString("<font size=\"8\" color=\"FireBrick\">%1</font>").arg( title ) );
+    dialog->setInformativeText( message );
+    dialog->addButton( QMessageBox::Ok );
+    dialog->setAttribute( Qt::WA_DeleteOnClose, true );
+
+    QTimer* timer = new QTimer;
+    timer->setSingleShot( true );
+    connect( timer, SIGNAL(timeout()), timer, SLOT(deleteLater()) );
+    connect( timer, SIGNAL(timeout()), dialog, SLOT(close()) );
+
+    dialog->show();
+    timer->start( 10000 );
 }
 
 /**

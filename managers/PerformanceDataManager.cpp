@@ -2283,8 +2283,10 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
         const QString collectorId( i->getMetadata().getUniqueId().c_str() );
         if ( collectorId == "hwctime" )
             metricList = getMetricNameList< std::map<Framework::StackTrace, Framework::HWTimeDetail> >( i->getMetrics(), DETAIL_METRIC );
-        else if ( collectorId == "hwcsamp" )
+        else if ( collectorId == "hwcsamp" ) {
+            emit signalShowWarningMessage( DIALOG_WARNING, HWCSAMP_WARNING );
             metricList = getMetricNameList< std::map<Framework::StackTrace, std::vector<Framework::HWCSampDetail>> >( i->getMetrics(), DETAIL_METRIC );
+        }
         else if ( collectorId == "hwc" )
             metricList = getMetricNameList< std::uint64_t >( i->getMetrics(), QStringLiteral("overflows") );
         else

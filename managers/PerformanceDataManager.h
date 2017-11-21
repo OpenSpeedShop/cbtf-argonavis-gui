@@ -127,6 +127,7 @@ public slots:
 
 signals:
 
+    void signalShowWarningMessage(const QString& title, const QString& message);
     void signalSetDefaultMetricView(const MetricViewTypes viewType, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews, bool hasCallTreeViews);
 
     void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper);
@@ -436,6 +437,13 @@ private:
     static QMap< QString, QMap< QString, QString > > INIT_TRACING_EXPERIMENTS_GRAPH_TITLES();
 
 private:
+
+    const QString DIALOG_WARNING = tr("User Beware!");
+    const QString HWCSAMP_WARNING = tr("hwcsamp periodically interrupts the process and reads user specified hardware counter counts.\n"
+                                       "The address at that periodic interruption to read the counts is saved and used to map back to\n"
+                                       "source lines for functions, loops, and statements.  That address does not accurately reflect\n"
+                                       "where the hardware counter events occurred, only where they were read.\n\n"
+                                       "Please use caution when using these source mappings.");
 
     static QAtomicPointer< PerformanceDataManager > s_instance;
 
