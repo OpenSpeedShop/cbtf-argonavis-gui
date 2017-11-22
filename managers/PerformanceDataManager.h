@@ -438,11 +438,11 @@ private:
 
 private:
 
-    const QString DIALOG_WARNING = tr("User Beware!");
-    const QString HWCSAMP_WARNING = tr("hwcsamp periodically interrupts the process and reads user specified hardware counter counts.\n"
-                                       "The address at that periodic interruption to read the counts is saved and used to map back to\n"
-                                       "source lines for functions, loops, and statements.  That address does not accurately reflect\n"
-                                       "where the hardware counter events occurred, only where they were read.\n\n"
+    const QString DIALOG_WARNING = tr("Caution!");
+    const QString HWCSAMP_WARNING = tr("The \"hwcsamp\" experiment collector periodically interrupts the process and reads user specified hardware counter values. "
+                                       "The program counter address at that periodic interruption is also saved and used to map back to the corresponding source "
+                                       "lines for functions, statements and loops.  However, that address may not accurately reflect where the hardware counter "
+                                       "events occurred, only where they were read.\n\n"
                                        "Please use caution when using these source mappings.");
 
     static QAtomicPointer< PerformanceDataManager > s_instance;

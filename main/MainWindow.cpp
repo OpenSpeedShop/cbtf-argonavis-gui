@@ -480,12 +480,13 @@ void MainWindow::handleViewReferenceGuide()
 void MainWindow::handleShowWarningDialog(const QString& title, const QString& message)
 {
     QMessageBox* dialog = new QMessageBox( Q_NULLPTR );
-    dialog->setWindowTitle( QStringLiteral("Warning!") );
-    dialog->setIcon( QMessageBox::Warning );
-    dialog->setText( QString("<font size=\"8\" color=\"FireBrick\">%1</font>").arg( title ) );
+    dialog->setWindowTitle( title );
+    dialog->setIcon( QMessageBox::Information );
+    dialog->setText( QString("<font size=\"8\">%1</font>").arg( title ) );
     dialog->setInformativeText( message );
     dialog->addButton( QMessageBox::Ok );
     dialog->setAttribute( Qt::WA_DeleteOnClose, true );
+    dialog->setContentsMargins( 20, 10, 40, 10 );
 
     QTimer* timer = new QTimer;
     timer->setSingleShot( true );
