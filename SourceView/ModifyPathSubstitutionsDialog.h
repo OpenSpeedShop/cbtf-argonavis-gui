@@ -35,6 +35,9 @@ namespace Ui {
 class ModifyPathSubstitutionsDialog;
 }
 
+#ifndef QT_NO_CONTEXTMENU
+class QContextMenuEvent;
+#endif
 
 namespace ArgoNavis { namespace GUI {
 
@@ -62,17 +65,25 @@ protected:
 
 protected slots:
 
+#ifndef QT_NO_CONTEXTMENU
+    void contextMenuEvent(QContextMenuEvent *event) Q_DECL_OVERRIDE;
+#endif // QT_NO_CONTEXTMENU
+
     int exec() Q_DECL_OVERRIDE;
 
 private slots:
 
     void handleCellChanged(int row, int column);
+    void handleSelectFilePath();
+    void handleFileSelected(const QString& file);
 
 private:
 
     Ui::ModifyPathSubstitutionsDialog *ui;
 
     QSet< int > m_modifiedRows;
+
+    QAction* m_selectFilePath;
 
 };
 

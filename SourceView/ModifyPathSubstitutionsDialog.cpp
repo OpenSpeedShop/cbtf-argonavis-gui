@@ -25,6 +25,10 @@
 
 #include "ui_ModifyPathSubstitutionsDialog.h"
 
+#include <QFileDialog>
+#include <QMenu>
+#include <QContextMenuEvent>
+
 
 namespace ArgoNavis { namespace GUI {
 
@@ -36,10 +40,22 @@ namespace ArgoNavis { namespace GUI {
 ModifyPathSubstitutionsDialog::ModifyPathSubstitutionsDialog(QWidget *parent)
     : QDialog( parent )
     , ui( new Ui::ModifyPathSubstitutionsDialog )
+    , m_selectFilePath( Q_NULLPTR )
 {
     ui->setupUi( this );
 
     setMinimumSize( QSize(690, 485) );
+
+    // create context-menu actions
+    m_selectFilePath = new QAction( tr("&Select File"), this );
+
+    if ( m_selectFilePath ) {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        connect( m_selectFilePath, &QAction::triggered, this, &ModifyPathSubstitutionsDialog::handleSelectFilePath );
+#else
+        connect( m_selectFilePath, SIGNAL(triggered(bool)), this, SLOT(handleSelectFilePath()) );
+#endif
+    }
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( ui->tableWidget, &QTableWidget::cellChanged, this, &ModifyPathSubstitutionsDialog::handleCellChanged );
@@ -56,6 +72,8 @@ ModifyPathSubstitutionsDialog::ModifyPathSubstitutionsDialog(QWidget *parent)
 ModifyPathSubstitutionsDialog::~ModifyPathSubstitutionsDialog()
 {
     delete ui;
+
+    delete m_selectFilePath;
 }
 
 /**
@@ -92,6 +110,9 @@ void ModifyPathSubstitutionsDialog::extractFilenameAndLine(const QString& text, 
 /**
  * @brief ModifyPathSubstitutionsDialog::resizeEvent
  * @param e - resize event info
+ *
+ * This reimplements QDialog::resizeEvent to provide specific handling of the QResizeEvent in
+ * the Modify Path Substitution dialog.
  */
 void ModifyPathSubstitutionsDialog::resizeEvent(QResizeEvent *e)
 {
@@ -161,6 +182,23 @@ void ModifyPathSubstitutionsDialog::reject()
     QDialog::reject();
 }
 
+#ifndef QT_NO_CONTEXTMENU
+/**
+ * @brief ModifyPathSubstitutionsDialog::contextMenuEvent
+ * @param event - the context-menu event details
+ *
+ * This is the handler to receive context-menu events for the widget.
+ */
+void ModifyPathSubstitutionsDialog::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu menu( this );
+
+    menu.addAction( m_selectFilePath );
+
+    menu.exec( event->globalPos() );
+}
+#endif // QT_NO_CONTEXTMENU
+
 /**
  * @brief ModifyPathSubstitutionsDialog::exec
  * @return - the standard button code pressed
@@ -197,6 +235,48 @@ void ModifyPathSubstitutionsDialog::handleCellChanged(int row, int column)
     Q_UNUSED( column )
 
     m_modifiedRows.insert( row );
+}
+
+/**
+ * @brief ModifyPathSubstitutionsDialog::handleSelectFilePath
+ *
+ * This handles the "Select File" action trigger and opens the
+ */
+void ModifyPathSubstitutionsDialog::handleSelectFilePath()
+{
+    QFileDialog* dialog = new QFileDialog( this, tr("Select Directory For File") );
+
+    if ( ! dialog )
+        return;
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    connect( this, &ModifyPathSubstitutionsDialog::finished, dialog, &QDialog::done );
+    connect( dialog, &QFileDialog::fileSelected, this, &ModifyPathSubstitutionsDialog::handleFileSelected );
+#else
+    connect( this, SIGNAL(finished(int)), dialog, SLOT(done(int)) );
+    connect( this, &ModifyPathSubstitutionsDialog::finished, this, &ModifyPathSubstitutionsDialog::handleFileSelected );
+#endif
+
+    dialog->setAttribute( Qt::WA_DeleteOnClose, true );
+    dialog->show();
+}
+
+/**
+ * @brief ModifyPathSubstitutionsDialog::handleFileSelected
+ * @param file - the name of the selected file
+ *
+ * This method takes the absolute file path and extracts the directory path and sets the "New Path"
+ * table item for the current row with the directory path.
+ */
+void ModifyPathSubstitutionsDialog::handleFileSelected(const QString &file)
+{
+    const int row = ui->tableWidget->rowCount() - 1;
+
+    const QFileInfo fileInfo( file );
+
+    QTableWidgetItem* item = new QTableWidgetItem( fileInfo.path() );
+
+    ui->tableWidget->setItem( row, 1, item );
 }
 
 
