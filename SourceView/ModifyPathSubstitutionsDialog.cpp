@@ -254,7 +254,7 @@ void ModifyPathSubstitutionsDialog::handleSelectFilePath()
     connect( dialog, &QFileDialog::fileSelected, this, &ModifyPathSubstitutionsDialog::handleFileSelected );
 #else
     connect( this, SIGNAL(finished(int)), dialog, SLOT(done(int)) );
-    connect( this, &ModifyPathSubstitutionsDialog::finished, this, &ModifyPathSubstitutionsDialog::handleFileSelected );
+    connect( dialog, SIGNAL(fileSelected(QString)), this, SLOT(handleFileSelected(QString)) );
 #endif
 
     dialog->setAttribute( Qt::WA_DeleteOnClose, true );
