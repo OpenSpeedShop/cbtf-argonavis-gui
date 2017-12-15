@@ -2,14 +2,30 @@
 
 Baseline for next generation Open|SpeedShop Graphical User Interface (GUI).
 
-The primary focus of this GUI will be the processing and display of CUDA collector performance data.  However, there will be refactoring phases to adopt the GUI to support the processing and display of any collector performance data.
+The Open|SpeedShop GUI now has expanded capabilities beyond CUDA experiment analysis.  The Open|SpeedShop GUI now has support for other sampling and tracing collectors.
 
-Other collectors with good support so far are:
+Collectors with good support so far are:
 
+- hwc
+- hwctime
+- hwcsamp
+- pcsamp
 - usertime
-- mpi
+- mpit
+- omptp
+- mem
+
+In addition there is basic support for:
+
+- mpi, mpip
+- io, iop, iot
 - pthreads
 
+## Open|SpeedShop GUI User Guide
+
+The Open|SpeedShop GUI is currently in draft form and is available here:
+
+[Open|SpeedShop GUI User Guide](docs/openss-gui-user-guide-draft.pdf)
 
 ## Building the developmental Open|SpeedShop GUI
 
