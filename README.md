@@ -25,7 +25,7 @@ In addition there is basic support for:
 
 The Open|SpeedShop GUI is currently in draft form and is available here:
 
-[Open|SpeedShop GUI User Guide](docs/openss-gui-user-guide-draft.pdf)
+[Open|SpeedShop GUI User Guide](/../screenshots/docs/openss-gui-user-guide-draft.pdf)
 
 ## Building the developmental Open|SpeedShop GUI
 
