@@ -149,8 +149,10 @@ OpenSpeedShop::Framework::ThreadGroup MetricTableViewInfo::getThreads()
 
 /**
  * @brief MetricTableViewInfo::searchForFunctions
- * @param name -
- * @return
+ * @param name - input function name
+ * @return - whether input function name is a traced memory function
+ *
+ * This function returns whether the input function name is a traced memory function.
  */
 bool MetricTableViewInfo::isTracedMemoryFunction(const QString& name)
 {
