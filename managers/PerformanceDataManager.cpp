@@ -4062,7 +4062,7 @@ void PerformanceDataManager::ShowTraceDetail(
         emit requestMetricViewComplete( clusteringCriteriaName, traceViewName, metric, functionName, lower, upper );
     }
 
-    if ( emitGraphItem ) {
+    if ( emitGraphItem && maxRank >= metricData.size() ) {
         if ( s_TRACING_EXPERIMENTS_GRAPH_TITLES.contains( collectorId ) && s_TRACING_EXPERIMENTS_GRAPH_TITLES[ collectorId ].contains( metric ) ) {
             auto minmax = std::minmax_element( metricData.begin(), metricData.begin() + maxRank );
 
