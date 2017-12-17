@@ -3639,10 +3639,10 @@ void PerformanceDataManager::ShowCalltreeDetail(
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
             all_details_data_t detail_tuple = std::make_tuple( results.first, results.second, function, caller );
-            CallerCallee_t callerCalleeInfo = std::make_tuple( caller, function ) ;
+            CallerCallee_t callerCalleeInfo = std::make_tuple( caller, function );
 #else
             all_details_data_t detail_tuple = boost::make_tuple( results.first, results.second, function, caller );
-            CallerCallee_t callerCalleeInfo = boost::make_tuple( caller, function ) ;
+            CallerCallee_t callerCalleeInfo = boost::make_tuple( caller, function );
 #endif
             all_details.push_back( detail_tuple );
 
