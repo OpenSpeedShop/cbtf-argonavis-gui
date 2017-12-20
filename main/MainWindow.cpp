@@ -182,7 +182,7 @@ MainWindow::~MainWindow()
  * @brief MainWindow::setExperimentDatabase
  * @param filename - the experiment database filename (.openss)
  *
- * This method is called to
+ * This method is called to store the name of the last experiment database opened by the application.
  */
 void MainWindow::setExperimentDatabase(const QString &filename)
 {
@@ -207,6 +207,8 @@ void MainWindow::showEvent(QShowEvent *event)
 
     if ( ! m_filename.isEmpty() ) {
         loadExperimentDatabase( m_filename );
+
+        m_filename.clear();
     }
 }
 
@@ -220,8 +222,18 @@ void MainWindow::showEvent(QShowEvent *event)
  */
 void MainWindow::loadOpenSsExperiment()
 {
-    QString filePath = QApplication::applicationDirPath();
+    QString filePath;
+
+    if ( m_lastFilePath.isEmpty() )
+        // upon initial application launch use the application root directory
+        filePath = QApplication::applicationDirPath();
+    else {
+        // then use the directory path in the last filename that was opened
+        filePath = m_lastFilePath;
+    }
+
     filePath = QFileDialog::getOpenFileName( this, tr("Open File"), filePath, "*.openss" );
+
     if ( filePath.isEmpty() )
         return;
 
@@ -258,6 +270,9 @@ void MainWindow::loadExperimentDatabase(const QString& filepath)
     }
 
     addUnloadOpenSsExperimentMenuItem( filepath );
+
+    QFileInfo fileInfo( filepath );
+    m_lastFilePath = fileInfo.absolutePath();
 
 #if defined(HAS_OSSCUDA2XML)
     dataMgr->xmlDump( filepath );

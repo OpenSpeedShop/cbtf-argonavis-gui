@@ -84,6 +84,7 @@ private:
     Ui::MainWindow *ui;
 
     QString m_filename;
+    QString m_lastFilePath;
 
     QSet< QString > m_plotsMap;  // key = <ClusteringCriteriaName>-<ClusterName>
 
