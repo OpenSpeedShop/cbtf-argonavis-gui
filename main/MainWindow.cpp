@@ -182,7 +182,9 @@ MainWindow::~MainWindow()
  * @brief MainWindow::setExperimentDatabase
  * @param filename - the experiment database filename (.openss)
  *
- * This method is called to store the name of the last experiment database opened by the application.
+ * This method is called when the user had specified an experiment database filename on the command-line
+ * using the '-f' command-line option.  Once this method sets the filename, when the show event occurs the
+ * filename will be used to call the method to load the experimeent database.
  */
 void MainWindow::setExperimentDatabase(const QString &filename)
 {
