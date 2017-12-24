@@ -23,7 +23,10 @@
 
 #include "DerivedMetricsSolver.h"
 
+#include "common/openss-gui-config.h"
+
 #include <QStack>
+#include <QStringList>
 
 namespace ArgoNavis { namespace GUI {
 

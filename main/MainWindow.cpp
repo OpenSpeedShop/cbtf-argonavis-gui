@@ -145,7 +145,7 @@ MainWindow::MainWindow(QWidget *parent)
                  ui->widget_SourceCodeViewer, SIGNAL(addMetricViewData(QString,QString,QString,QString,QVariantList,QStringList)) );
         connect( ui->widget_MetricTableView, SIGNAL(signalMetricViewChanged(QString)),
                  ui->widget_SourceCodeViewer, SLOT(handleMetricViewChanged(QString)) );
-        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool,bool)),
+        connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool,bool,bool)),
                  ui->widget_MetricViewManager, SLOT(handleSwitchView(MetricViewTypes)) );
         connect( dataMgr, SIGNAL(signalSetDefaultMetricView(MetricViewTypes,bool,bool,bool,bool,bool)),
                  this, SLOT(handleSetDefaultMetricView(MetricViewTypes,bool,bool,bool,bool,bool)) );
