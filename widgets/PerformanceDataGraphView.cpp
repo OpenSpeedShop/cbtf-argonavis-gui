@@ -953,10 +953,14 @@ void PerformanceDataGraphView::handleRequestMetricViewComplete(const QString &cl
     QVector<double> tickValues;
     QVector<QString> tickLabels;
 
+    const double fraction( MAX_YAXIS_VALUE / 10.0 );
+
+    const double factor( ( NUM_SIGNIFICANT_DIGITS == 1 ) ? fraction : std::round( fraction ) );
+
     for (int i=0; i<=10; ++i) {
-        const double value( i * std::round( MAX_YAXIS_VALUE / 10.0 ) );
+        const double value( i * factor );
         tickValues << value;
-        tickLabels << QString::number( value, 'f', 0 );
+        tickLabels << QString::number( value, 'f', ( NUM_SIGNIFICANT_DIGITS == 1 ) ? 1 : 0 );
     }
 
 #if defined(HAS_QCUSTOMPLOT_V2)

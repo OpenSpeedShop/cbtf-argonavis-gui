@@ -27,6 +27,7 @@
 
 #include "managers/BackgroundGraphRenderer.h"
 #include "managers/ApplicationOverrideCursorManager.h"
+#include "managers/DerivedMetricsSolver.h"
 #include "widgets/PerformanceDataMetricView.h"
 #include "CBTF-ArgoNavis-Ext/DataTransferDetails.h"
 #include "CBTF-ArgoNavis-Ext/KernelExecutionDetails.h"
@@ -179,6 +180,40 @@ QMap< QString, QMap< QString, QString > > PerformanceDataManager::INIT_TRACING_E
 
     return outerMap;
 }
+
+typedef struct {
+    std::set<QString> events;
+    QString formula;
+} DerivedMetricDefinition;
+
+std::map< QString, DerivedMetricDefinition > derived_definitions{
+    { "Instructions Per Cycle", { { "PAPI_TOT_INS", "PAPI_TOT_CYC" }, "PAPI_TOT_INS / PAPI_TOT_CYC" } },
+    { "Issued Instructions Per Cycle", { { "PAPI_TOT_IIS", "PAPI_TOT_CYC" }, "PAPI_TOT_IIS / PAPI_TOT_CYC" } },
+    { "FP Instructions Per Cycle", { { "PAPI_FP_INS", "PAPI_TOT_CYC" }, "PAPI_FP_INS / PAPI_TOT_CYC" } },
+    { "Percentage FP Instructions", { { "PAPI_FP_INS", "PAPI_TOT_INS" }, "PAPI_FP_INS / PAPI_TOT_INS" } },
+    { "Graduated Instructions / Issued Instructions", { { "PAPI_TOT_INS", "PAPI_TOT_IIS" }, "PAPI_FP_INS / PAPI_TOT_IIS" } },
+    { "% of Cycles with no instruction issue", { { "PAPI_STL_ICY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_ICY / PAPI_TOT_CYC )" } },
+    { "% of Cycles Waiting for Memory Access", { { "PAPI_STL_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_SCY / PAPI_TOT_CYC )" } },
+    { "% of Cycles Stalled on Any Resource", { { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
+    { "Data References Per Instruction", { { "PAPI_L1_DCA", "PAPI_TOT_INS" }, "PAPI_L1_DCA / PAPI_TOT_INS" } },
+    { "L1 Cache Line Reuse (data)", { { "PAPI_LST_INS", "PAPI_L1_DCM" }, "( PAPI_LST_INS - PAPI_L1_DCM ) / PAPI_L1_DCM" } },
+    { "L1 Cache Data Hit Rate", { { "PAPI_L1_DCM", "PAPI_LST_INS" }, "1.0 - ( PAPI_L1_DCM / PAPI_LST_INS )" } },
+    { "L1 Data Cache Read Miss Ratio", { { "PAPI_L1_DCM", "PAPI_L1_DCA" }, "PAPI_L1_DCM / PAPI_L1_DCA" } },
+    { "L2 Cache Line Reuse (data)",  { { "PAPI_L1_DCM", "PAPI_L2_DCM" }, "( PAPI_L1_DCM - PAPI_L2_DCM ) / PAPI_L2_DCM" } },
+    { "L2 Cache Data Hit Rate", { { "PAPI_L2_DCM", "PAPI_L1_DCM" }, "1.0 - ( PAPI_L2_DCM / PAPI_L1_DCM )" } },
+    { "L2 Cache Miss Ratio", { { "PAPI_L2_TCM", "PAPI_L2_TCA" }, "PAPI_L2_TCM / PAPI_L2_TCA" } },
+    { "L3 Cache Line Reuse (data)",  { { "PAPI_L2_DCM", "PAPI_L3_DCM" }, "( PAPI_L2_DCM - PAPI_L3_DCM ) / PAPI_L3_DCM" } },
+    { "L3 Cache Data Hit Rate", { { "PAPI_L3_DCM", "PAPI_L2_DCM"}, "1.0 - ( PAPI_L3_DCM / PAPI_L2_DCM )" } },
+    { "L3 Data Cache Miss Ratio", { { "PAPI_L3_DCM", "PAPI_L3_DCA" }, "PAPI_L3_DCM / PAPI_L3_DCA" } },
+    { "L3 Cache Data Read Ratio", { { "PAPI_L3_DCR", "PAPI_L3_DCA" }, "PAPI_L3_DCR / PAPI_L3_DCA" } },
+    { "L3 Cache Instruction Miss Ratio", { { "PAPI_L3_ICM", "PAPI_L3_ICR" }, "PAPI_L3_ICM / PAPI_L3_ICR" } },
+    { "% of Cycles Stalled on Memory Access", { { "PAPI_MEM_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_MEM_SCY / PAPI_TOT_CYC )" } },
+    { "% of Cycles Stalled on Any Resource", { { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
+    { "Ratio L1 Data Cache Miss to Total Cache Access", { { "PAPI_L1_DCM", "PAPI_L1_TCA" }, "PAPI_L1_DCM / PAPI_L1_TCA" } },
+    { "Ratio L2 Data Cache Miss to Total Cache Access", { { "PAPI_L2_DCM", "PAPI_L2_TCA" }, "PAPI_L2_DCM / PAPI_L2_TCA" } },
+    { "Ratio L3 Total Cache Miss to Data Cache Access", { { "PAPI_L3_TCM", "PAPI_L3_DCA" }, "PAPI_L3_TCM / PAPI_L3_DCA" } },
+    { "L3 Total Cache Miss Ratio", { { "PAPI_L3_TCM", "PAPI_L3_TCA" }, "PAPI_L3_TCM / PAPI_L3_TCA" } },
+    { "Ratio Mispredicted to Correctly Predicted Branches", { { "PAPI_BR_MSP", "PAPI_BR_PRC" }, "PAPI_BR_MSP / PAPI_BR_PRC" } } };
 
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral( "Details" );
 const QString TRACE_EVENT_DETAILS_METRIC = QStringLiteral( "Trace" );
@@ -469,6 +504,58 @@ void PerformanceDataManager::handleRequestMetricView(const QString& clusteringCr
             QtConcurrent::run( boost::bind( &PerformanceDataManager::monitorMetricViewComplete, this,
                                             futures, clusteringCriteriaName, modeName, metricName, viewName, lower, upper ) );
         }
+    }
+}
+
+void PerformanceDataManager::handleRequestDerivedMetricView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName)
+{
+#ifdef HAS_CONCURRENT_PROCESSING_VIEW_DEBUG
+    qDebug() << "PerformanceDataManager::handleRequestDerivedMetricView: clusteringCriteriaName=" << clusteringCriteriaName << "metric=" << metricName << "view=" << viewName;
+#endif
+    if ( ! m_tableViewInfo.contains( clusteringCriteriaName ) || metricName.isEmpty() || viewName.isEmpty() )
+        return;
+
+    MetricTableViewInfo& info = m_tableViewInfo[ clusteringCriteriaName ];
+
+    if ( 0 == info.getCollectors().size() )
+        return;
+
+    const Collector collector( *info.getCollectors().begin() );
+    const QString collectorId( collector.getMetadata().getUniqueId().c_str() );
+
+    if ( ! s_SAMPLING_EXPERIMENTS.contains( collectorId ) )
+        return;
+
+    const QString metricViewName = metricName + "-" + viewName;
+
+    ApplicationOverrideCursorManager* cursorManager = ApplicationOverrideCursorManager::instance();
+    if ( cursorManager ) {
+        cursorManager->startWaitingOperation( QString("generate-%1").arg(metricViewName) );
+    }
+
+    info.addMetricView( metricViewName );
+
+    // Determine full time interval extent of this experiment
+    const TimeInterval interval( info.getInterval() );
+    const Extent extent = info.getExtent();
+    const Base::TimeInterval experimentInterval = ConvertToArgoNavis( extent.getTimeInterval() );
+    const Base::TimeInterval graphInterval = ConvertToArgoNavis( interval );
+    const double lower = ( graphInterval.begin() - experimentInterval.begin() ) / 1000000.0;
+    const double upper = ( graphInterval.end() - experimentInterval.begin() ) / 1000000.0;
+
+    if ( collectorId == "hwcsamp" ) {
+        if ( viewName == s_functionsView )
+            ShowSampleCountersDerivedMetricDetail< Framework::Function, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
+        else if ( viewName == s_statementsView )
+            ShowSampleCountersDerivedMetricDetail< Framework::Statement, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
+        else if ( viewName == s_linkedObjectsView )
+            ShowSampleCountersDerivedMetricDetail< Framework::LinkedObject, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
+        else if ( viewName == s_loopsView )
+            ShowSampleCountersDerivedMetricDetail< Framework::Loop, std::vector<Framework::HWCSampDetail> >( clusteringCriteriaName, collector, info.getThreads(), lower, upper, interval, metricName, viewName );
+    }
+
+    if ( cursorManager ) {
+        cursorManager->finishWaitingOperation( QString("generate-%1").arg(metricViewName) );
     }
 }
 
@@ -2389,7 +2476,7 @@ void PerformanceDataManager::loadDefaultViews(const QString &filePath)
             else
                 metricViewType = CALLTREE_VIEW;
 
-            emit signalSetDefaultMetricView( metricViewType, true, !s_SAMPLING_EXPERIMENTS.contains(collectorId), hasTraceExperiment | hasExperimentWithGraphs, hasCallTreeViews );
+            emit signalSetDefaultMetricView( metricViewType, collectorId == "hwcsamp", true, !s_SAMPLING_EXPERIMENTS.contains(collectorId), hasTraceExperiment | hasExperimentWithGraphs, hasCallTreeViews );
 
             QVector< bool > isGpuSampleCounters;
             QVector< QString > sampleCounterNames;
@@ -2945,7 +3032,7 @@ void PerformanceDataManager::loadCudaView(const QString& experimentName, const Q
     const bool hasCallTreeViews = s_EXPERIMENTS_WITH_CALLTREES.contains( "cuda" );
 
     // set default metric view
-    emit signalSetDefaultMetricView( TIMELINE_VIEW, true, true, false, hasCallTreeViews );
+    emit signalSetDefaultMetricView( TIMELINE_VIEW, false, true, true, false, hasCallTreeViews );
 
     // reset all thread flags to false
     QMutableMapIterator< Base::ThreadName, bool > mapiter( flags );
@@ -4203,6 +4290,139 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
         if ( emitGraphItem ) {
             for ( int index=0; index<sampleCounterNames.size(); index++ ) {
                 emit addGraphItem( metricName, viewName, sampleCounterNames[index], std::distance( raw_items->begin(), iter ), totalSampleCount[index] );
+            }
+        }
+    }
+
+    emit requestMetricViewComplete( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, lower, upper );
+}
+
+/*
+ * @brief PerformanceDataManager::ShowSampleCountersDerivedMetricDetail
+ * @param clusteringCriteriaName - the clustering criteria name
+ * @param collector - the experiment collector used for the metric view
+ * @param threadGroup - the set of threads applicable to the metric view
+ * @param lower - the start time of the metric view
+ * @param upper - the end time of the metric view
+ * @param interval - the time interval for the metric view
+ * @param metricName - the metric computed in the metric view
+ * @param viewName - the metric view requested
+ *
+ * This method computes the data for the metric view for sampling experiments in accordance with the
+ * various contraints for the view - set of threads, set of functions, time interval and the metric name.
+ */
+template<typename TS, typename DETAIL_t>
+void PerformanceDataManager::ShowSampleCountersDerivedMetricDetail(const QString &clusteringCriteriaName, const Collector &collector, const ThreadGroup &threadGroup, const double lower, const double upper, const TimeInterval &interval, const QString metricName, const QString viewName)
+{
+    const QString METRIC_VIEW_MODE = PerformanceDataMetricView::getMetricModeName( PerformanceDataMetricView::DERIVED_METRIC_MODE );
+
+    const QString collectorId( collector.getMetadata().getUniqueId().c_str() );
+
+    // get name of sample counter
+    std::string nameListStr;
+    collector.getParameterValue( "event", nameListStr );
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    const QString nameList = QString::fromStdString( nameListStr );
+#else
+    const QString nameList = QString( nameListStr.c_str() );
+#endif
+
+    QStringList sampleCounterNames = nameList.split( ',' );
+
+    std::set<QString> configured;
+
+    foreach ( const QString& name, sampleCounterNames ) {
+        configured.emplace( name );
+    }
+
+    QStringList derivedMetricList;
+
+    for( auto iter = derived_definitions.begin(); iter != derived_definitions.end(); ++iter ) {
+        std::set<QString> derived( iter->second.events );  // get the next derived definition to match with configured set
+
+        std::set<QString> intersection;
+
+        std::set_intersection( configured.begin(), configured.end(),
+                               derived.begin(), derived.end(),
+                               std::inserter( intersection, intersection.begin() ) );
+
+        if ( derived == intersection ) {
+            derivedMetricList << iter->first;
+        }
+    }
+
+    const bool emitGraphItem = s_SAMPLING_EXPERIMENTS.contains( collectorId );
+
+    QStringList metricDesc = derivedMetricList;
+
+    metricDesc.prepend( s_timeTitle );
+    metricDesc.append( s_functionTitle );
+
+    // for details view emit signal to create just the model
+    emit addMetricView( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, metricDesc );
+
+    SmartPtr< std::map< TS,
+                std::map< Framework::Thread,
+                    std::map< Framework::StackTrace, DETAIL_t > > > > raw_items;
+
+    Queries::GetMetricValues( collector, metricName.toStdString(), interval, threadGroup, getThreadSet<TS>( threadGroup ),  // input - metric search criteria
+                              raw_items );
+
+    if ( emitGraphItem ) {
+        QStringList items;
+
+        for ( typename std::map< TS, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
+            items << getLocationInfo( iter->first );
+        }
+
+        emit createGraphItems( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, derivedMetricList, items );
+    }
+
+    const DerivedMetricsSolver solver;
+
+    for ( typename std::map< TS, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
+
+        const QString locationName = getLocationInfo( iter->first );
+
+        typename std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > >& thread( iter->second );
+
+        std::map< Framework::Thread, Framework::ExtentGroup > subextents_map;
+        Get_Subextents_To_Object_Map( threadGroup, iter->first, subextents_map );
+
+        QMap< QString, qulonglong > totalSampleCount;
+        double totalTime( 0.0 );
+
+        for ( typename std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > >::iterator titer = thread.begin(); titer != thread.end(); titer++ ) {
+            const typename std::map< Framework::StackTrace, DETAIL_t >& tracemap( titer->second );
+
+            for ( typename std::map< Framework::StackTrace, DETAIL_t >::const_iterator siter = tracemap.begin(); siter != tracemap.end(); siter++ ) {
+                const DETAIL_t& details( siter->second );
+
+                for ( int index=0; index<sampleCounterNames.size(); index++ ) {
+                    totalSampleCount[ sampleCounterNames[index] ] += getSampleCounterValue( details, index );
+                }
+
+                totalTime += getSampleCounterTimeValue( details );
+            }
+        }
+
+        // generate each column of metric values
+        QVariantList metricValues;
+
+        metricValues << totalTime;
+
+        foreach ( const QString& key, derivedMetricList ) {
+            metricValues << solver.solve( derived_definitions[key].formula, totalSampleCount );
+        }
+
+        metricValues << locationName;
+
+        emit addMetricViewData( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, metricValues );
+
+        if ( emitGraphItem ) {
+            for ( int index=0; index<derivedMetricList.size(); index++ ) {
+                emit addGraphItem( metricName, viewName, derivedMetricList[index], std::distance( raw_items->begin(), iter ), metricValues[ index+1 ].toDouble() );
             }
         }
     }

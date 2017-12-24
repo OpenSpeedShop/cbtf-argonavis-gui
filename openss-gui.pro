@@ -12,7 +12,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets concurrent printsupport
 
 DEFINES += APP_MAJOR_VERSION=1
 DEFINES += APP_MINOR_VERSION=3
-DEFINES += APP_SUBMINOR_VERSION=1
+DEFINES += APP_SUBMINOR_VERSION=2
 DEFINES += APP_BUILD_VERSION=0000
 
 greaterThan(QT_MAJOR_VERSION, 4): CONFIG += c++11
@@ -212,7 +212,8 @@ SOURCES += \
     widgets/DefaultSortFilterProxyModel.cpp \
     widgets/FilterExpressionValidator.cpp \
     widgets/PerformanceDataTimelineView.cpp \
-    widgets/PerformanceDataGraphView.cpp
+    widgets/PerformanceDataGraphView.cpp \
+    managers/DerivedMetricsSolver.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -265,7 +266,8 @@ HEADERS += \
     widgets/DefaultSortFilterProxyModel.h \
     widgets/FilterExpressionValidator.h \
     widgets/PerformanceDataTimelineView.h \
-    widgets/PerformanceDataGraphView.h
+    widgets/PerformanceDataGraphView.h \
+    managers/DerivedMetricsSolver.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataMetricView.ui \

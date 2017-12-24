@@ -119,6 +119,7 @@ public slots:
     void asyncLoadCudaViews(const QString& filePath);
 
     void handleRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
+    void handleRequestDerivedMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
     void handleRequestLoadBalanceView(const QString &clusteringCriteriaName, const QString &metricName, const QString &viewName);
     void handleRequestCompareView(const QString& clusteringCriteriaName, const QString& compareMode, const QString& metricName, const QString& viewName);
     void handleProcessDetailViews(const QString& clusteringCriteriaName);
@@ -128,7 +129,7 @@ public slots:
 signals:
 
     void signalShowWarningMessage(const QString& title, const QString& message);
-    void signalSetDefaultMetricView(const MetricViewTypes viewType, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews, bool hasCallTreeViews);
+    void signalSetDefaultMetricView(const MetricViewTypes viewType, bool hasDerivedMetrics, bool hasCompareViews, bool hasLoadBalanceViews, bool hasTraceViews, bool hasCallTreeViews);
 
     void setMetricDuration(const QString& clusteringCriteriaName, const QString& clusterName, double xAxisLower, double xAxisUpper);
 
@@ -383,6 +384,16 @@ private:
                                   const QString metricName,
                                   const QString viewName);
 
+    template <typename TS, typename DETAIL_t>
+    void ShowSampleCountersDerivedMetricDetail(const QString &clusteringCriteriaName,
+                                               const OpenSpeedShop::Framework::Collector &collector,
+                                               const OpenSpeedShop::Framework::ThreadGroup &threadGroup,
+                                               const double lower,
+                                               const double upper,
+                                               const OpenSpeedShop::Framework::TimeInterval &interval,
+                                               const QString metricName,
+                                               const QString viewName);
+
     void processCalltreeView(const QString clusteringCriteriaName);
 
     bool processDataTransferEvent(const ArgoNavis::Base::Time& time_origin,
@@ -508,7 +519,7 @@ private:
     QAtomicInt m_numberLoadWorkUnitsInProgress;
     QAtomicInt m_loadInProgress;
 
- };
+};
 
 
 } // GUI

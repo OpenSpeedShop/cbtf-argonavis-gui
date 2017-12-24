@@ -73,13 +73,14 @@ public:
 
     typedef enum { DETAILS_MODE = 1,
                    METRIC_MODE = 2,
-                   CALLTREE_MODE = 4,
-                   COMPARE_MODE = 8,
-                   COMPARE_BY_RANK_MODE = 16,
-                   COMPARE_BY_HOST_MODE = 32,
-                   COMPARE_BY_PROCESS_MODE = 64,
-                   LOAD_BALANCE_MODE = 128,
-                   TRACE_MODE = 256
+                   DERIVED_METRIC_MODE = 4,
+                   CALLTREE_MODE = 8,
+                   COMPARE_MODE = 16,
+                   COMPARE_BY_RANK_MODE = 32,
+                   COMPARE_BY_HOST_MODE = 64,
+                   COMPARE_BY_PROCESS_MODE = 128,
+                   LOAD_BALANCE_MODE = 256,
+                   TRACE_MODE = 512
                  } ModeType;
 
     Q_DECLARE_FLAGS( ModeTypes, ModeType )
@@ -93,6 +94,7 @@ public:
 signals:
 
     void signalAddDevice(const quint32 deviceNumber, const quint32 definedDeviceNumber, const NameValueList& attributes, const NameValueList& maximumLimits);
+    void signalRequestDerivedMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
     void signalRequestMetricView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
     void signalRequestLoadBalanceView(const QString& clusteringCriteriaName, const QString& metricName, const QString& viewName);
     void signalRequestCompareView(const QString& clusteringCriteriaName, const QString& compareMode, const QString& metricName, const QString& viewName);
@@ -144,6 +146,7 @@ private:
     static QString s_deviceTitle;
 
     static QString s_metricModeName;
+    static QString s_derivedMetricModeName;
     static QString s_detailsModeName;
     static QString s_calltreeModeName;
     static QString s_compareModeName;
@@ -183,6 +186,7 @@ private:
 
     // models for view combobox
     QStandardItemModel m_metricViewModel;                   // snapshot of view combobox model for metric mode
+    QStandardItemModel m_derivedMetricViewModel;            // snapshot of view combobox model for derived metric mode
     QStandardItemModel m_loadBalanceViewModel;              // snapshot of view combobox model for load balance mode
     QStandardItemModel m_detailsViewModel;                  // initialized view combobox model for details mode
     QStandardItemModel m_calltreeViewModel;                 // empty combobox model for calltree mode

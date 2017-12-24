@@ -50,6 +50,7 @@ QString PerformanceDataMetricView::s_functionTitle( tr("Function (defining locat
 QString PerformanceDataMetricView::s_deviceTitle( tr("Device") );
 
 QString PerformanceDataMetricView::s_metricModeName( tr("Metric") );
+QString PerformanceDataMetricView::s_derivedMetricModeName( tr("Derived Metric") );
 QString PerformanceDataMetricView::s_detailsModeName( tr("Details") );
 QString PerformanceDataMetricView::s_calltreeModeName( tr("CallTree") );
 QString PerformanceDataMetricView::s_compareModeName( tr("Compare") );
@@ -102,6 +103,12 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
     m_metricViewModel.appendRow( new QStandardItem( s_statementsViewName ) );
     m_metricViewModel.appendRow( new QStandardItem( s_linkedObjectsViewName ) );
     m_metricViewModel.appendRow( new QStandardItem( s_loopsViewName ) );
+
+    // initialize model used for view combobox when in derived metric mode
+    m_derivedMetricViewModel.appendRow( new QStandardItem( s_functionViewName ) );
+    m_derivedMetricViewModel.appendRow( new QStandardItem( s_statementsViewName ) );
+    m_derivedMetricViewModel.appendRow( new QStandardItem( s_linkedObjectsViewName ) );
+    m_derivedMetricViewModel.appendRow( new QStandardItem( s_loopsViewName ) );
 
     // initialize model used for view combobox when in load balance mode
     m_loadBalanceViewModel.appendRow( new QStandardItem( s_functionViewName ) );
@@ -356,6 +363,9 @@ void PerformanceDataMetricView::setAvailableMetricModes(const ModeTypes &modes)
     if ( modes.testFlag( METRIC_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_metricModeName ) ) )
         ui->comboBox_ModeSelection->addItem( s_metricModeName );
 
+    if ( modes.testFlag( DERIVED_METRIC_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_derivedMetricModeName ) ) )
+        ui->comboBox_ModeSelection->addItem( s_derivedMetricModeName );
+
     if ( modes.testFlag( DETAILS_MODE ) && ( -1 == ui->comboBox_ModeSelection->findText( s_detailsModeName ) ) )
         ui->comboBox_ModeSelection->addItem( s_detailsModeName );
 
@@ -396,6 +406,8 @@ QString PerformanceDataMetricView::getMetricModeName(const PerformanceDataMetric
         return s_detailsModeName;
     case METRIC_MODE:
         return s_metricModeName;
+    case DERIVED_METRIC_MODE:
+        return s_derivedMetricModeName;
     case CALLTREE_MODE:
         return s_calltreeModeName;
     case COMPARE_MODE:
@@ -1065,6 +1077,9 @@ void PerformanceDataMetricView::handleRequestViewUpdate(bool clearExistingViews)
     case TRACE_MODE:
         //emit signalRequestTraceView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
         break;
+    case DERIVED_METRIC_MODE:
+        emit signalRequestDerivedMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
+        break;
     default:
         emit signalRequestMetricView( m_clusteringCritieriaName, ui->comboBox_MetricSelection->currentText(), ui->comboBox_ViewSelection->currentText() );
     }
@@ -1146,6 +1161,14 @@ void PerformanceDataMetricView::handleViewModeChanged(const QString &text)
         ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
         ui->comboBox_MetricSelection->blockSignals( false );
         ui->comboBox_ViewSelection->setModel( &m_loadBalanceViewModel );
+        ui->comboBox_MetricSelection->setEnabled( true );
+    }
+    else if ( s_derivedMetricModeName == text ) {
+        m_mode = DERIVED_METRIC_MODE;
+        ui->comboBox_MetricSelection->blockSignals( true );
+        ui->comboBox_MetricSelection->setModel( &m_metricModeMetricModel );
+        ui->comboBox_MetricSelection->blockSignals( false );
+        ui->comboBox_ViewSelection->setModel( &m_derivedMetricViewModel );
         ui->comboBox_MetricSelection->setEnabled( true );
     }
     else {
