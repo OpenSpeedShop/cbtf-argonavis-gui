@@ -29,7 +29,13 @@
 #include <QMap>
 #include <QVector>
 #include <QString>
+#include <QStringList>
+#include <QVariantList>
 #include <QChar>
+
+#include <map>
+#include <vector>
+#include <set>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -42,7 +48,11 @@ public:
 
     explicit DerivedMetricsSolver(QObject *parent = nullptr);
 
+    QStringList getDerivedMetricList(const std::set<QString>& configured) const;
+
     double solve(const QString &formula, QMap<QString, qulonglong> hwCounterValues) const;
+
+    QVector<QVariantList> getDerivedMetricData() const;
 
 private:
 
@@ -53,6 +63,14 @@ private:
     std::vector<QString> convertInfixToRPN(const QString &infix) const;
 
     double evaluate(double lhs, double rhs, const QChar &op) const;
+
+    typedef struct {
+        bool enabled;
+        std::set<QString> events;
+        QString formula;
+    } DerivedMetricDefinition;
+
+    mutable std::map< QString, DerivedMetricDefinition > m_derived_definitions;
 
 };
 

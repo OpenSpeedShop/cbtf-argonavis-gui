@@ -181,40 +181,6 @@ QMap< QString, QMap< QString, QString > > PerformanceDataManager::INIT_TRACING_E
     return outerMap;
 }
 
-typedef struct {
-    std::set<QString> events;
-    QString formula;
-} DerivedMetricDefinition;
-
-std::map< QString, DerivedMetricDefinition > derived_definitions{
-    { "Instructions Per Cycle", { { "PAPI_TOT_INS", "PAPI_TOT_CYC" }, "PAPI_TOT_INS / PAPI_TOT_CYC" } },
-    { "Issued Instructions Per Cycle", { { "PAPI_TOT_IIS", "PAPI_TOT_CYC" }, "PAPI_TOT_IIS / PAPI_TOT_CYC" } },
-    { "FP Instructions Per Cycle", { { "PAPI_FP_INS", "PAPI_TOT_CYC" }, "PAPI_FP_INS / PAPI_TOT_CYC" } },
-    { "Percentage FP Instructions", { { "PAPI_FP_INS", "PAPI_TOT_INS" }, "PAPI_FP_INS / PAPI_TOT_INS" } },
-    { "Graduated Instructions / Issued Instructions", { { "PAPI_TOT_INS", "PAPI_TOT_IIS" }, "PAPI_FP_INS / PAPI_TOT_IIS" } },
-    { "% of Cycles with no instruction issue", { { "PAPI_STL_ICY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_ICY / PAPI_TOT_CYC )" } },
-    { "% of Cycles Waiting for Memory Access", { { "PAPI_STL_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_SCY / PAPI_TOT_CYC )" } },
-    { "% of Cycles Stalled on Any Resource", { { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
-    { "Data References Per Instruction", { { "PAPI_L1_DCA", "PAPI_TOT_INS" }, "PAPI_L1_DCA / PAPI_TOT_INS" } },
-    { "L1 Cache Line Reuse (data)", { { "PAPI_LST_INS", "PAPI_L1_DCM" }, "( PAPI_LST_INS - PAPI_L1_DCM ) / PAPI_L1_DCM" } },
-    { "L1 Cache Data Hit Rate", { { "PAPI_L1_DCM", "PAPI_LST_INS" }, "1.0 - ( PAPI_L1_DCM / PAPI_LST_INS )" } },
-    { "L1 Data Cache Read Miss Ratio", { { "PAPI_L1_DCM", "PAPI_L1_DCA" }, "PAPI_L1_DCM / PAPI_L1_DCA" } },
-    { "L2 Cache Line Reuse (data)",  { { "PAPI_L1_DCM", "PAPI_L2_DCM" }, "( PAPI_L1_DCM - PAPI_L2_DCM ) / PAPI_L2_DCM" } },
-    { "L2 Cache Data Hit Rate", { { "PAPI_L2_DCM", "PAPI_L1_DCM" }, "1.0 - ( PAPI_L2_DCM / PAPI_L1_DCM )" } },
-    { "L2 Cache Miss Ratio", { { "PAPI_L2_TCM", "PAPI_L2_TCA" }, "PAPI_L2_TCM / PAPI_L2_TCA" } },
-    { "L3 Cache Line Reuse (data)",  { { "PAPI_L2_DCM", "PAPI_L3_DCM" }, "( PAPI_L2_DCM - PAPI_L3_DCM ) / PAPI_L3_DCM" } },
-    { "L3 Cache Data Hit Rate", { { "PAPI_L3_DCM", "PAPI_L2_DCM"}, "1.0 - ( PAPI_L3_DCM / PAPI_L2_DCM )" } },
-    { "L3 Data Cache Miss Ratio", { { "PAPI_L3_DCM", "PAPI_L3_DCA" }, "PAPI_L3_DCM / PAPI_L3_DCA" } },
-    { "L3 Cache Data Read Ratio", { { "PAPI_L3_DCR", "PAPI_L3_DCA" }, "PAPI_L3_DCR / PAPI_L3_DCA" } },
-    { "L3 Cache Instruction Miss Ratio", { { "PAPI_L3_ICM", "PAPI_L3_ICR" }, "PAPI_L3_ICM / PAPI_L3_ICR" } },
-    { "% of Cycles Stalled on Memory Access", { { "PAPI_MEM_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_MEM_SCY / PAPI_TOT_CYC )" } },
-    { "% of Cycles Stalled on Any Resource", { { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
-    { "Ratio L1 Data Cache Miss to Total Cache Access", { { "PAPI_L1_DCM", "PAPI_L1_TCA" }, "PAPI_L1_DCM / PAPI_L1_TCA" } },
-    { "Ratio L2 Data Cache Miss to Total Cache Access", { { "PAPI_L2_DCM", "PAPI_L2_TCA" }, "PAPI_L2_DCM / PAPI_L2_TCA" } },
-    { "Ratio L3 Total Cache Miss to Data Cache Access", { { "PAPI_L3_TCM", "PAPI_L3_DCA" }, "PAPI_L3_TCM / PAPI_L3_DCA" } },
-    { "L3 Total Cache Miss Ratio", { { "PAPI_L3_TCM", "PAPI_L3_TCA" }, "PAPI_L3_TCM / PAPI_L3_TCA" } },
-    { "Ratio Mispredicted to Correctly Predicted Branches", { { "PAPI_BR_MSP", "PAPI_BR_PRC" }, "PAPI_BR_MSP / PAPI_BR_PRC" } } };
-
 const QString CUDA_EVENT_DETAILS_METRIC = QStringLiteral( "Details" );
 const QString TRACE_EVENT_DETAILS_METRIC = QStringLiteral( "Trace" );
 const QString ALL_EVENTS_DETAILS_VIEW = QStringLiteral( "All Events" );
@@ -4336,21 +4302,9 @@ void PerformanceDataManager::ShowSampleCountersDerivedMetricDetail(const QString
         configured.emplace( name );
     }
 
-    QStringList derivedMetricList;
+    const DerivedMetricsSolver solver;
 
-    for( auto iter = derived_definitions.begin(); iter != derived_definitions.end(); ++iter ) {
-        std::set<QString> derived( iter->second.events );  // get the next derived definition to match with configured set
-
-        std::set<QString> intersection;
-
-        std::set_intersection( configured.begin(), configured.end(),
-                               derived.begin(), derived.end(),
-                               std::inserter( intersection, intersection.begin() ) );
-
-        if ( derived == intersection ) {
-            derivedMetricList << iter->first;
-        }
-    }
+    QStringList derivedMetricList = solver.getDerivedMetricList( configured );
 
     const bool emitGraphItem = s_SAMPLING_EXPERIMENTS.contains( collectorId );
 
@@ -4378,8 +4332,6 @@ void PerformanceDataManager::ShowSampleCountersDerivedMetricDetail(const QString
 
         emit createGraphItems( clusteringCriteriaName, METRIC_VIEW_MODE, metricName, viewName, derivedMetricList, items );
     }
-
-    const DerivedMetricsSolver solver;
 
     for ( typename std::map< TS, std::map< Framework::Thread, std::map< Framework::StackTrace, DETAIL_t > > >::iterator iter = raw_items->begin(); iter != raw_items->end(); iter++ ) {
 
@@ -4413,7 +4365,7 @@ void PerformanceDataManager::ShowSampleCountersDerivedMetricDetail(const QString
         metricValues << totalTime;
 
         foreach ( const QString& key, derivedMetricList ) {
-            metricValues << solver.solve( derived_definitions[key].formula, totalSampleCount );
+            metricValues << solver.solve( key, totalSampleCount );
         }
 
         metricValues << locationName;

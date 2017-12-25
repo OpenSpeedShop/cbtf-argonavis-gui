@@ -33,6 +33,7 @@
 #include "SourceView/ModifyPathSubstitutionsDialog.h"
 #include "widgets/ShowDeviceDetailsDialog.h"
 #include "widgets/MetricViewFilterDialog.h"
+#include "widgets/DerivedMetricInformationDialog.h"
 
 #include <QStackedLayout>
 #include <QHeaderView>
@@ -184,6 +185,9 @@ PerformanceDataMetricView::PerformanceDataMetricView(QWidget *parent)
 
     // create metric view filters dialog
     m_metricViewFilterDialog = new MetricViewFilterDialog( this );
+
+    // create show derived metrics dialog
+    m_derivedMetricDialog = new DerivedMetricInformationDialog( this );
 
     // connect signal/slot for handling adding device information to show device details dialog
     connect( this, SIGNAL(signalAddDevice(quint32,quint32,NameValueList,NameValueList)), m_deviceDetailsDialog, SLOT(handleAddDevice(quint32,quint32,NameValueList,NameValueList)) );
@@ -1369,6 +1373,11 @@ void PerformanceDataMetricView::showContextMenu(const DetailsMenuTypes menuType,
     }
     else if ( DEFAULT_CONTEXT_MENU != menuType ) {
         return;
+    }
+
+    if ( ui->comboBox_ModeSelection->currentText() == s_derivedMetricModeName ) {
+        // if the current mode is "Derived Metrics" then add meuu item for showing derived metrics dialog
+        menu.addAction( tr("Show &Derived Metrics"), m_derivedMetricDialog, SLOT(exec()) );
     }
 
     // add menu items for default context menu (menu items common to all menu types)

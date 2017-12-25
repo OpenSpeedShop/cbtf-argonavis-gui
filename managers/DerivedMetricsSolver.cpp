@@ -30,6 +30,7 @@
 
 namespace ArgoNavis { namespace GUI {
 
+
 /**
  * @brief DerivedMetricsSolver::DerivedMetricsSolver
  * @param parent - the parent widget
@@ -38,8 +39,67 @@ namespace ArgoNavis { namespace GUI {
  */
 DerivedMetricsSolver::DerivedMetricsSolver(QObject *parent)
     : QObject( parent )
+    , m_derived_definitions(
+        { { "Instructions Per Cycle", { true, { "PAPI_TOT_INS", "PAPI_TOT_CYC" }, "PAPI_TOT_INS / PAPI_TOT_CYC" } },
+        { "Issued Instructions Per Cycle", { true, { "PAPI_TOT_IIS", "PAPI_TOT_CYC" }, "PAPI_TOT_IIS / PAPI_TOT_CYC" } },
+        { "FP Instructions Per Cycle", { true, { "PAPI_FP_INS", "PAPI_TOT_CYC" }, "PAPI_FP_INS / PAPI_TOT_CYC" } },
+        { "Percentage FP Instructions", { true, { "PAPI_FP_INS", "PAPI_TOT_INS" }, "PAPI_FP_INS / PAPI_TOT_INS" } },
+        { "Graduated Instructions / Issued Instructions", { true, { "PAPI_TOT_INS", "PAPI_TOT_IIS" }, "PAPI_FP_INS / PAPI_TOT_IIS" } },
+        { "% of Cycles with no instruction issue", { true, { "PAPI_STL_ICY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_ICY / PAPI_TOT_CYC )" } },
+        { "% of Cycles Waiting for Memory Access", { true, { "PAPI_STL_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_SCY / PAPI_TOT_CYC )" } },
+        { "% of Cycles Stalled on Any Resource", { true, { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
+        { "Data References Per Instruction", { true, { "PAPI_L1_DCA", "PAPI_TOT_INS" }, "PAPI_L1_DCA / PAPI_TOT_INS" } },
+        { "L1 Cache Line Reuse (data)", { true, { "PAPI_LST_INS", "PAPI_L1_DCM" }, "( PAPI_LST_INS - PAPI_L1_DCM ) / PAPI_L1_DCM" } },
+        { "L1 Cache Data Hit Rate", { true, { "PAPI_L1_DCM", "PAPI_LST_INS" }, "1.0 - ( PAPI_L1_DCM / PAPI_LST_INS )" } },
+        { "L1 Data Cache Read Miss Ratio", { true, { "PAPI_L1_DCM", "PAPI_L1_DCA" }, "PAPI_L1_DCM / PAPI_L1_DCA" } },
+        { "L2 Cache Line Reuse (data)",  { true, { "PAPI_L1_DCM", "PAPI_L2_DCM" }, "( PAPI_L1_DCM - PAPI_L2_DCM ) / PAPI_L2_DCM" } },
+        { "L2 Cache Data Hit Rate", { true, { "PAPI_L2_DCM", "PAPI_L1_DCM" }, "1.0 - ( PAPI_L2_DCM / PAPI_L1_DCM )" } },
+        { "L2 Cache Miss Ratio", { true, { "PAPI_L2_TCM", "PAPI_L2_TCA" }, "PAPI_L2_TCM / PAPI_L2_TCA" } },
+        { "L3 Cache Line Reuse (data)",  { true, { "PAPI_L2_DCM", "PAPI_L3_DCM" }, "( PAPI_L2_DCM - PAPI_L3_DCM ) / PAPI_L3_DCM" } },
+        { "L3 Cache Data Hit Rate", { true, { "PAPI_L3_DCM", "PAPI_L2_DCM"}, "1.0 - ( PAPI_L3_DCM / PAPI_L2_DCM )" } },
+        { "L3 Data Cache Miss Ratio", { true, { "PAPI_L3_DCM", "PAPI_L3_DCA" }, "PAPI_L3_DCM / PAPI_L3_DCA" } },
+        { "L3 Cache Data Read Ratio", { true, { "PAPI_L3_DCR", "PAPI_L3_DCA" }, "PAPI_L3_DCR / PAPI_L3_DCA" } },
+        { "L3 Cache Instruction Miss Ratio", { true, { "PAPI_L3_ICM", "PAPI_L3_ICR" }, "PAPI_L3_ICM / PAPI_L3_ICR" } },
+        { "% of Cycles Stalled on Memory Access", { true, { "PAPI_MEM_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_MEM_SCY / PAPI_TOT_CYC )" } },
+        { "% of Cycles Stalled on Any Resource", { true, { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
+        { "Ratio L1 Data Cache Miss to Total Cache Access", { true, { "PAPI_L1_DCM", "PAPI_L1_TCA" }, "PAPI_L1_DCM / PAPI_L1_TCA" } },
+        { "Ratio L2 Data Cache Miss to Total Cache Access", { true, { "PAPI_L2_DCM", "PAPI_L2_TCA" }, "PAPI_L2_DCM / PAPI_L2_TCA" } },
+        { "Ratio L3 Total Cache Miss to Data Cache Access", { true, { "PAPI_L3_TCM", "PAPI_L3_DCA" }, "PAPI_L3_TCM / PAPI_L3_DCA" } },
+        { "L3 Total Cache Miss Ratio", { true, { "PAPI_L3_TCM", "PAPI_L3_TCA" }, "PAPI_L3_TCM / PAPI_L3_TCA" } },
+        { "Ratio Mispredicted to Correctly Predicted Branches", { true, { "PAPI_BR_MSP", "PAPI_BR_PRC" }, "PAPI_BR_MSP / PAPI_BR_PRC" } } } )
 {
 
+}
+
+/**
+ * @brief DerivedMetricsSolver::getMatchingDerivedMetricList
+ * @param configured - the set of configured PAPI events
+ * @return - the list of derived metric names that can be computed with the data for the configured PAPI events
+ *
+ * The function determines the list of derived metrics that can be computed using data for the configured PAPI events.
+ */
+QStringList DerivedMetricsSolver::getDerivedMetricList(const std::set<QString> &configured) const
+{
+    QStringList derivedMetricList;
+
+    for( auto iter = m_derived_definitions.begin(); iter != m_derived_definitions.end(); ++iter ) {
+        if ( ! iter->second.enabled )  // skip disabled metrics
+            continue;
+
+        std::set<QString> derived( iter->second.events );  // get the next derived definition to match with configured set
+
+        std::set<QString> intersection;
+
+        std::set_intersection( configured.begin(), configured.end(),
+                               derived.begin(), derived.end(),
+                               std::inserter( intersection, intersection.begin() ) );
+
+        if ( derived == intersection ) {
+            derivedMetricList << iter->first;
+        }
+    }
+
+    return derivedMetricList;
 }
 
 /**
@@ -165,7 +225,7 @@ double DerivedMetricsSolver::evaluate(double lhs, double rhs, const QChar& op) c
 
 /**
  * @brief DerivedMetricsSolver::solveDerivedMetricFormula
- * @param formula - the derived metric formula
+ * @param key - the derived metric name
  * @param hwCounterValues - map container containing HW counter values (key is the PAPI event name)
  * @return - returns the result of solving the formula using the HW counter values supplied
  *
@@ -175,9 +235,15 @@ double DerivedMetricsSolver::evaluate(double lhs, double rhs, const QChar& op) c
  * the formula with real values to postfix (reverse polish notation).  The postfix vector is processed sequentially
  * to determine the final result.
  */
-double DerivedMetricsSolver::solve(const QString& formula, QMap< QString, qulonglong > hwCounterValues) const
+double DerivedMetricsSolver::solve(const QString& key, QMap< QString, qulonglong > hwCounterValues) const
 {
-    QString equation( formula );
+    if ( m_derived_definitions.find(key) == m_derived_definitions.end() )
+        return 0.0;
+
+    if ( ! m_derived_definitions[key].enabled )
+        return 0.0;
+
+    QString equation( m_derived_definitions[key].formula );
 
     // substitute actual HW Counter values for PAPI event names in formula
     for ( QMap< QString, qulonglong >::iterator iter = hwCounterValues.begin(); iter != hwCounterValues.end(); ++iter ) {
@@ -206,6 +272,30 @@ double DerivedMetricsSolver::solve(const QString& formula, QMap< QString, qulong
     }
 
     const double result = ( s.size() == 1 ) ? s.top() : 0.0;
+
+    return result;
+}
+
+/**
+ * @brief DerivedMetricsSolver::getDerivedMetricData
+ * @return - return a variant list containing the basic information regarding the derived metric
+ *
+ * This method returns a vector of variant lists for each derived metric containing the following information:
+ *     - the name /decription
+ *     - the formula
+ *     - whether currently enabled
+ */
+QVector<QVariantList> DerivedMetricsSolver::getDerivedMetricData() const
+{
+    QVector<QVariantList> result;
+
+    for( auto iter = m_derived_definitions.begin(); iter != m_derived_definitions.end(); ++iter ) {
+        QVariantList list;
+
+        list << iter->first << iter->second.formula << iter->second.enabled;
+
+        result << list;
+    }
 
     return result;
 }

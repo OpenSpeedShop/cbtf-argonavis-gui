@@ -213,7 +213,8 @@ SOURCES += \
     widgets/FilterExpressionValidator.cpp \
     widgets/PerformanceDataTimelineView.cpp \
     widgets/PerformanceDataGraphView.cpp \
-    managers/DerivedMetricsSolver.cpp
+    managers/DerivedMetricsSolver.cpp \
+    widgets/DerivedMetricInformationDialog.cpp
 
 greaterThan(QT_MAJOR_VERSION, 4): {
 # uncomment the following to produce XML dump of database
@@ -267,7 +268,8 @@ HEADERS += \
     widgets/FilterExpressionValidator.h \
     widgets/PerformanceDataTimelineView.h \
     widgets/PerformanceDataGraphView.h \
-    managers/DerivedMetricsSolver.h
+    managers/DerivedMetricsSolver.h \
+    widgets/DerivedMetricInformationDialog.h
 
 FORMS += main/mainwindow.ui \
     widgets/PerformanceDataMetricView.ui \
@@ -276,7 +278,8 @@ FORMS += main/mainwindow.ui \
     widgets/ShowDeviceDetailsDialog.ui \
     widgets/MetricViewFilterDialog.ui \
     widgets/PerformanceDataTimelineView.ui \
-    widgets/PerformanceDataGraphView.ui
+    widgets/PerformanceDataGraphView.ui \
+    widgets/DerivedMetricInformationDialog.ui
 
 RESOURCES += \
     openss-gui.qrc
