@@ -3,6 +3,8 @@
 
 #include <QDialog>
 
+#include <QSignalMapper>
+
 #include "common/openss-gui-config.h"
 
 
@@ -27,9 +29,15 @@ protected:
 
     void showEvent(QShowEvent *event) Q_DECL_OVERRIDE;
 
+private slots:
+
+    void handleCheckboxClicked(QWidget* widget);
+
 private:
 
     Ui::DerivedMetricInformationDialog *ui;
+
+    QSignalMapper* m_mapper;
 
 };
 

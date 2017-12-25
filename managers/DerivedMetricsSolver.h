@@ -54,6 +54,8 @@ public:
 
     QVector<QVariantList> getDerivedMetricData() const;
 
+    void setEnabled(const QString& key, bool enabled);
+
 private:
 
     bool isEqualPrecedence(const QString &op1, const QString &op2) const;
@@ -70,7 +72,7 @@ private:
         QString formula;
     } DerivedMetricDefinition;
 
-    mutable std::map< QString, DerivedMetricDefinition > m_derived_definitions;
+    static std::map< QString, DerivedMetricDefinition > m_derived_definitions;
 
 };
 

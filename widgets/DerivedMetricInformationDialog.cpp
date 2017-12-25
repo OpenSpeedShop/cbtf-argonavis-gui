@@ -19,6 +19,7 @@ namespace ArgoNavis { namespace GUI {
 DerivedMetricInformationDialog::DerivedMetricInformationDialog(QWidget *parent)
     : QDialog( parent )
     , ui( new Ui::DerivedMetricInformationDialog )
+    , m_mapper( nullptr )
 {
     ui->setupUi( this );
 }
@@ -51,6 +52,10 @@ void DerivedMetricInformationDialog::showEvent(QShowEvent *event)
         ui->tableWidget->removeRow( i );
     }
 
+    delete m_mapper;
+
+    m_mapper = new QSignalMapper;
+
     // construct derived metric solver on stack
     DerivedMetricsSolver solver;
 
@@ -71,12 +76,38 @@ void DerivedMetricInformationDialog::showEvent(QShowEvent *event)
 
             // construct and initialize checkbox and insert as last column item
             QCheckBox* checkbox = new QCheckBox;
+            checkbox->setObjectName( list[0].toString() );
             checkbox->setChecked( list[2].toBool() );
+
+            m_mapper->setMapping( checkbox, checkbox );
+            connect( checkbox, SIGNAL(clicked(bool)), m_mapper, SLOT(map()) );
 
             ui->tableWidget->setCellWidget( rowCount, 2, checkbox );
 
             ++rowCount;
         }
+    }
+
+    connect( m_mapper, SIGNAL(mapped(QWidget*)), this, SLOT(handleCheckboxClicked(QWidget*)) );
+}
+
+/**
+ * @brief DerivedMetricInformationDialog::handleCheckboxClicked
+ * @param widget - a QCheckBox instance
+ *
+ * This method handles QSignalMapper::mapped(QWidget*) signal.  First the QWidget instance
+ * is casted to a QCheckBox pointer.  Then a DerivedMetricsSolver is contructed and used
+ * to set the enabled state of the corresponding derived metric (key equals the 'objectName' property).
+ */
+void DerivedMetricInformationDialog::handleCheckboxClicked(QWidget *widget)
+{
+    QCheckBox* checkbox = qobject_cast<QCheckBox *>( widget );
+
+    if ( checkbox ) {
+        // construct derived metric solver on stack
+        DerivedMetricsSolver solver;
+
+        solver.setEnabled( checkbox->objectName(), checkbox->isChecked() );
     }
 }
 
