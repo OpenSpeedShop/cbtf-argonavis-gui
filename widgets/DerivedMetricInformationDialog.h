@@ -3,6 +3,9 @@
 
 #include <QDialog>
 
+#include "common/openss-gui-config.h"
+
+
 namespace Ui {
 class DerivedMetricInformationDialog;
 }
