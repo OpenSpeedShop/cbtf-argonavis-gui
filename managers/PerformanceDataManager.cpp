@@ -4302,9 +4302,12 @@ void PerformanceDataManager::ShowSampleCountersDerivedMetricDetail(const QString
         configured.emplace( name );
     }
 
-    const DerivedMetricsSolver solver;
+    const DerivedMetricsSolver* solver = DerivedMetricsSolver::instance();
 
-    QStringList derivedMetricList = solver.getDerivedMetricList( configured );
+    if ( solver == nullptr )
+        return;
+
+    QStringList derivedMetricList = solver->getDerivedMetricList( configured );
 
     const bool emitGraphItem = s_SAMPLING_EXPERIMENTS.contains( collectorId );
 
@@ -4365,7 +4368,7 @@ void PerformanceDataManager::ShowSampleCountersDerivedMetricDetail(const QString
         metricValues << totalTime;
 
         foreach ( const QString& key, derivedMetricList ) {
-            metricValues << solver.solve( key, totalSampleCount );
+            metricValues << solver->solve( key, totalSampleCount );
         }
 
         metricValues << locationName;

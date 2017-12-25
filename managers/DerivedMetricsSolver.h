@@ -36,6 +36,7 @@
 #include <map>
 #include <vector>
 #include <set>
+#include <QAtomicPointer>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -46,7 +47,9 @@ class DerivedMetricsSolver : public QObject
 
 public:
 
-    explicit DerivedMetricsSolver(QObject *parent = nullptr);
+    static DerivedMetricsSolver *instance();
+
+    static void destroy();
 
     QStringList getDerivedMetricList(const std::set<QString>& configured) const;
 
@@ -58,6 +61,8 @@ public:
 
 private:
 
+    explicit DerivedMetricsSolver(QObject *parent = nullptr);
+
     bool isEqualPrecedence(const QString &op1, const QString &op2) const;
     bool isHigherPrecedence(const QString &op1, const QString &op2) const;
     bool isLeftAssociative(const QString &op) const;
@@ -66,13 +71,17 @@ private:
 
     double evaluate(double lhs, double rhs, const QChar &op) const;
 
+private:
+
+    static QAtomicPointer< DerivedMetricsSolver > s_instance;
+
     typedef struct {
         bool enabled;
         std::set<QString> events;
         QString formula;
     } DerivedMetricDefinition;
 
-    static std::map< QString, DerivedMetricDefinition > m_derived_definitions;
+    mutable std::map< QString, DerivedMetricDefinition > m_derived_definitions;
 
 };
 

@@ -57,10 +57,10 @@ void DerivedMetricInformationDialog::showEvent(QShowEvent *event)
     m_mapper = new QSignalMapper;
 
     // construct derived metric solver on stack
-    DerivedMetricsSolver solver;
+    const DerivedMetricsSolver* solver = DerivedMetricsSolver::instance();
 
     // get the derived metric data
-    const QVector<QVariantList> data = solver.getDerivedMetricData();
+    const QVector<QVariantList> data = solver->getDerivedMetricData();
 
     int rowCount( 0 );
 
@@ -105,9 +105,9 @@ void DerivedMetricInformationDialog::handleCheckboxClicked(QWidget *widget)
 
     if ( checkbox ) {
         // construct derived metric solver on stack
-        DerivedMetricsSolver solver;
+        DerivedMetricsSolver* solver = DerivedMetricsSolver::instance();
 
-        solver.setEnabled( checkbox->objectName(), checkbox->isChecked() );
+        solver->setEnabled( checkbox->objectName(), checkbox->isChecked() );
     }
 }
 
