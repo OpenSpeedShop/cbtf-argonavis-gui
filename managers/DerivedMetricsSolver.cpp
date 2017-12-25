@@ -193,7 +193,7 @@ double DerivedMetricsSolver::solve(const QString& formula, QMap< QString, qulong
 
     QStack<double> s;
 
-    for ( int i=0; i<equationRPN.size(); ++i ) {
+    for ( std::size_t i=0; i<equationRPN.size(); ++i ) {
         const QString& top = equationRPN.at( i );
         if ( top == "+" || top == "-" || top == "*" || top == "/" ) {
             double op2 = s.pop();
