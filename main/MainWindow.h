@@ -41,6 +41,9 @@ class MainWindow;
 namespace ArgoNavis { namespace GUI {
 
 
+class DerivedMetricInformationDialog;
+
+
 /*!
  * \brief The MainWindow class
  */
@@ -82,6 +85,8 @@ private:
 private:
 
     Ui::MainWindow *ui;
+
+    DerivedMetricInformationDialog* m_derivedMetricDialog;
 
     QString m_filename;
     QString m_lastFilePath;

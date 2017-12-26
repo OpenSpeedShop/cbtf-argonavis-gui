@@ -205,7 +205,6 @@ private:
     ModifyPathSubstitutionsDialog* m_modifyPathsDialog;
     ShowDeviceDetailsDialog* m_deviceDetailsDialog;
     MetricViewFilterDialog* m_metricViewFilterDialog;
-    DerivedMetricInformationDialog* m_derivedMetricDialog;
 
 };
 

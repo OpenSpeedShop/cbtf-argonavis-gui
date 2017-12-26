@@ -26,6 +26,7 @@
 
 #include "managers/PerformanceDataManager.h"
 #include "managers/ApplicationOverrideCursorManager.h"
+#include "widgets/DerivedMetricInformationDialog.h"
 #include "SourceView/SourceView.h"
 
 #include "common/config.h"   // auto-generated config header
@@ -69,17 +70,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->scrollArea_MetricPlotView->setBackgroundRole( QPalette::Base );
 
+    // create show derived metrics dialog
+    m_derivedMetricDialog = new DerivedMetricInformationDialog( this );
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     connect( ui->actionLoad_OSS_Experiment, &QAction::triggered, this, &MainWindow::loadOpenSsExperiment );
     connect( ui->actionExit, &QAction::triggered, this, &MainWindow::shutdownApplication );
     connect( ui->actionView_Open_SpeedShop_Quick_Start_Guide, &QAction::triggered, this, &MainWindow::handleViewQuickStartGuide );
     connect( ui->actionView_Open_SpeedShop_Reference_Guide, &QAction::triggered, this, &MainWindow::handleViewReferenceGuide );
+    connect( ui->actionShow_Derived_Metrics, &QAction::triggered, m_derivedMetricDialog, &DerivedMetricInformationDialog::show );
     connect( ui->actionAbout, &QAction::triggered, this, &MainWindow::handleAbout );
 #else
     connect( ui->actionLoad_OSS_Experiment, SIGNAL(triggered(bool)), this, SLOT(loadOpenSsExperiment()) );
     connect( ui->actionExit, SIGNAL(triggered(bool)), this, SLOT(shutdownApplication()) );
     connect( ui->actionView_Open_SpeedShop_Quick_Start_Guide, SIGNAL(triggered(bool)), this, SLOT(handleViewQuickStartGuide()) );
     connect( ui->actionView_Open_SpeedShop_Reference_Guide, SIGNAL(triggered(bool)), this, SLOT(handleViewReferenceGuide()) );
+    connect( ui->actionShow_Derived_Metrics, SIGNAL(triggered(bool)), m_derivedMetricDialog, SLOT(show()) );
     connect( ui->actionAbout, SIGNAL(triggered(bool)), this, SLOT(handleAbout()) );
 #endif
 
