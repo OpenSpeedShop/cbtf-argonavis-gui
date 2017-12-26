@@ -203,7 +203,8 @@ bool DerivedMetricsSolver::isLeftAssociative(const QString& op) const
  * @param infix - the equal in infix order
  * @return - the equivalent equation in postfix (reverse polish notation) order
  *
- * This method converts an equation from infix to postfix (reverse polish notation) orde.
+ * This method converts an equation from infix to postfix (reverse polish notation) order.
+ * Edsger Dijkstra's "shunting-yard" algorithm is used - ref. "https://en.wikipedia.org/wiki/Shunting-yard_algorithm".
  */
 std::vector<QString> DerivedMetricsSolver::convertInfixToRPN(const QString& infix) const
 {
