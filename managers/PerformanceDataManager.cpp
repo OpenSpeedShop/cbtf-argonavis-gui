@@ -191,7 +191,7 @@ const QString DETAIL_METRIC = QStringLiteral( "detail" );
 const QString TIME_UNIT_MSEC = QStringLiteral( "(msec)" );
 const QString COUNTER_COUNT = QStringLiteral( "(count)" );
 
-QAtomicPointer< PerformanceDataManager > PerformanceDataManager::s_instance;
+QAtomicPointer< PerformanceDataManager > PerformanceDataManager::s_instance = nullptr;
 
 #if defined(HAS_OSSCUDA2XML)
 /**
