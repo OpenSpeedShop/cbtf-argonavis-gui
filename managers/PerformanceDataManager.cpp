@@ -96,6 +96,7 @@ namespace ArgoNavis { namespace GUI {
 
 QString PerformanceDataManager::s_percentageTitle( tr("% of Time") );
 QString PerformanceDataManager::s_timeTitle( tr("Time (msec)") );
+QString PerformanceDataManager::s_timeSecTitle( tr("Time (sec)") );
 QString PerformanceDataManager::s_functionTitle( tr("Function (defining location)") );
 QString PerformanceDataManager::s_minimumTitle( tr("Minimum (msec)") );
 QString PerformanceDataManager::s_minimumCountsTitle( tr("Minimum Counts") );
@@ -4241,7 +4242,7 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
         // generate each column of metric values
         QVariantList metricValues;
 
-        if ( metricDesc.contains( s_timeTitle ) ) {
+        if ( metricDesc.contains( s_timeSecTitle ) ) {
             metricValues << totalTime;
         }
 
@@ -4313,7 +4314,7 @@ void PerformanceDataManager::ShowSampleCountersDerivedMetricDetail(const QString
 
     QStringList metricDesc = derivedMetricList;
 
-    metricDesc.prepend( s_timeTitle );
+    metricDesc.prepend( s_timeSecTitle );
     metricDesc.append( s_functionTitle );
 
     // for details view emit signal to create just the model
@@ -4368,7 +4369,7 @@ void PerformanceDataManager::ShowSampleCountersDerivedMetricDetail(const QString
         metricValues << totalTime;
 
         foreach ( const QString& key, derivedMetricList ) {
-            metricValues << solver->solve( key, totalSampleCount );
+            metricValues << solver->solve( key, totalSampleCount, totalTime );
         }
 
         metricValues << locationName;

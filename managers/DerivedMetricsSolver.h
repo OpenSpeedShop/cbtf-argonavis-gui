@@ -53,7 +53,7 @@ public:
 
     QStringList getDerivedMetricList(const std::set<QString>& configured) const;
 
-    double solve(const QString &formula, QMap<QString, qulonglong> hwCounterValues) const;
+    double solve(const QString &formula, QMap<QString, qulonglong> hwCounterValues, double walltime) const;
 
     QVector<QVariantList> getDerivedMetricData() const;
 

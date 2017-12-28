@@ -69,7 +69,9 @@ DerivedMetricsSolver::DerivedMetricsSolver(QObject *parent)
           { "Ratio L2 Data Cache Miss to Total Cache Access", { true, { "PAPI_L2_DCM", "PAPI_L2_TCA" }, "PAPI_L2_DCM / PAPI_L2_TCA" } },
           { "Ratio L3 Total Cache Miss to Data Cache Access", { true, { "PAPI_L3_TCM", "PAPI_L3_DCA" }, "PAPI_L3_TCM / PAPI_L3_DCA" } },
           { "L3 Total Cache Miss Ratio", { true, { "PAPI_L3_TCM", "PAPI_L3_TCA" }, "PAPI_L3_TCM / PAPI_L3_TCA" } },
-          { "Ratio Mispredicted to Correctly Predicted Branches", { true, { "PAPI_BR_MSP", "PAPI_BR_PRC" }, "PAPI_BR_MSP / PAPI_BR_PRC" } } } )
+          { "Ratio Mispredicted to Correctly Predicted Branches", { true, { "PAPI_BR_MSP", "PAPI_BR_PRC" }, "PAPI_BR_MSP / PAPI_BR_PRC" } },
+          { "MFLOPS (effective)", { true, { "PAPI_FP_OPS" }, "( PAPI_FP_OPS / Walltime ) / 1000000.0" } },
+          { "MIPS (effective)", { true, { "PAPI_TOT_INS" }, "( PAPI_TOT_INS / Walltime ) / 1000000.0" } } } )
 {
 
 }
@@ -278,7 +280,7 @@ double DerivedMetricsSolver::evaluate(double lhs, double rhs, const QChar& op) c
  * the formula with real values to postfix (reverse polish notation).  The postfix vector is processed sequentially
  * to determine the final result.
  */
-double DerivedMetricsSolver::solve(const QString& key, QMap< QString, qulonglong > hwCounterValues) const
+double DerivedMetricsSolver::solve(const QString& key, QMap< QString, qulonglong > hwCounterValues, double walltime) const
 {
     if ( m_derived_definitions.find(key) == m_derived_definitions.end() )
         return 0.0;
@@ -292,6 +294,9 @@ double DerivedMetricsSolver::solve(const QString& key, QMap< QString, qulonglong
     for ( QMap< QString, qulonglong >::iterator iter = hwCounterValues.begin(); iter != hwCounterValues.end(); ++iter ) {
         equation.replace( iter.key(), QString::number( iter.value() ) );
     }
+
+    if ( equation.contains( QStringLiteral("Walltime") ) )
+        equation.replace( QStringLiteral("Walltime"), QString::number(walltime) );
 
     // check to make sure equation has all constant values and no more PAPI event names
     if ( equation.contains( QStringLiteral("PAPI") ) )

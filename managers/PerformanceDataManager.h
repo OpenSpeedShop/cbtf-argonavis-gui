@@ -349,7 +349,7 @@ private:
     QStringList getMetricsDesc() const { return QStringList(); }
 
     template <typename TS>
-    QStringList getMetricsDesc(const QStringList& eventNames) const { QStringList list( eventNames ); list.prepend( s_timeTitle ); list << s_functionTitle; return list; }
+    QStringList getMetricsDesc(const QStringList& eventNames) const { QStringList list( eventNames ); list.prepend( s_timeSecTitle ); list << s_functionTitle; return list; }
 
     template <typename DETAIL_t>
     void getTraceMetricValues(const QString& functionName, const OpenSpeedShop::Framework::Time::value_type time_origin, const DETAIL_t& details, QVector<QVariantList>& metricData);
@@ -460,6 +460,7 @@ private:
 
     static QString s_percentageTitle;
     static QString s_timeTitle;
+    static QString s_timeSecTitle;
     static QString s_functionTitle;
     static QString s_minimumTitle;
     static QString s_minimumCountsTitle;
