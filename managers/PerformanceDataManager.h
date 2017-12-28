@@ -460,6 +460,7 @@ private:
 
     static QString s_percentageTitle;
     static QString s_timeTitle;
+    static QString s_timeSecTitle;
     static QString s_functionTitle;
     static QString s_minimumTitle;
     static QString s_minimumCountsTitle;

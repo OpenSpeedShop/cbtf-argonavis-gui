@@ -34,6 +34,7 @@ namespace ArgoNavis { namespace GUI {
 
 
 const QString s_timeTitle = QStringLiteral("Time (msec)");
+const QString s_timeSecTitle = QStringLiteral("Time (sec)");
 const QString s_functionTitle = QStringLiteral("Function (defining location)");
 
 
@@ -122,7 +123,7 @@ void SourceViewMetricsCache::getSelectedMetricDetails(const QString& metricViewN
     if ( m_watchedMetricNames.contains( metricViewName ) ) {
         name = m_watchedMetricNames[ metricViewName ];
 
-        type = ( name == s_timeTitle ) ? QVariant::Double : QVariant::ULongLong;
+        type = ( name == s_timeTitle || name == s_timeSecTitle ) ? QVariant::Double : QVariant::ULongLong;
     }
     else {
         name = QString();
@@ -148,11 +149,12 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
 
     const QStringList PAPI_EVENT_LIST = metrics.filter( QStringLiteral("PAPI") );
 
-    if ( metrics.contains( s_functionTitle ) && ( metrics.contains( s_timeTitle ) || ! PAPI_EVENT_LIST.empty() ) ) {
+    if ( metrics.contains( s_functionTitle ) && ( metrics.contains( s_timeTitle ) || metrics.contains( s_timeSecTitle ) || ! PAPI_EVENT_LIST.empty() ) ) {
 
         const QString metricViewName = PerformanceDataMetricView::getMetricViewName( modeName, metricName, viewName );
 
         const int timeTitleIdx = metrics.indexOf( s_timeTitle );
+        const int timeSecTitleIdx = metrics.indexOf( s_timeSecTitle );
         const int functionTitleIdx = metrics.indexOf( s_functionTitle );
 
         QMap< QString, int > metricIndexes;
@@ -161,6 +163,10 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
 
         if ( timeTitleIdx != -1 ) {
             metricIndexes[ s_timeTitle ] = timeTitleIdx;
+        }
+
+        if ( timeSecTitleIdx != -1 ) {
+            metricIndexes[ s_timeSecTitle ] = timeSecTitleIdx;
         }
 
         foreach ( const QString& papiEventName, PAPI_EVENT_LIST ) {
@@ -179,6 +185,11 @@ void SourceViewMetricsCache::handleAddMetricView(const QString &clusteringCriter
         if ( timeTitleIdx != -1 ) {
             m_watchableMetricNames[ metricViewName ].insert( s_timeTitle );
             defaultSelectedMetric = s_timeTitle;
+        }
+
+        if ( timeSecTitleIdx != -1 ) {
+            m_watchableMetricNames[ metricViewName ].insert( s_timeSecTitle );
+            defaultSelectedMetric = s_timeSecTitle;
         }
 
         foreach ( const QString& event, PAPI_EVENT_LIST ) {

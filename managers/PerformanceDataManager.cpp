@@ -96,6 +96,7 @@ namespace ArgoNavis { namespace GUI {
 
 QString PerformanceDataManager::s_percentageTitle( tr("% of Time") );
 QString PerformanceDataManager::s_timeTitle( tr("Time (msec)") );
+QString PerformanceDataManager::s_timeSecTitle( tr("Time (sec)") );
 QString PerformanceDataManager::s_functionTitle( tr("Function (defining location)") );
 QString PerformanceDataManager::s_minimumTitle( tr("Minimum (msec)") );
 QString PerformanceDataManager::s_minimumCountsTitle( tr("Minimum Counts") );
@@ -3914,14 +3915,14 @@ QStringList PerformanceDataManager::getMetricsDesc<double>() const
 }
 
 /**
- * @brief PerformanceDataManager::getMetricsDesc<std::uint64_t>
- * @return - the metrics descriptions (names of columns for hwc-based load balance views of type uint64_t).
+ * @brief PerformanceDataManager::getMetricsDesc<qulonglong>
+ * @return - the metrics descriptions (names of columns for hwc-based load balance views of type qulonglong).
  *
- * This is a template specialization of the getMetricsDesc template for the std::uint64_t typename.
+ * This is a template specialization of the getMetricsDesc template for the qulonglong typename.
  * The function returns the names of columns for hwc-based load balance views of type std::uint64_t.
  */
 template <>
-QStringList PerformanceDataManager::getMetricsDesc<std::uint64_t>() const
+QStringList PerformanceDataManager::getMetricsDesc<qulonglong>() const
 {
     QStringList metricDesc;
 
@@ -3945,6 +3946,25 @@ QStringList PerformanceDataManager::getMetricsDesc<Framework::HWTimeDetail>(cons
     desc << s_functionTitle;
 
     return desc;
+}
+
+/**
+ * @brief PerformanceDataManager::getMetricsDesc<Framework::HWTimeDetail>
+ * @return - the metrics descriptions (names of columns for the hwctime metric view).
+ *
+ * This is a template specialization of the getMetricsDesc template for the OpenSpeedShop::Framework::HWTimeDetail typename.
+ * The function returns the names of columns for the hwctime metric view.
+ */
+template <>
+QStringList PerformanceDataManager::getMetricsDesc<std::vector<Framework::HWCSampDetail>>(const QStringList& eventNames) const
+{
+    QStringList list( eventNames );
+
+    list.prepend( s_timeSecTitle );
+
+    list << s_functionTitle;
+
+    return list;
 }
 
 /**
@@ -3978,7 +3998,7 @@ QStringList PerformanceDataManager::getMetricsDesc<std::uint64_t>(const QStringL
 {
     QStringList metricDesc( eventNames );
 
-    metricDesc << s_percentageTitle << s_functionTitle << s_minimumTitle << s_maximumTitle << s_meanTitle;
+    metricDesc << s_percentageTitle << s_functionTitle << s_minimumCountsTitle << s_maximumCountsTitle << s_meanCountsTitle;
 
     return metricDesc;
 }
@@ -4241,7 +4261,7 @@ void PerformanceDataManager::ShowSampleCountersDetail(const QString& clusteringC
         // generate each column of metric values
         QVariantList metricValues;
 
-        if ( metricDesc.contains( s_timeTitle ) ) {
+        if ( metricDesc.contains( s_timeSecTitle ) ) {
             metricValues << totalTime;
         }
 
@@ -4313,7 +4333,7 @@ void PerformanceDataManager::ShowSampleCountersDerivedMetricDetail(const QString
 
     QStringList metricDesc = derivedMetricList;
 
-    metricDesc.prepend( s_timeTitle );
+    metricDesc.prepend( s_timeSecTitle );
     metricDesc.append( s_functionTitle );
 
     // for details view emit signal to create just the model
