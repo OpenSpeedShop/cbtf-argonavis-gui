@@ -2,6 +2,11 @@
 #include "ui_ConfigureUserDerivedMetricsDialog.h"
 
 #include <QPushButton>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#include <QRegularExpression>
+#else
+#include <QRegExp>
+#endif
 
 
 namespace ArgoNavis { namespace GUI {
@@ -47,7 +52,11 @@ void ConfigureUserDerivedMetricsDialog::handleApplyButtonClicked()
 {
     if ( ( ! ui->lineEdit_NameDescription->text().isEmpty() ) && ( ! ui->lineEdit_Formula->text().isEmpty() ) ) {
         const QString formula = ui->lineEdit_Formula->text().simplified();
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
         const bool result = formula.contains( QRegularExpression("[^\\sA-Za-z0-9_/*-+()]") );
+#else
+        const bool result = formula.contains( QRegExp("[^\\sA-Za-z0-9_/*-+()]") );
+#endif
         if ( ! result ) {
             const QString name = ui->lineEdit_NameDescription->text().simplified();
             emit signalNewDerivedMetricDefined( name, formula, ui->checkBox_Enabled->isChecked() );

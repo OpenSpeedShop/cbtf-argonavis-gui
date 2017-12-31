@@ -95,6 +95,7 @@ void DerivedMetricInformation::setEnabled(bool enabled)
     m_enabled = enabled;
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 /**
  * @brief DerivedMetricInformation::read
  * @param json - the json object
@@ -128,6 +129,7 @@ void DerivedMetricInformation::write(QJsonObject &json) const
     json["formula"] = m_formula;
     json["enabled"] = m_enabled;
 }
+#endif
 
 
 } // GUI

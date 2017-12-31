@@ -3,7 +3,9 @@
 
 #include <QObject>
 #include <QString>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QJsonObject>
+#endif
 
 
 namespace ArgoNavis { namespace GUI {
@@ -27,8 +29,10 @@ public:
     bool enabled() const;
     void setEnabled(bool enabled);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     void read(const QJsonObject& json);
     void write(QJsonObject &json) const;
+#endif
 
 private:
 

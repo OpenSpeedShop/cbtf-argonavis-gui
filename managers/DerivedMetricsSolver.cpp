@@ -27,6 +27,11 @@
 
 #include <QStack>
 #include <QStringList>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#include <QRegularExpression>
+#else
+#include <QRegExp>
+#endif
 
 namespace ArgoNavis { namespace GUI {
 
@@ -370,7 +375,11 @@ bool DerivedMetricsSolver::insert(const QString &name, const QString &formula, b
     if ( m_derived_definitions.find(name) != m_derived_definitions.end() )
         return false;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     const QStringList list = formula.split( QRegularExpression("[^A-Za-z0-9_]"), QString::SkipEmptyParts );
+#else
+    const QStringList list = formula.split( QRegExp("[^A-Za-z0-9_]"), QString::SkipEmptyParts );
+#endif
 
     if ( list.isEmpty() )
         return false;

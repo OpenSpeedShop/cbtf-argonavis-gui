@@ -36,11 +36,13 @@ protected:
 
     void showEvent(QShowEvent *event) Q_DECL_OVERRIDE;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #ifndef QT_NO_CONTEXTMENU
 protected slots:
 
     void contextMenuEvent(QContextMenuEvent *event) Q_DECL_OVERRIDE;
 #endif // QT_NO_CONTEXTMENU
+#endif
 
 private slots:
 

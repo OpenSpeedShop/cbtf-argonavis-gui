@@ -10,8 +10,10 @@
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QFileDialog>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QJsonDocument>
 #include <QJsonArray>
+#endif
 
 
 namespace ArgoNavis { namespace GUI {
@@ -108,6 +110,7 @@ void DerivedMetricInformationDialog::showEvent(QShowEvent *event)
     connect( m_mapper, SIGNAL(mapped(QWidget*)), this, SLOT(handleCheckboxClicked(QWidget*)) );
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #ifndef QT_NO_CONTEXTMENU
 /**
  * @brief DerivedMetricInformationDialog::contextMenuEvent
@@ -125,6 +128,7 @@ void DerivedMetricInformationDialog::contextMenuEvent(QContextMenuEvent *event)
     menu.exec( event->globalPos() );
 }
 #endif // QT_NO_CONTEXTMENU
+#endif
 
 /**
  * @brief DerivedMetricInformationDialog::handleNewDerivedMetricDefined
@@ -179,6 +183,7 @@ void DerivedMetricInformationDialog::handleCheckboxClicked(QWidget *widget)
  */
 void DerivedMetricInformationDialog::handleLoadUserDefinedMetric()
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     const QString directoryPath = m_directoryPath.isEmpty() ? QApplication::applicationDirPath() : m_directoryPath;
 
     const QString fileName = QFileDialog::getOpenFileName( this, tr("Open User Derived Metrics XML File"), directoryPath, tr("XML Files (*.xml)") );
@@ -236,6 +241,7 @@ void DerivedMetricInformationDialog::handleLoadUserDefinedMetric()
             }
         }
     }
+#endif
 }
 
 /**
@@ -245,6 +251,7 @@ void DerivedMetricInformationDialog::handleLoadUserDefinedMetric()
  */
 void DerivedMetricInformationDialog::handleSaveUserDefinedMetric()
 {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
     if ( -1 == m_userDefinedStartIndex )
         return;
 
@@ -277,6 +284,7 @@ void DerivedMetricInformationDialog::handleSaveUserDefinedMetric()
 
         file.write( doc.toJson() );
     }
+#endif
 }
 
 

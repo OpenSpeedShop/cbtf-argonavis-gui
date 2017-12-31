@@ -37,7 +37,6 @@
 #include <vector>
 #include <set>
 #include <QAtomicPointer>
-#include <QRegularExpression>
 
 
 namespace ArgoNavis { namespace GUI {
