@@ -15,9 +15,9 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
+    <layout class="QHBoxLayout" name="horizontalLayout_TopSection">
      <item>
-      <spacer name="horizontalSpacer">
+      <spacer name="horizontalSpacer_LeftSIde">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -30,7 +30,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="label_DerivedMetricDefinitions">
        <property name="font">
         <font>
          <pointsize>16</pointsize>
@@ -42,7 +42,7 @@
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer_2">
+      <spacer name="horizontalSpacer_RightSide">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -57,7 +57,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QTableWidget" name="tableWidget">
+    <widget class="QTableWidget" name="tableWidget_DerivedMetricDefinitions">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
@@ -106,21 +106,35 @@
     </widget>
    </item>
    <item>
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_BottomSection">
+     <item>
+      <widget class="QPushButton" name="pushButton_ConfigureUserDefined">
+       <property name="text">
+        <string>Configure User Defined</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDialogButtonBox" name="buttonBox_DerivedMetricDefinitions">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="standardButtons">
+        <set>QDialogButtonBox::Ok</set>
+       </property>
+       <property name="centerButtons">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
  <resources/>
  <connections>
   <connection>
-   <sender>buttonBox</sender>
+   <sender>buttonBox_DerivedMetricDefinitions</sender>
    <signal>accepted()</signal>
    <receiver>DerivedMetricInformationDialog</receiver>
    <slot>accept()</slot>
@@ -136,7 +150,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>buttonBox</sender>
+   <sender>buttonBox_DerivedMetricDefinitions</sender>
    <signal>rejected()</signal>
    <receiver>DerivedMetricInformationDialog</receiver>
    <slot>reject()</slot>

@@ -345,16 +345,53 @@ QVector<QVariantList> DerivedMetricsSolver::getDerivedMetricData() const
 
 /**
  * @brief DerivedMetricsSolver::setEnabled
- * @param key - the derived metric name
+ * @param name - the derived metric name
  * @param enabled - whether derived metric is enabled/disabled
  *
  * This method sets the enabled state for the specified derived metric.
  */
-void DerivedMetricsSolver::setEnabled(const QString &key, bool enabled)
+void DerivedMetricsSolver::setEnabled(const QString &name, bool enabled)
 {
-    if ( m_derived_definitions.find(key) != m_derived_definitions.end() ) {
-        m_derived_definitions[key].enabled = enabled;
+    if ( m_derived_definitions.find(name) != m_derived_definitions.end() ) {
+        m_derived_definitions[name].enabled = enabled;
     }
+}
+
+/**
+ * @brief DerivedMetricsSolver::insert
+ * @param name - the derived metric name
+ * @param formula - the formula
+ * @param enabled - whether derived metric is enabled/disabled
+ *
+ * This method adds the derived metric if it isn't already in the database.
+ */
+bool DerivedMetricsSolver::insert(const QString &name, const QString &formula, bool enabled)
+{
+    if ( m_derived_definitions.find(name) != m_derived_definitions.end() )
+        return false;
+
+    const QStringList list = formula.split( QRegularExpression("[^A-Za-z0-9_]"), QString::SkipEmptyParts );
+
+    if ( list.isEmpty() )
+        return false;
+
+    DerivedMetricDefinition derivedMetric;
+
+    derivedMetric.enabled = enabled;
+    derivedMetric.formula = formula;
+
+    foreach (const QString& token, list) {
+        if ( token.startsWith( "PAPI_" ) ) {
+            derivedMetric.events.insert( token );
+        }
+    }
+
+    if ( derivedMetric.events.empty() )
+        return false;
+
+    m_derived_definitions[ name ] = derivedMetric;
+
+    return true;
 }
 
 } // GUI

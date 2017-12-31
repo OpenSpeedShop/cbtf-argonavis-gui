@@ -37,6 +37,7 @@
 #include <vector>
 #include <set>
 #include <QAtomicPointer>
+#include <QRegularExpression>
 
 
 namespace ArgoNavis { namespace GUI {
@@ -57,7 +58,9 @@ public:
 
     QVector<QVariantList> getDerivedMetricData() const;
 
-    void setEnabled(const QString& key, bool enabled);
+    void setEnabled(const QString& name, bool enabled);
+
+    bool insert(const QString& name, const QString& formula, bool enabled);
 
 private:
 
@@ -75,7 +78,7 @@ private:
 
     static QAtomicPointer< DerivedMetricsSolver > s_instance;
 
-    typedef struct {
+    typedef struct DerivedMetricDefinition {
         bool enabled;
         std::set<QString> events;
         QString formula;

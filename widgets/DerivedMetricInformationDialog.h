@@ -12,8 +12,15 @@ namespace Ui {
 class DerivedMetricInformationDialog;
 }
 
+#ifndef QT_NO_CONTEXTMENU
+class QContextMenuEvent;
+#endif
+
 
 namespace ArgoNavis { namespace GUI {
+
+
+class ConfigureUserDerivedMetricsDialog;
 
 
 class DerivedMetricInformationDialog : public QDialog
@@ -29,15 +36,30 @@ protected:
 
     void showEvent(QShowEvent *event) Q_DECL_OVERRIDE;
 
+#ifndef QT_NO_CONTEXTMENU
+protected slots:
+
+    void contextMenuEvent(QContextMenuEvent *event) Q_DECL_OVERRIDE;
+#endif // QT_NO_CONTEXTMENU
+
 private slots:
 
+    void handleNewDerivedMetricDefined(const QString& name, const QString& formula, bool enabled);
     void handleCheckboxClicked(QWidget* widget);
+    void handleLoadUserDefinedMetric();
+    void handleSaveUserDefinedMetric();
 
 private:
 
     Ui::DerivedMetricInformationDialog *ui;
 
+    ConfigureUserDerivedMetricsDialog* m_configureUserDerivedMetricsDialog;
+
     QSignalMapper* m_mapper;
+
+    int m_userDefinedStartIndex;
+
+    QString m_directoryPath;
 
 };
 
