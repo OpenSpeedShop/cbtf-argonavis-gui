@@ -48,33 +48,33 @@ QAtomicPointer< DerivedMetricsSolver > DerivedMetricsSolver::s_instance = nullpt
 DerivedMetricsSolver::DerivedMetricsSolver(QObject *parent)
     : QObject( parent )
     , m_derived_definitions(
-        { { "Instructions Per Cycle", { true, { "PAPI_TOT_INS", "PAPI_TOT_CYC" }, "PAPI_TOT_INS / PAPI_TOT_CYC" } },
-          { "Issued Instructions Per Cycle", { true, { "PAPI_TOT_IIS", "PAPI_TOT_CYC" }, "PAPI_TOT_IIS / PAPI_TOT_CYC" } },
-          { "FP Instructions Per Cycle", { true, { "PAPI_FP_INS", "PAPI_TOT_CYC" }, "PAPI_FP_INS / PAPI_TOT_CYC" } },
-          { "Percentage FP Instructions", { true, { "PAPI_FP_INS", "PAPI_TOT_INS" }, "PAPI_FP_INS / PAPI_TOT_INS" } },
-          { "Graduated Instructions / Issued Instructions", { true, { "PAPI_TOT_INS", "PAPI_TOT_IIS" }, "PAPI_FP_INS / PAPI_TOT_IIS" } },
-          { "% of Cycles with no instruction issue", { true, { "PAPI_STL_ICY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_ICY / PAPI_TOT_CYC )" } },
-          { "% of Cycles Waiting for Memory Access", { true, { "PAPI_STL_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_SCY / PAPI_TOT_CYC )" } },
-          { "% of Cycles Stalled on Any Resource", { true, { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
-          { "Data References Per Instruction", { true, { "PAPI_L1_DCA", "PAPI_TOT_INS" }, "PAPI_L1_DCA / PAPI_TOT_INS" } },
-          { "L1 Cache Line Reuse (data)", { true, { "PAPI_LST_INS", "PAPI_L1_DCM" }, "( PAPI_LST_INS - PAPI_L1_DCM ) / PAPI_L1_DCM" } },
-          { "L1 Cache Data Hit Rate", { true, { "PAPI_L1_DCM", "PAPI_LST_INS" }, "1.0 - ( PAPI_L1_DCM / PAPI_LST_INS )" } },
-          { "L1 Data Cache Read Miss Ratio", { true, { "PAPI_L1_DCM", "PAPI_L1_DCA" }, "PAPI_L1_DCM / PAPI_L1_DCA" } },
-          { "L2 Cache Line Reuse (data)",  { true, { "PAPI_L1_DCM", "PAPI_L2_DCM" }, "( PAPI_L1_DCM - PAPI_L2_DCM ) / PAPI_L2_DCM" } },
-          { "L2 Cache Data Hit Rate", { true, { "PAPI_L2_DCM", "PAPI_L1_DCM" }, "1.0 - ( PAPI_L2_DCM / PAPI_L1_DCM )" } },
-          { "L2 Cache Miss Ratio", { true, { "PAPI_L2_TCM", "PAPI_L2_TCA" }, "PAPI_L2_TCM / PAPI_L2_TCA" } },
-          { "L3 Cache Line Reuse (data)",  { true, { "PAPI_L2_DCM", "PAPI_L3_DCM" }, "( PAPI_L2_DCM - PAPI_L3_DCM ) / PAPI_L3_DCM" } },
-          { "L3 Cache Data Hit Rate", { true, { "PAPI_L3_DCM", "PAPI_L2_DCM"}, "1.0 - ( PAPI_L3_DCM / PAPI_L2_DCM )" } },
-          { "L3 Data Cache Miss Ratio", { true, { "PAPI_L3_DCM", "PAPI_L3_DCA" }, "PAPI_L3_DCM / PAPI_L3_DCA" } },
-          { "L3 Cache Data Read Ratio", { true, { "PAPI_L3_DCR", "PAPI_L3_DCA" }, "PAPI_L3_DCR / PAPI_L3_DCA" } },
-          { "L3 Cache Instruction Miss Ratio", { true, { "PAPI_L3_ICM", "PAPI_L3_ICR" }, "PAPI_L3_ICM / PAPI_L3_ICR" } },
-          { "% of Cycles Stalled on Memory Access", { true, { "PAPI_MEM_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_MEM_SCY / PAPI_TOT_CYC )" } },
-          { "% of Cycles Stalled on Any Resource", { true, { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
-          { "Ratio L1 Data Cache Miss to Total Cache Access", { true, { "PAPI_L1_DCM", "PAPI_L1_TCA" }, "PAPI_L1_DCM / PAPI_L1_TCA" } },
-          { "Ratio L2 Data Cache Miss to Total Cache Access", { true, { "PAPI_L2_DCM", "PAPI_L2_TCA" }, "PAPI_L2_DCM / PAPI_L2_TCA" } },
-          { "Ratio L3 Total Cache Miss to Data Cache Access", { true, { "PAPI_L3_TCM", "PAPI_L3_DCA" }, "PAPI_L3_TCM / PAPI_L3_DCA" } },
-          { "L3 Total Cache Miss Ratio", { true, { "PAPI_L3_TCM", "PAPI_L3_TCA" }, "PAPI_L3_TCM / PAPI_L3_TCA" } },
-          { "Ratio Mispredicted to Correctly Predicted Branches", { true, { "PAPI_BR_MSP", "PAPI_BR_PRC" }, "PAPI_BR_MSP / PAPI_BR_PRC" } } } )
+        { { "Instructions Per Cycle", { true, false, { "PAPI_TOT_INS", "PAPI_TOT_CYC" }, "PAPI_TOT_INS / PAPI_TOT_CYC" } },
+          { "Issued Instructions Per Cycle", { true, false, { "PAPI_TOT_IIS", "PAPI_TOT_CYC" }, "PAPI_TOT_IIS / PAPI_TOT_CYC" } },
+          { "FP Instructions Per Cycle", { true, false, { "PAPI_FP_INS", "PAPI_TOT_CYC" }, "PAPI_FP_INS / PAPI_TOT_CYC" } },
+          { "Percentage FP Instructions", { true, false, { "PAPI_FP_INS", "PAPI_TOT_INS" }, "PAPI_FP_INS / PAPI_TOT_INS" } },
+          { "Graduated Instructions / Issued Instructions", { true, false, { "PAPI_TOT_INS", "PAPI_TOT_IIS" }, "PAPI_FP_INS / PAPI_TOT_IIS" } },
+          { "% of Cycles with no instruction issue", { true, false, { "PAPI_STL_ICY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_ICY / PAPI_TOT_CYC )" } },
+          { "% of Cycles Waiting for Memory Access", { true, false, { "PAPI_STL_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_STL_SCY / PAPI_TOT_CYC )" } },
+          { "% of Cycles Stalled on Any Resource", { true, false, { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
+          { "Data References Per Instruction", { true, false, { "PAPI_L1_DCA", "PAPI_TOT_INS" }, "PAPI_L1_DCA / PAPI_TOT_INS" } },
+          { "L1 Cache Line Reuse (data)", { true, false, { "PAPI_LST_INS", "PAPI_L1_DCM" }, "( PAPI_LST_INS - PAPI_L1_DCM ) / PAPI_L1_DCM" } },
+          { "L1 Cache Data Hit Rate", { true, false, { "PAPI_L1_DCM", "PAPI_LST_INS" }, "1.0 - ( PAPI_L1_DCM / PAPI_LST_INS )" } },
+          { "L1 Data Cache Read Miss Ratio", { true, false, { "PAPI_L1_DCM", "PAPI_L1_DCA" }, "PAPI_L1_DCM / PAPI_L1_DCA" } },
+          { "L2 Cache Line Reuse (data)",  { true, false, { "PAPI_L1_DCM", "PAPI_L2_DCM" }, "( PAPI_L1_DCM - PAPI_L2_DCM ) / PAPI_L2_DCM" } },
+          { "L2 Cache Data Hit Rate", { true, false, { "PAPI_L2_DCM", "PAPI_L1_DCM" }, "1.0 - ( PAPI_L2_DCM / PAPI_L1_DCM )" } },
+          { "L2 Cache Miss Ratio", { true, false, { "PAPI_L2_TCM", "PAPI_L2_TCA" }, "PAPI_L2_TCM / PAPI_L2_TCA" } },
+          { "L3 Cache Line Reuse (data)",  { true, false, { "PAPI_L2_DCM", "PAPI_L3_DCM" }, "( PAPI_L2_DCM - PAPI_L3_DCM ) / PAPI_L3_DCM" } },
+          { "L3 Cache Data Hit Rate", { true, false, { "PAPI_L3_DCM", "PAPI_L2_DCM"}, "1.0 - ( PAPI_L3_DCM / PAPI_L2_DCM )" } },
+          { "L3 Data Cache Miss Ratio", { true, false, { "PAPI_L3_DCM", "PAPI_L3_DCA" }, "PAPI_L3_DCM / PAPI_L3_DCA" } },
+          { "L3 Cache Data Read Ratio", { true, false, { "PAPI_L3_DCR", "PAPI_L3_DCA" }, "PAPI_L3_DCR / PAPI_L3_DCA" } },
+          { "L3 Cache Instruction Miss Ratio", { true, false, { "PAPI_L3_ICM", "PAPI_L3_ICR" }, "PAPI_L3_ICM / PAPI_L3_ICR" } },
+          { "% of Cycles Stalled on Memory Access", { true, false, { "PAPI_MEM_SCY", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_MEM_SCY / PAPI_TOT_CYC )" } },
+          { "% of Cycles Stalled on Any Resource", { true, false, { "PAPI_RES_STL", "PAPI_TOT_CYC" }, "100.0 * ( PAPI_RES_STL / PAPI_TOT_CYC )" } },
+          { "Ratio L1 Data Cache Miss to Total Cache Access", { true, false, { "PAPI_L1_DCM", "PAPI_L1_TCA" }, "PAPI_L1_DCM / PAPI_L1_TCA" } },
+          { "Ratio L2 Data Cache Miss to Total Cache Access", { true, false, { "PAPI_L2_DCM", "PAPI_L2_TCA" }, "PAPI_L2_DCM / PAPI_L2_TCA" } },
+          { "Ratio L3 Total Cache Miss to Data Cache Access", { true, false, { "PAPI_L3_TCM", "PAPI_L3_DCA" }, "PAPI_L3_TCM / PAPI_L3_DCA" } },
+          { "L3 Total Cache Miss Ratio", { true, false, { "PAPI_L3_TCM", "PAPI_L3_TCA" }, "PAPI_L3_TCM / PAPI_L3_TCA" } },
+          { "Ratio Mispredicted to Correctly Predicted Branches", { true, false, { "PAPI_BR_MSP", "PAPI_BR_PRC" }, "PAPI_BR_MSP / PAPI_BR_PRC" } } } )
 {
 
 }
@@ -388,6 +388,7 @@ bool DerivedMetricsSolver::insert(const QString &name, const QString &formula, b
 
     derivedMetric.enabled = enabled;
     derivedMetric.formula = formula;
+    derivedMetric.isUser = true;
 
     foreach (const QString& token, list) {
         if ( token.startsWith( "PAPI_" ) ) {
@@ -401,6 +402,33 @@ bool DerivedMetricsSolver::insert(const QString &name, const QString &formula, b
     m_derived_definitions[ name ] = derivedMetric;
 
     return true;
+}
+
+/**
+ * @brief DerivedMetricsSolver::get
+ * @param index - index of user-defined derived metric to get information about
+ * @param name - return the name of the user-defined derived metric
+ * @param formula - return the formula for the user-defined derived metric
+ * @param enabled - return whether the user-defined derived metric is enabled
+ * @return - if the requested user-defined metric has been found and information returned
+ *
+ * This method returns data on the requested user-defined metric.
+ */
+bool DerivedMetricsSolver::getUserDefined(std::size_t index, QString &name, QString &formula, bool& enabled)
+{
+    if ( index < m_derived_definitions.size() ) {
+        std::size_t count(0);
+        for( auto iter = m_derived_definitions.begin(); iter != m_derived_definitions.end(); ++iter ) {
+            if ( iter->second.isUser && ( count++ == index ) ) {
+                name = iter->first;
+                formula = iter->second.formula;
+                enabled = iter->second.enabled;
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 } // GUI

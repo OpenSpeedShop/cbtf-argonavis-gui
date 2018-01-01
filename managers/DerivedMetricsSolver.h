@@ -60,6 +60,7 @@ public:
     void setEnabled(const QString& name, bool enabled);
 
     bool insert(const QString& name, const QString& formula, bool enabled);
+    bool getUserDefined(std::size_t index, QString& name, QString& formula, bool& enabled);
 
 private:
 
@@ -79,6 +80,7 @@ private:
 
     typedef struct DerivedMetricDefinition {
         bool enabled;
+        bool isUser;
         std::set<QString> events;
         QString formula;
     } DerivedMetricDefinition;

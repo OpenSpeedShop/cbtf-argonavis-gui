@@ -262,18 +262,25 @@ void DerivedMetricInformationDialog::handleSaveUserDefinedMetric()
     QFile file( fileName );
 
     if ( file.open( QIODevice::WriteOnly|QIODevice::Truncate ) ) {
+
+        // construct derived metric solver on stack
+        DerivedMetricsSolver* solver = DerivedMetricsSolver::instance();
+
         QJsonArray array;
 
         for ( int i=m_userDefinedStartIndex; i<ui->tableWidget_DerivedMetricDefinitions->rowCount(); ++i ) {
-            const QString name =  ui->tableWidget_DerivedMetricDefinitions->item( i, 0 )->data( Qt::DisplayRole ).toString();
-            const QString formula =  ui->tableWidget_DerivedMetricDefinitions->item( i, 1 )->data( Qt::DisplayRole ).toString();
+            QString name;
+            QString formula;
+            bool enabled;
 
-            DerivedMetricInformation info( name, formula, true );
+            if ( solver->getUserDefined( i-m_userDefinedStartIndex, name, formula, enabled ) ) {
+                DerivedMetricInformation info( name, formula, enabled );
 
-            QJsonObject element;
-            info.write( element );
+                QJsonObject element;
+                info.write( element );
 
-            array.append( element );
+                array.append( element );
+            }
         }
 
         QJsonObject root;
