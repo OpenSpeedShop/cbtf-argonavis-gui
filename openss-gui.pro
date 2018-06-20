@@ -83,7 +83,18 @@ exists($$KRELL_ROOT_XERCES/$$ALT_BUILDLIB): LIBS += -L$$KRELL_ROOT_XERCES/$$ALT_
 exists($$KRELL_ROOT_XERCES/$$BUILDLIB): LIBS += -L$$KRELL_ROOT_XERCES/$$BUILDLIB
 exists($$KRELL_ROOT_XERCES/$$ALT_BUILDLIB): LIBS += -Wl,-rpath $$KRELL_ROOT_XERCES/$$ALT_BUILDLIB
 exists($$KRELL_ROOT_XERCES/$$BUILDLIB): LIBS += -Wl,-rpath $$KRELL_ROOT_XERCES/$$BUILDLIB
-LIBS += -lxerces-c-3.1
+exists( $$KRELL_ROOT_XERCES/$$ALT_BUILDLIB/libxerces-c-3.1* ) {
+      LIBS += -lxerces-c-3.1
+}
+exists( $$KRELL_ROOT_XERCES/$$BUILDLIB/libxerces-c-3.1* ) {
+      LIBS += -lxerces-c-3.1
+}
+exists( $$KRELL_ROOT_XERCES/$$ALT_BUILDLIB/libxerces-c-3.2* ) {
+      LIBS += -lxerces-c-3.2
+}
+exists( $$KRELL_ROOT_XERCES/$$BUILDLIB/libxerces-c-3.2* ) {
+      LIBS += -lxerces-c-3.2
+}
 
 exists($$KRELL_ROOT_MRNET/$$ALT_BUILDLIB): LIBS += -L$$KRELL_ROOT_MRNET/$$ALT_BUILDLIB
 exists($$KRELL_ROOT_MRNET/$$BUILDLIB): LIBS += -L$$KRELL_ROOT_MRNET/$$BUILDLIB
