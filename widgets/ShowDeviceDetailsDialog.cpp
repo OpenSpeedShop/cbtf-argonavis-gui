@@ -25,6 +25,7 @@
 #include "ui_ShowDeviceDetailsDialog.h"
 
 #include <QMutexLocker>
+#include <QAction>
 
 #include <limits>
 
